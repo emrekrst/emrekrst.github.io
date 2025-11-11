@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emre Karausta - EEE Portfolio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Dark gray background */
+            color: #E5E7EB; /* Light gray text */
+        }
+        .filter-btn {
+            @apply px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 rounded-full cursor-pointer hover:bg-indigo-600 hover:text-white transition-all duration-200;
+        }
+        .filter-btn.active {
+            @apply bg-indigo-600 text-white shadow-lg;
+        }
+        .project-card {
+            @apply bg-gray-800 rounded-2xl shadow-xl overflow-hidden transition-transform duration-300 hover:scale-105 flex flex-col;
+        }
+        .project-card-content {
+            @apply p-6 flex-grow;
+        }
+        .mini-project-card {
+            @apply bg-gray-800 rounded-lg shadow-lg p-4 transition-all duration-300;
+            /* We will toggle 'hidden' class with JS */
+        }
+        .section-title {
+            @apply text-3xl font-bold tracking-tight text-white sm:text-4xl mb-4;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header / Navbar -->
+    <header class="sticky top-0 z-50 bg-gray-800/90 backdrop-blur-md shadow-lg">
+        <nav class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex-shrink-0">
+                    <span class="text-2xl font-bold text-white">Emre Karausta</span>
+                </div>
+                <div class="hidden sm:flex sm:space-x-8">
+                    <a href="#about" class="text-gray-300 hover:text-indigo-400 px-3 py-2 rounded-md text-sm font-medium">About</a>
+                    <a href="#featured-projects" class="text-gray-300 hover:text-indigo-400 px-3 py-2 rounded-md text-sm font-medium">Featured Projects</a>
+                    <a href="#project-library" class="text-gray-300 hover:text-indigo-400 px-3 py-2 rounded-md text-sm font-medium">Project Library</a>
+                    <a href="#skills" class="text-gray-300 hover:text-indigo-400 px-3 py-2 rounded-md text-sm font-medium">Skills</a>
+                    <a href="#contact" class="text-gray-300 hover:text-indigo-400 px-3 py-2 rounded-md text-sm font-medium">Contact</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+
+        <!-- Hero Section -->
+        <section id="hero" class="text-center py-16">
+            <h1 class="text-4xl sm:text-6xl font-extrabold text-white leading-tight">
+                Hi, I'm <span class="text-indigo-400">Emre Karausta</span>
+            </h1>
+            <p class="mt-4 text-xl sm:text-2xl text-gray-300 max-w-3xl mx-auto">
+                An Electrical & Electronic Engineering student at the University of Southampton with a passion for hardware design and embedded systems.
+            </p>
+            <div class="mt-8 flex justify-center gap-4">
+                <a href="mailto:emrekarausta1903@gmail.com" class="px-8 py-3 bg-indigo-600 text-white font-medium rounded-full shadow-lg hover:bg-indigo-700 transition-colors">Get in Touch</a>
+                <a href="#featured-projects" class="px-8 py-3 bg-gray-700 text-gray-300 font-medium rounded-full shadow-lg hover:bg-gray-600 transition-colors">View My Work</a>
+            </div>
+        </section>
+
+        <!-- About Me -->
+        <section id="about" class="py-16">
+            <div class="text-center">
+                <h2 class="section-title">About Me</h2>
+            </div>
+            <div class="mt-8 max-w-3xl mx-auto text-lg text-gray-300 space-y-4 text-center">
+                <p>
+                    I'm a BEng Electrical & Electronic Engineering student (Upper Second-Class Honours) at the University of Southampton. I thrive on solving complex problems, from designing FPGA-based microprocessors to developing and testing electronics for the Formula Student team.
+                </p>
+                <p>
+                    My experience includes SystemVerilog, C/C++, PCB design with KiCad, and a wide range of simulation tools. I'm driven by the challenge of building reliable, efficient hardware and software systems from the ground up.
+                </p>
+            </div>
+        </section>
+
+        <!-- Featured Projects -->
+        <section id="featured-projects" class="py-16">
+            <div class="text-center">
+                <h2 class="section-title">Featured Projects</h2>
+                <p class="mt-2 text-lg text-gray-400">Here are a few highlights of my work.
+                </p>
+            </div>
+            
+            <div class="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                
+                <!-- Featured Project 1: Formula Student -->
+                <div class="project-card">
+                    <img src="https://placehold.co/600x400/1F2937/E5E7EB?text=Formula+Student" 
+                         onerror="this.src='https://placehold.co/600x400/1F2937/E5E7EB?text=Formula+Student+Logo'"
+                         alt="Formula Student Project" class="w-full h-48 object-cover">
+                    <div class="project-card-content">
+                        <h3 class="text-xl font-semibold text-white mb-2">Southampton University Formula Student Team</h3>
+                        <p class="text-gray-300 mb-4 text-sm">
+                            As part of the electronics testing team, I develop and test hardware test rigs for the Formula Student car. This involves PCB design, signal simulation, fault testing, and documentation to verify subsystem functionality and ensure reliable system integration.
+                        </p>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <span class="px-3 py-1 bg-red-600 text-white text-xs font-medium rounded-full">KiCad</span>
+                            <span class="px-3 py-1 bg-red-600 text-white text-xs font-medium rounded-full">PCB Design</span>
+                            <span class="px-3 py-1 bg-red-600 text-white text-xs font-medium rounded-full">Electronics Testing</span>
+                            <span class="px-3 py-1 bg-red-600 text-white text-xs font-medium rounded-full">Fault Finding</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Featured Project 2: Autonomous Vehicle -->
+                <div class="project-card">
+                    <img src="https://placehold.co/600x400/1F2937/E5E7EB?text=Autonomous+Vehicle" 
+                         onerror="this.src='https://placehold.co/600x400/1F2937/E5E7EB?text=Autonomous+Vehicle+Power+System'"
+                         alt="Autonomous Vehicle Project" class="w-full h-48 object-cover">
+                    <div class="project-card-content">
+                        <h3 class="text-xl font-semibold text-white mb-2">Autonomous Vehicle Power System Design</h3>
+                        <p class="text-gray-300 mb-4 text-sm">
+                            Designed and validated a safe, high-reliability power system for an autonomous vehicle. This involved extensive research, rigorous electronics lab testing, and close collaboration with the mechanical and autonomy teams to ensure successful system integration.
+                        </p>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <span class="px-3 py-1 bg-indigo-500 text-white text-xs font-medium rounded-full">Power Systems</span>
+                            <span class="px-3 py-1 bg-indigo-500 text-white text-xs font-medium rounded-full">Safety Testing</span>
+                            <span class="px-3 py-1 bg-indigo-500 text-white text-xs font-medium rounded-full">System Integration</span>
+                            <span class="px-3 py-1 bg-indigo-500 text-white text-xs font-medium rounded-full">Lab Testing</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Featured Project 3: PCB ID Scanner -->
+                <div class="project-card">
+                    <img src="https://placehold.co/600x400/1F2937/E5E7EB?text=PCB+ID+Scanner" 
+                         onerror="this.src='https://placehold.co/600x400/1F2937/E5E7EB?text=PCB+ID+Scanner'"
+                         alt="PCB ID Scanner" class="w-full h-48 object-cover">
+                    <div class="project-card-content">
+                        <h3 class="text-xl font-semibold text-white mb-2">Mixed-Signal PCB ID Scanner (X25)</h3>
+                        <p class="text-gray-300 mb-4 text-sm">
+                            Designed, fabricated, and assembled a mixed-signal PCB to scan and display student IDs. Compared hardware performance against Multisim benchmarks, achieving a &lt;1% error rate in ID recognition and 95% accuracy in analog/digital integration.
+                        </p>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <span class="px-3 py-1 bg-green-500 text-white text-xs font-medium rounded-full">KiCad</span>
+                            <span class="px-3 py-1 bg-green-500 text-white text-xs font-medium rounded-full">Multisim</span>
+                            <span class="px-3 py-1 bg-green-500 text-white text-xs font-medium rounded-full">PCB Fabrication</span>
+                            <span class="px-3 py-1 bg-green-500 text-white text-xs font-medium rounded-full">Mixed-Signal</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- Project Library -->
+        <section id="project-library" class="py-16">
+            <div class="text-center">
+                <h2 class="section-title">Full Project Library</h2>
+                <p class="mt-2 text-lg text-gray-400 max-w-2xl mx-auto">
+                    A filterable library of my university projects, labs, and personal explorations, categorized by technical domain.
+                </p>
+            </div>
+
+            <!-- Filter Buttons: UPDATED TO YOUR CATEGORIES -->
+            <div id="filter-container" class="flex flex-wrap justify-center gap-2 sm:gap-4 my-8">
+                <button class="filter-btn active" data-filter="all">All Projects</button>
+                <button class="filter-btn" data-filter="fpga">FPGA & Digital Design</button>
+                <button class="filter-btn" data-filter="embedded">Embedded Systems</button>
+                <button class="filter-btn" data-filter="pcb">PCB & Mixed-Signal</button>
+                <button class="filter-btn" data-filter="analog">Analog Electronics</button>
+                <button class="filter-btn" data-filter="control">Control Systems</button>
+                <button class="filter-btn" data-filter="software">Software & Simulation</button>
+            </div>
+
+            <!-- Mini-Projects Grid: PRE-FILLED WITH YOUR PROJECTS -->
+            <!-- Add all your other projects here. Just copy/paste a card and change the data-category -->
+            <div id="mini-project-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                
+                <!-- Project 1 -->
+                <div class="mini-project-card" data-category="fpga">
+                    <h4 class="font-semibold text-white">Microprocessor Encryption Design (D11)</h4>
+                    <p class="text-sm text-gray-400 mb-2">Altered DE1-SoC instruction set with SystemVerilog to add custom XOR opcode for encryption.</p>
+                    <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a>
+                </div>
+                <!-- Project 2 -->
+                <div class="mini-project-card" data-category="fpga">
+                    <h4 class="font-semibold text-white">Bidirectional Bus System (T14)</h4>
+                    <p class="text-sm text-gray-400 mb-2">Built a tristate logic bus on FPGA using SystemVerilog to eliminate data contention.</p>
+                    <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a>
+                </div>
+                <!-- Project 3 -->
+                <div class="mini-project-card" data-category="embedded">
+                    <h4 class="font-semibold text-white">Interrupt-Driven Embedded System (C10)</h4>
+                    <p class="text-sm text-gray-400 mb-2">Converted polling code to interrupt-driven on Il Matto board, improving response time by 20%.</p>
+                    <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a>
+                </div>
+                <!-- Project 4 -->
+                <div class="mini-project-card" data-category="embedded">
+                    <h4 class="font-semibold text-white">ADC-Based Heart Rate Sensor (C9)</h4>
+                    <p class="text-sm text-gray-400 mb-2">Developed photoplethysmography system using ADC to amplify signals for non-invasive monitoring.</p>
+                    <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a>
+                </div>
+                <!-- Project 5 -->
+                <div class="mini-project-card" data-category="embedded">
+                    <h4 class="font-semibold text-white">PWM Sound Synthesizer (C8)</h4>
+                    <p class="text-sm text-gray-400 mb-2">Used timer-based PWM on Il Matto board to generate clear audio tones with frequency control.</p>
+                    <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a>
+                </div>
+                <!-- Project 6 -->
+                <div class="mini-project-card" data-category="embedded">
+                    <h4 class="font-semibold text-white">Serial Communication Interfaces (C7)</h4>
+                    <p class="text-sm text-gray-400 mb-2">Implemented UART, SPI, and I2C protocols in Embedded C to interface with RTC and other peripherals.</p>
+                    <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a>
+                </div>
+                 <!-- Project 7 -->
+                <div class="mini-project-card" data-category="pcb">
+                    <h4 class="font-semibold text-white">PCB Design for Mixed-Signal (X24)</h4>
+                    <p class="text-sm text-gray-400 mb-2">Designed two-layer PCB in KiCad, creating custom footprints for non-standard devices.</p>
+                    <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a>
+                </div>
+                <!-- Project 8 -->
+                <div class="mini-project-card" data-category="software">
+                    <h4 class="font-semibold text-white">CLI Sudoku Game</h4>
+                    <p class="text-sm text-gray-400 mb-2">C++ command-line app that solves any Sudoku puzzle using a backtracking algorithm.</p>
+                    <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a>
+                </div>
+                <!-- Project 9 -->
+                <div class="mini-project-card" data-category="software">
+                    <h4 class="font-semibold text-white">CLI Neural Network (4-bit Decoder)</h4>
+                    <p class="text-sm text-gray-400 mb-2">Built in C++ from scratch. Trained using backpropagation and stochastic gradient descent.</p>
+                    <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a>
+                </div>
+                <!-- Project 10 -->
+                <div class="mini-project-card" data-category="control">
+                    <h4 class="font-semibold text-white">Inverted Pendulum Control (T26)</h4>
+                    <p class="text-sm text-gray-400 mb-2">Created a mathematical model in MATLAB and applied a controller to stabilize a physical inverted pendulum rig.</p>
+                    <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a>
+                </div>
+                <!-- Project 11 -->
+                <div class="mini-project-card" data-category="analog">
+                    <h4 class="font-semibold text-white">Chaotic Oscillator Analysis (X14)</h4>
+                    <p class="text-sm text-gray-400 mb-2">Investigated deterministic chaos in a diode/inductor circuit, processing results with MATLAB.</p>
+                    <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a>
+                </div>
+                <!-- Project 12 -->
+                <div class="mini-project-card" data-category="fpga">
+                    <h4 class="font-semibold text-white">FPGA Counter Implementation (X15)</h4>
+                    <p class="text-sm text-gray-400 mb-2">Built a digital counter on Altera Cyclone V using SystemVerilog, achieving precise timing control.</p>
+                    <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a>
+                </div>
+                
+                <!-- ... Add all 25+ of your projects here ... -->
+
+            </div>
+        </section>
+
+        <!-- Skills Section: UPDATED WITH YOUR SKILLS -->
+        <section id="skills" class="py-16">
+            <div class="text-center">
+                <h2 class="section-title">Core Technologies & Skills</h2>
+            </div>
+            <div class="mt-8 max-w-5xl mx-auto">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Category 1: Languages -->
+                    <div>
+                        <h3 class="text-xl font-semibold text-indigo-400 mb-3 text-center">Programming Languages</h3>
+                        <ul class="text-center space-y-2 text-gray-300">
+                            <li>C++</li>
+                            <li>Embedded C</li>
+                            <li>SystemVerilog</li>
+                            <li>Python</li>
+                            <li>MATLAB</li>
+                        </ul>
+                    </div>
+                    <!-- Category 2: Hardware & Tools -->
+                    <div>
+                        <h3 class="text-xl font-semibold text-indigo-400 mb-3 text-center">Hardware & Simulation Tools</h3>
+                        <ul class="text-center space-y-2 text-gray-300">
+                            <li>FPGA (Altera Cyclone V)</li>
+                            <li>KiCad (PCB Design)</li>
+                            <li>Quartus & ModelSim</li>
+                            <li>LTSpice & Multisim</li>
+                            <li>Simulink</li>
+                            <li>Oscilloscope & Logic Analyser</li>
+                        </ul>
+                    </div>
+                    <!-- Category 3: Concepts -->
+                    <div>
+                        <h3 class="text-xl font-semibold text-indigo-400 mb-3 text-center">Core Engineering Concepts</h3>
+                        <ul class="text-center space-y-2 text-gray-300">
+                            <li>Digital Systems Design</li>
+                            <li>Embedded Systems</li>
+                            <li>Control & Systems Engineering</li>
+                            <li>Circuit Analysis</li>
+                            <li>Signal Processing</li>
+                            <li>Mixed-Signal Design</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section id="contact" class="py-16">
+            <div class="text-center">
+                <h2 class="section-title">Get In Touch</h2>
+                <p class="mt-2 text-lg text-gray-400 max-w-xl mx-auto">
+                    I'm actively seeking internship and placement opportunities. I'd love to chat about my work or any potential roles.
+                </p>
+                <div class="mt-8">
+                    <a href="mailto:emrekarausta1903@gmail.com" class="inline-block px-10 py-4 bg-indigo-600 text-white text-lg font-medium rounded-full shadow-lg hover:bg-indigo-700 transition-colors">
+                        Say Hello (emrekarausta1903@gmail.com)
+                    </a>
+                </div>
+                <div class="mt-10 flex justify-center gap-6">
+                    <a href="https://www.linkedin.com/in/emre-karausta-50689b311" target="_blank" class="text-gray-400 hover:text-indigo-400">
+                        <span class="sr-only">LinkedIn</span>
+                        <svg class="h-8 w-8" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                        </svg>
+                    </a>
+                    <a href="#" target="_blank" class="text-gray-400 hover:text-indigo-400">
+                        <span class="sr-only">GitHub</span>
+                        <svg class="h-8 w-8" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.165 6.839 9.49.5.092.682-.217.682-.483 0-.237-.009-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.951 0-1.093.39-1.988 1.03-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.026 2.747-1.026.546 1.379.202 2.398.1 2.65.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.001 10.001 0 0022 12c0-5.523-4.477-10-10-10z" clip-rule="evenodd"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 border-t border-gray-700">
+        <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+            <p class="text-center text-sm text-gray-500">
+                &copy; 2024 Emre Karausta. Built with Tailwind CSS.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const filterContainer = document.getElementById('filter-container');
+            const filterButtons = filterContainer.querySelectorAll('.filter-btn');
+            const projectGrid = document.getElementById('mini-project-grid');
+            const projects = projectGrid.querySelectorAll('.mini-project-card');
+
+            // Handle smooth scrolling for nav links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+
+            // Filter logic
+            filterContainer.addEventListener('click', (e) => {
+                // Ensure we clicked on a button
+                if (!e.target.classList.contains('filter-btn')) {
+                    return;
+                }
+
+                const filterValue = e.target.getAttribute('data-filter');
+
+                // Update active button state
+                filterButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                e.target.classList.add('active');
+
+                // Filter projects
+                projects.forEach(project => {
+                    const category = project.getAttribute('data-category');
+                    
+                    if (filterValue === 'all' || filterValue === category) {
+                        project.classList.remove('hidden');
+                        project.classList.add('block');
+                    } else {
+                        project.classList.add('hidden');
+                        project.classList.remove('block');
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>
