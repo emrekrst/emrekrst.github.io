@@ -167,12 +167,12 @@
             <!-- Filter Buttons: UPDATED TO YOUR CATEGORIES -->
             <div id="filter-container" class="flex flex-wrap justify-center gap-2 sm:gap-4 my-8">
                 <button class="filter-btn active" data-filter="all">All Projects</button>
-                <button class="filter-btn" data-filter="fpga">FPGA & Digital Design</button>
-                <button class="filter-btn" data-filter="embedded">Embedded Systems</button>
                 <button class="filter-btn" data-filter="pcb">PCB & Mixed-Signal</button>
-                <button class="filter-btn" data-filter="research">Technical Reports & Research</button>
+                <button class="filter-btn" data-filter="embedded">Embedded Systems</button>
                 <button class="filter-btn" data-filter="control">Control Systems</button>
+                <button class="filter-btn" data-filter="fpga">FPGA & Digital Design</button>
                 <button class="filter-btn" data-filter="software">Software & Simulation</button>
+                <button class="filter-btn" data-filter="research">Technical Reports & Research</button>
             </div>
 
             <!-- Mini-Projects Grid: PRE-FILLED WITH YOUR PROJECTS -->
@@ -183,55 +183,61 @@
                 <div class="mini-project-card" data-category="fpga">
                     <h4 class="font-semibold text-white">Microprocessor Encryption Design</h4>
                     <p class="text-sm text-gray-400 mb-2">Altered DE1-SoC instruction set with SystemVerilog to add custom XOR opcode for encryption.</p>
+                    <!-- <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a> -->
                 </div>
                 <!-- Project 2 -->
                 <div class="mini-project-card" data-category="fpga">
                     <h4 class="font-semibold text-white">Bidirectional Bus System</h4>
                     <p class="text-sm text-gray-400 mb-2">Built a tristate logic bus on FPGA using SystemVerilog to eliminate data contention.</p>
-                    <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a>
+                    <!-- <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a> -->
                 </div>
                 <!-- Project 3 -->
                 <div class="mini-project-card" data-category="embedded">
                     <h4 class="font-semibold text-white">Interrupt-Driven Embedded System</h4>
-                    <p class="text-sm text-gray-400 mb-2">Converted polling code to interrupt-driven on Il Matto board, improving response time by 20%.</p>
+                    <p class="text-sm text-gray-400 mb-2">Converted polling code to interrupt-driven on Il Matto board.</p>
+                    <!-- <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a> -->
                 </div>
                 <!-- Project 4 -->
                 <div class="mini-project-card" data-category="embedded">
                     <h4 class="font-semibold text-white">ADC-Based Heart Rate Sensor</h4>
-                    <p class="text-sm text-gray-400 mb-2">Developed photoplethysmography system using ADC to amplify signals for non-invasive monitoring.</p>
+                    <p class="text-sm text-gray-400 mb-2">Developed photoplethysmography system using ADC to amplify signals for monitoring.</p>
+                    <!-- <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a> -->
                 </div>
                 <!-- Project 5 -->
                 <div class="mini-project-card" data-category="embedded">
                     <h4 class="font-semibold text-white">PWM Sound Synthesizer</h4>
-                    <p class="text-sm text-gray-400 mb-2">Used timer-based PWM on Il Matto board to generate clear audio tones with frequency control.</p>
+                    <p class="text-sm text-gray-400 mb-2">Used timer-based PWM on Il Matto board to generate audio with frequency control.</p>
+                    <!-- <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a> -->
                 </div>
                 <!-- Project 6 -->
                 <div class="mini-project-card" data-category="embedded">
                     <h4 class="font-semibold text-white">Serial Communication Interfaces</h4>
                     <p class="text-sm text-gray-400 mb-2">Implemented UART, SPI, and I2C protocols in Embedded C to interface with RTC and other peripherals.</p>
+                    <!-- <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a> -->
                 </div>
                  <!-- Project 7 -->
                 <div class="mini-project-card" data-category="pcb">
                     <h4 class="font-semibold text-white">PCB Design for Mixed-Signal</h4>
                     <p class="text-sm text-gray-400 mb-2">Designed two-layer PCB in KiCad, creating custom footprints for non-standard devices by referencing datasheets.</p>
+                    <!-- <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a> -->
                 </div>
                 <!-- Project 8 -->
                 <div class="mini-project-card" data-category="software">
                     <h4 class="font-semibold text-white">CLI Sudoku Game</h4>
                     <p class="text-sm text-gray-400 mb-2">C++ command-line app that solves any Sudoku puzzle using a backtracking algorithm.</p>
-                    <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a>
+                    <!-- <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a> -->
                 </div>
                 <!-- Project 9 -->
                 <div class="mini-project-card" data-category="software">
                     <h4 class="font-semibold text-white">CLI Neural Network (4-bit Decoder)</h4>
-                    <p class="text-sm text-gray-400 mb-2">Built in C++ from scratch. Trained using backpropagation and stochastic gradient descent.</p>
-                    <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a>
+                    <p class="text-sm text-gray-400 mb-2">Builta multilayer perceptron model in C++ from scratch. Trained using backpropagation and stochastic gradient descent.</p>
+                    <!-- <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a> -->
                 </div>
                 <!-- Project 10 -->
                 <div class="mini-project-card" data-category="control">
                     <h4 class="font-semibold text-white">Inverted Pendulum Control</h4>
                     <p class="text-sm text-gray-400 mb-2">Created a mathematical model in MATLAB and applied a controller to stabilize a physical inverted pendulum rig.</p>
-                    <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a>
+                    <!-- <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a> -->
                 </div>
                 <!-- Project 11 -->
                 <div class="mini-project-card" data-category="research">
@@ -243,7 +249,7 @@
                 <div class="mini-project-card" data-category="fpga">
                     <h4 class="font-semibold text-white">FPGA Counter Implementation</h4>
                     <p class="text-sm text-gray-400 mb-2">Built a digital counter on Altera Cyclone V using SystemVerilog, achieving precise timing control.</p>
-                    <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a>
+                    <!-- <a href="#" class="text-xs font-medium text-indigo-400 hover:text-indigo-300">View on GitHub →</a> -->
                 </div>
                 
                 <!-- ... Add all 25+ of your projects here ... -->
