@@ -405,13 +405,17 @@ body.ietm-on [data-ietm]:hover{ outline-style:solid; box-shadow:0 0 0 2px rgba(6
 <style>
 @media(max-height:650px){#briefing{align-items:start;padding-top:42px}}
 .table-hint{display:none}
+/* Keep briefing actions visible on phones and short landscape screens. */
+@media(max-width:720px),(max-height:650px){
+ #briefing{place-items:start center;padding:42px 10px 16px}.brf{padding:20px 16px;overflow:visible;display:flex;flex-direction:column}.brf-foot{order:-1;margin-bottom:20px;padding:0 0 14px;border-top:0;border-bottom:1px solid var(--edge2)}.brf-meta{display:none}.brf-foot .left{flex-wrap:wrap;gap:8px}.brf-start,.brf-skip{width:100%}.brf-skip{color:var(--ink);text-decoration:underline;text-underline-offset:4px}.brf-start,.brf-skip{min-height:44px}
+}
 /* Portfolio phone layout; the prepared source package is preserved separately. */
 @media(max-width:720px){
  .table-hint{display:block;font:11px/1.5 var(--mono);color:var(--ink)}body{padding:8px}.topbar{grid-template-columns:minmax(0,1fr);gap:12px;padding:12px}.brand{min-width:0}.brand .sub{overflow-wrap:anywhere}.status-cluster{justify-content:flex-start;gap:6px}.master{flex-wrap:wrap}.master .lamp{flex:1;min-width:0}
  .grid,.bottom{grid-template-columns:minmax(0,1fr)}.col,.panel,.rig{min-width:0}.panel>.ph{flex-wrap:wrap;gap:6px}.panel>.ph .tag{overflow-wrap:anywhere}
  .tmr-row{flex-wrap:wrap;gap:8px}.ecu{flex:1 1 105px;min-width:0;max-width:none}.gauges{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.dial svg{max-width:100%;height:auto}.ccdl{flex-wrap:wrap}.fw-decode{grid-template-columns:repeat(2,minmax(0,1fr))}.fw-bits{min-width:0}.fw-bit{min-width:0}.fw-bit small{overflow-wrap:anywhere}.fab-timeline{flex-wrap:wrap}
  .fi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.fi-grid select{min-width:0;width:100%;font-size:16px;min-height:44px}.fi-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.scen-grid{grid-template-columns:minmax(0,1fr)}button,.btn,.seg,.lang-seg,.brf-skip{min-height:44px}.lang-seg{min-width:44px}.chip.lang{padding:0}
- #briefing{place-items:start center;padding:42px 10px 16px}.brf{padding:20px 16px;overflow:visible;display:flex;flex-direction:column}.brf-foot{order:-1;margin-bottom:20px;padding:0 0 14px;border-top:0;border-bottom:1px solid var(--edge2)}.brf-meta{display:none}.brf-foot .left{flex-wrap:wrap;gap:8px}.brf-start,.brf-skip{width:100%}.brf-skip{color:var(--ink);text-decoration:underline;text-underline-offset:4px}.table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.table-scroll .vm{min-width:460px}.ietm-card{right:8px;bottom:8px;max-width:calc(100vw - 16px)}.ietm-x{min-width:44px}.pfr-term .ln{flex-wrap:wrap}.pfr-term .ds{flex:1 1 100%;min-width:0;overflow-wrap:anywhere}
+ .table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.table-scroll .vm{min-width:460px}.ietm-card{right:8px;bottom:8px;max-width:calc(100vw - 16px)}.ietm-x{min-width:44px}.pfr-term .ln{flex-wrap:wrap}.pfr-term .ds{flex:1 1 100%;min-width:0;overflow-wrap:anywhere}
 }
 </style>
 </head>
