@@ -1,0 +1,11 @@
+build*/
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+logs/
+demo-output/
+*.elf
+*.uf2
+*.hex
+*.o

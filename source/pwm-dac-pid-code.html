@@ -1,0 +1,871 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PWM, DAC and PID tooling · Code</title><style>*{box-sizing:border-box}html{color-scheme:light}body{margin:0;background:#f5f3ed;color:#20261f;font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1120px;margin:auto;padding:40px 28px 80px}a{color:#2756dc;text-underline-offset:4px}a:hover{color:#173b9e}a:focus-visible{outline:3px solid #2756dc;outline-offset:5px}nav{display:flex;gap:24px;flex-wrap:wrap;font-size:14px}h1{font-size:clamp(32px,5vw,64px);line-height:1.08;letter-spacing:-.045em;margin:36px 0 18px;max-width:900px}h2{font-size:25px;letter-spacing:-.025em;margin-top:44px}p{max-width:850px}.eyebrow{text-transform:uppercase;font-size:12px;font-weight:700;letter-spacing:.14em;color:#52604c}.status{display:inline-block;border:1px solid #cbd1c4;border-radius:3px;padding:8px 12px;background:#eaf0e3;font-size:14px}.rights{border-left:3px solid #2756dc;padding:6px 22px;margin:28px 0;background:#efeee7}.actions{display:flex;gap:20px;flex-wrap:wrap;margin:24px 0}.button{display:inline-block;background:#2756dc;color:white;padding:11px 18px;text-decoration:none;border-radius:3px}.button:hover{background:#173b9e;color:white}table{border-collapse:collapse;width:100%;font:14px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}th{text-align:left;background:#e7e7de}td,th{padding:11px 14px;border-bottom:1px solid #d9dcd1}td:first-child{overflow-wrap:anywhere}td:nth-child(2),th:nth-child(2){text-align:right;white-space:nowrap}.table-wrap{overflow:auto}pre{padding:24px;border:1px solid #d9dcd1;border-radius:4px;background:#faf9f5;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace}footer{margin-top:48px;font-size:13px;color:#52604c}@media(max-width:540px){main{padding:25px 18px 50px}pre{padding:16px;font-size:13px}td,th{padding:9px 7px}}section{scroll-margin-top:25px}h2{overflow-wrap:anywhere}@media(max-width:540px){nav{gap:8px 16px}a{min-height:44px;display:inline-flex;align-items:center}td a{font-size:14px;overflow-wrap:anywhere}pre{font-size:14px;line-height:1.65}h1{overflow-wrap:anywhere}.actions{gap:8px 16px}.table-wrap{border:1px solid #d9dcd1}.rights{padding:8px 14px}}</style></head><body><main><nav><a href="pwm-dac-pid.html">← Source package</a><a href="../index.html#library">Portfolio projects</a></nav><p class="eyebrow">READABLE SOURCE / ORIGINAL NOTICES RETAINED</p><h1>PWM, DAC and PID tooling</h1><section id="file-.gitignore"><h2>.gitignore</h2><p><a href="pwm-dac-pid/.gitignore" download>Download raw file ↓</a> · <a href="pwm-dac-pid.html#file-.gitignore">Back to file index</a></p><pre>build/
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+</pre></section><section id="file-Makefile"><h2>Makefile</h2><p><a href="pwm-dac-pid/Makefile" download>Download raw file ↓</a> · <a href="pwm-dac-pid.html#file-Makefile">Back to file index</a></p><pre>CXX = c++
+CC = cc
+AVR_CC = avr-gcc
+CFLAGS = -std=c11 -O2 -Wall -Wextra -Werror
+CXXFLAGS = -std=c++17 -O2 -Wall -Wextra -Werror
+.PHONY: all test firmware clean
+all: build/pwm_cli
+build:
+	mkdir -p build
+build/protocol.o: protocol.c protocol.h | build
+	$(CC) $(CFLAGS) -c protocol.c -o $@
+build/pwm_cli: pwm_cli.cpp protocol.h build/protocol.o
+	$(CXX) $(CXXFLAGS) pwm_cli.cpp build/protocol.o -o $@
+build/test_protocol: tests/test_protocol.c protocol.c protocol.h | build
+	$(CC) $(CFLAGS) -fsanitize=address,undefined -I. tests/test_protocol.c protocol.c -o $@
+firmware: | build
+	$(AVR_CC) -mmcu=atmega644p -DF_CPU=12000000UL -Os -Wall -Wextra -Werror embedded_skeleton.c protocol.c -o build/firmware.elf
+test: all build/test_protocol
+	./build/test_protocol
+	python3 tests/test_gui.py
+	python3 tests/test_serial.py
+	python3 -m py_compile gui.py gui_plus.py
+clean:
+	rm -rf build __pycache__ tests/__pycache__
+</pre></section><section id="file-README.md"><h2>README.md</h2><p><a href="pwm-dac-pid/README.md" download>Download raw file ↓</a> · <a href="pwm-dac-pid.html#file-README.md">Back to file index</a></p><pre># Serial-controlled PWM DAC with PID feedback
+
+An ATmega644P coursework example combining 8-bit PWM, ADC feedback, a serial command interface and a Python/Tkinter control panel with a 50-sample freehand waveform editor. The source implements bounded integral accumulation and PWM saturation. An external RC low-pass filter converts PWM into an approximate analogue voltage.
+
+## What was recovered
+
+- `embedded_skeleton.c`: AVR application, including manual/PID operation and ADC monitoring.
+- `debug.h`: supplied UART stream library credited to Steve Gunn; its existing Creative Commons Attribution notice is retained.
+- `gui_plus.py`: recovered GUI including waveform drawing. `gui.py` now launches this consolidated GUI.
+
+**`pwm_cli.cpp` is a newly reconstructed POSIX C++ client. The historical C++ host CLI mentioned in the master CV was not recovered.** `protocol.c/.h`, tests and build/docs were added during preparation. The recovered firmware&#x27;s unsafe command parsing and truncated-line handling were fixed; ADC targets and PWM are bounded, and firmware gain commands now match the recovered GUI controls. These are changes to the standalone copy only.
+
+## Build and test without hardware
+
+Requires GCC/Clang, Make, Python 3 with Tk, and pySerial. AVR compilation requires avr-gcc and avr-libc.
+
+```sh
+python3 -m venv .venv
+. .venv/bin/activate
+python3 -m pip install -r requirements.txt
+make
+make test
+make firmware                 # AVR_CC=/path/to/avr-gcc if needed
+```
+
+`make test` opens local pseudoterminals, not physical serial devices. It checks command framing, parser bounds/ranges, GUI logic and C++/pySerial transport. `make firmware` only builds an ELF; it does not flash a board. Outputs remain in ignored `build/`.
+
+## Host use with a separately verified circuit
+
+```sh
+python3 gui_plus.py
+./build/pwm_cli /dev/ttyUSB0 READ
+./build/pwm_cli /dev/ttyUSB0 SET 128
+./build/pwm_cli /dev/ttyUSB0 AUTO 512
+./build/pwm_cli /dev/ttyUSB0 MONITOR    # Ctrl-C sends STOP and exits
+```
+
+Select the actual port in the GUI. The client examples are usage instructions; no physical port or board was accessed during preparation. The new CLI supports macOS/Linux POSIX serial devices at 9600 baud, 8 data bits, no parity, one stop bit. It does not provide a Windows backend.
+
+## Firmware connections and assumptions
+
+The source configures a **12 MHz** CPU clock, UART0 at **9600 8N1**, timer0 fast PWM on **PORTB bit 3 / OC0A**, and ADC **channel 0** feedback. The RC-filter output feeds ADC0 and the measurement instrument; all signal grounds must share a reference. Connect UART0 through a logic-level-compatible USB–UART adapter. Package pin numbers depend on the actual MCU package and must be checked against its datasheet.
+
+The ADC selects **AVCC** as reference (`REFS0`). The GUI&#x27;s voltage conversion assumes that reference is **3.3 V**, as stated in the CV. Confirm actual AVCC, PWM high voltage and ADC input limits before using that conversion. No recovered schematic, RC component values or load value is included; choose and measure a circuit appropriate to the board rather than treating the display labels as calibration.
+
+## Command schema
+
+Commands are ASCII, case-sensitive and terminated by CR or LF. Oversized lines (more than 49 characters) are discarded entirely. Missing numeric arguments, nonnumeric/trailing data, unknown tokens and unsupported extra arguments produce `ERR invalid command`.
+
+| Command | Effect / units |
+| --- | --- |
+| `SET n` | Disable PID and monitoring; PWM saturated to 0–255 |
+| `AUTO n` | Enable PID, reset history; ADC target saturated to 0–1023 |
+| `READ` | One `ADC: n | PWM: n` response |
+| `MONITOR` | Start repeated ADC/PWM text readings |
+| `STOP` | Stop monitoring; **does not disable PID or force PWM to zero** |
+| `KP n`, `KI n`, `KD n` | Gain in thousandths, integer range 0–30000 |
+
+Any incoming byte also stops monitoring, matching the original firmware. `SET 0` explicitly disables PID and commands zero duty cycle. PWM waveform playback sends 50 duty-cycle samples using cancellable Tk callbacks scheduled 50 ms apart; it is not a precision waveform generator. Serial delays and OS scheduling affect timing. Mode changes cancel queued waveform callbacks; playback and UI commands execute on the same Tk thread.
+
+The original discrete PID is empirically tuned in iterations; it has no measured fixed-period scheduler or explicit time scaling. The nominal 100 µs loop delay excludes ADC/serial execution time. Monitor timing and waveform amplitude/frequency require bench measurement.
+
+## Scope and rights
+
+This project corresponds to the master CV&#x27;s serial PWM DAC project. Historical oscilloscope, load-transient and physical voltage-regulation statements come from that CV and were **not reverified** here. No new physical measurement is claimed. See [VERIFICATION.md](VERIFICATION.md).
+
+No project-wide licence has been invented. Keep the supplied UART attribution; its header does not specify a CC version, and other source rights need confirmation before public release.
+</pre></section><section id="file-VERIFICATION.md"><h2>VERIFICATION.md</h2><p><a href="pwm-dac-pid/VERIFICATION.md" download>Download raw file ↓</a> · <a href="pwm-dac-pid.html#file-VERIFICATION.md">Back to file index</a></p><pre># Verification
+
+Executed on 2026-10-22 on macOS arm64: Apple clang 17.0.0, Python 3.14.0, pySerial 3.5, Homebrew avr-gcc 9.5.0. No board, physical serial port, camera or motor was opened or operated.
+
+```sh
+make test
+make firmware AVR_CC=/opt/homebrew/bin/avr-gcc
+```
+
+Both commands PASS, exit 0, no compiler warnings. Firmware uses `-mmcu=atmega644p -DF_CPU=12000000UL -Os` and links the shared parser with the application and supplied UART header.
+
+- Shared C parser/framing tests execute with AddressSanitizer and UndefinedBehaviorSanitizer: missing/long/unknown tokens, malformed and overflowing integers, extra parameters, SET/AUTO saturation, gains, READ/MONITOR/STOP, oversized-line rejection and recovery.
+- GUI method tests check command formatting, acknowledgement-before-ADC handling, ADC-to-voltage display, and bounds of the actual 50-sample drawing array. Additional playback regressions verify cancellation on STOP/AUTO/manual/monitor/disconnect, a single loop after repeated starts, and all 50 samples wrapping in order.
+- Reconstructed C++ CLI exchanges SET/AUTO/READ/KP/STOP commands through local pseudoterminals, receives expected text responses and rejects a missing argument before opening a device.
+- Recovered GUI&#x27;s actual `read_once`/`send_cmd` methods exchange a READ/ADC transaction using real pySerial over a pseudoterminal; widget stand-ins allow headless testing.
+- Python files compile via `py_compile`.
+
+Before the parser fix, an extracted copy of the original `process_command` produced an AddressSanitizer **stack-buffer-overflow** for a 47-character token. The original GUI regression failed because it sent `READ 0`; after that fix it also needed to skip older acknowledgement lines to display the requested ADC reading. The CLI transport tests were introduced before the new reconstructed client existed.
+
+Fresh review also reproduced a waveform-worker race: a worker paused after its loop condition could send a stale `SET 128` after `AUTO 512`, disabling PID in the firmware. The playback regression failed against the thread-based implementation. Playback now schedules a single cancellable Tk callback, so mode changes and waveform writes run serially on the UI thread. Stop/mode changes/disconnect cancel the pending callback; repeated starts cannot create duplicate loops. The 50-sample sequence and nominal 50 ms scheduling interval are retained.
+
+The transport peer returns canned protocol responses. It is not an AVR emulator or an electrical/circuit model. AVR compilation verifies syntax/linkage for the target, not real-time or physical behaviour.
+
+## NOT_RUN — hardware and runtime limits
+
+- Flashing, actual UART electrical compatibility/baud timing, board clock and pin wiring.
+- PWM voltage/ripple and RC filter characteristics; AVCC/reference calibration and physical ADC accuracy.
+- PID stability, step response, integral behaviour under a real load, oscilloscope/load-transient CV measurements.
+- Monitor cadence, waveform timing/amplitude/frequency and full GUI interaction with hardware.
+- Cross-platform GUI thread/connection stress, Windows support and serial disconnect fault injection.
+
+GUI one-shot reads can block up to the serial timeout, and background monitoring relies on a host thread and waveform callbacks use the Tk event loop rather than deterministic scheduling. These limits must be evaluated on the intended board before bench use. All hardware claims remain historical claims, not results generated during this preparation.
+</pre></section><section id="file-debug.h"><h2>debug.h</h2><p><a href="pwm-dac-pid/debug.h" download>Download raw file ↓</a> · <a href="pwm-dac-pid.html#file-debug.h">Back to file index</a></p><pre>/*  Author: Steve Gunn
+ * Licence: This work is licensed under the Creative Commons Attribution License.
+ *          View this license at http://creativecommons.org/about/licenses/
+ *   Notes: F_CPU must be defined to match the clock frequency
+ *   Usage: Include in your main file and call init_debug_uart0() from the beginning of main
+ *          to initialise redirection of stdout, stderr and stdin to UART0.
+ */
+
+#define __ASSERT_USE_STDERR
+#include &lt;assert.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;avr/io.h&gt;
+
+#define DEBUG_BAUD  9600
+
+int uputchar0(char c, FILE *stream)
+{
+	if (c == &#x27;\n&#x27;) uputchar0(&#x27;\r&#x27;, stream);
+	while (!(UCSR0A &amp; _BV(UDRE0)));
+	UDR0 = c;
+	return c;
+}
+
+int ugetchar0(FILE *stream)
+{
+	(void)stream;
+	while(!(UCSR0A &amp; _BV(RXC0)));
+	return UDR0;
+}
+
+void init_debug_uart0(void)
+{
+	/* Configure UART0 baud rate, one start bit, 8-bit, no parity and one stop bit */
+	UBRR0H = (F_CPU/(DEBUG_BAUD*16L)-1) &gt;&gt; 8;
+	UBRR0L = (F_CPU/(DEBUG_BAUD*16L)-1);
+	UCSR0B = _BV(RXEN0) | _BV(TXEN0);
+	UCSR0C = _BV(UCSZ00) | _BV(UCSZ01);
+
+	/* Setup new streams for input and output */
+	static FILE uout = FDEV_SETUP_STREAM(uputchar0, NULL, _FDEV_SETUP_WRITE);
+	static FILE uin = FDEV_SETUP_STREAM(NULL, ugetchar0, _FDEV_SETUP_READ);
+
+	/* Redirect all standard streams to UART0 */
+	stdout = &amp;uout;
+	stderr = &amp;uout;
+	stdin = &amp;uin;
+}
+</pre></section><section id="file-embedded_skeleton.c"><h2>embedded_skeleton.c</h2><p><a href="pwm-dac-pid/embedded_skeleton.c" download>Download raw file ↓</a> · <a href="pwm-dac-pid.html#file-embedded_skeleton.c">Back to file index</a></p><pre>#ifndef F_CPU
+#define F_CPU 12000000UL
+#endif
+
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;avr/io.h&gt;
+#include &lt;util/delay.h&gt;
+#include &quot;debug.h&quot; 
+
+#include &quot;protocol.h&quot;
+
+float Kp = 0.5;
+float Ki = 0.05;
+float Kd = 0.001;
+
+int pid_active = 0; 
+int monitor_active = 0; 
+int target_adc = 0;       
+float integral_sum = 0;   
+float prev_error = 0;     
+long loop_counter = 0; 
+
+void init_adc() {
+    ADCSRA |= (1 &lt;&lt; ADEN); 
+    ADMUX |= (1 &lt;&lt; REFS0); 
+    ADCSRA |= (1 &lt;&lt; ADPS2) | (1 &lt;&lt; ADPS1) | (1 &lt;&lt; ADPS0); 
+}
+
+uint16_t read_adc(uint8_t channel) {
+    ADMUX = (ADMUX &amp; 0xF0) | (channel &amp; 0x0F);
+    ADCSRA |= (1 &lt;&lt; ADSC);
+    while (ADCSRA &amp; (1 &lt;&lt; ADSC));
+    return ADC; 
+}
+
+void init_pwm() {
+    DDRB |= (1 &lt;&lt; PB3); 
+    TCCR0A |= (1 &lt;&lt; WGM00) | (1 &lt;&lt; WGM01) | (1 &lt;&lt; COM0A1);
+    TCCR0B |= (1 &lt;&lt; CS00);
+}
+
+void set_pwm(uint8_t value) {
+    OCR0A = value; 
+}
+
+void update_pid() {
+    if (!pid_active) return;
+
+    int current_val = read_adc(0);
+    float error = target_adc - current_val;
+    float derivative = error - prev_error;
+    integral_sum += error;
+
+    if (integral_sum &gt; 5000) integral_sum = 5000;
+    if (integral_sum &lt; -5000) integral_sum = -5000;
+
+    float output = (Kp * error) + (Ki * integral_sum) + (Kd * derivative);
+
+    prev_error = error;
+    
+    if (output &gt; 255) output = 255;
+    if (output &lt; 0) output = 0;
+
+    set_pwm((uint8_t)output);
+}
+
+void process_command(char* input_buffer) {
+    command cmd;
+    if (!parse_command(input_buffer, &amp;cmd)) {
+        printf(&quot;ERR invalid command\n&quot;); return;
+    }
+    switch (cmd.kind) {
+        case CMD_SET:
+            pid_active = 0; monitor_active = 0;
+            set_pwm((uint8_t)cmd.value);
+            printf(&quot;Manual PWM: %d\n&quot;, cmd.value); break;
+        case CMD_AUTO:
+            pid_active = 1; target_adc = cmd.value;
+            integral_sum = 0; prev_error = 0;
+            printf(&quot;PID ON. Target: %d\n&quot;, target_adc); break;
+        case CMD_MONITOR:
+            monitor_active = 1; loop_counter = 0;
+            printf(&quot;Monitoring ADC... Press ENTER key to stop.\n&quot;); break;
+        case CMD_READ:
+            printf(&quot;ADC: %u | PWM: %u\n&quot;, read_adc(0), (unsigned)OCR0A); break;
+        case CMD_STOP:
+            monitor_active = 0;
+            printf(&quot;Monitor stopped\n&quot;); break;
+        case CMD_KP: Kp = cmd.value / 1000.0f; printf(&quot;KP updated\n&quot;); break;
+        case CMD_KI: Ki = cmd.value / 1000.0f; printf(&quot;KI updated\n&quot;); break;
+        case CMD_KD: Kd = cmd.value / 1000.0f; printf(&quot;KD updated\n&quot;); break;
+    }
+}
+
+int main(void) {
+    command_buffer buffer = {{0}, 0, 0};
+    
+    init_debug_uart0(); 
+    init_adc();         
+    init_pwm();         
+    
+    printf(&quot;SYSTEM READY\n&quot;);
+
+    while(1) {
+        if (UCSR0A &amp; (1 &lt;&lt; RXC0)) { //STATE REG
+            char c = UDR0; 
+            
+            if (monitor_active) {
+                monitor_active = 0;
+                printf(&quot;\n[Monitor Stopped]\n&quot;);
+            }
+            
+            int result = command_feed(&amp;buffer, c);
+            if (result == 1) process_command(buffer.text);
+            else if (result == -1) printf(&quot;ERR command too long\n&quot;);
+        }
+
+        update_pid();
+
+        if (monitor_active) {
+            loop_counter++;
+            // 0.1ms * 500 = 50ms
+            if (loop_counter &gt;= 500) { 
+                int val = read_adc(0);
+                printf(&quot;ADC: %d | PWM: %d\n&quot;, val, OCR0A);
+                loop_counter = 0;
+            }
+        }
+
+        _delay_us(100); 
+    }
+}</pre></section><section id="file-gui.py"><h2>gui.py</h2><p><a href="pwm-dac-pid/gui.py" download>Download raw file ↓</a> · <a href="pwm-dac-pid.html#file-gui.py">Back to file index</a></p><pre>&quot;&quot;&quot;Compatibility launcher for the consolidated GUI (including waveform editor).&quot;&quot;&quot;
+import tkinter as tk
+from gui_plus import IlMattoGUI
+if __name__ == &quot;__main__&quot;:
+    root = tk.Tk()
+    app = IlMattoGUI(root)
+    root.mainloop()
+</pre></section><section id="file-gui_plus.py"><h2>gui_plus.py</h2><p><a href="pwm-dac-pid/gui_plus.py" download>Download raw file ↓</a> · <a href="pwm-dac-pid.html#file-gui_plus.py">Back to file index</a></p><pre>import tkinter as tk
+from tkinter import ttk
+import serial
+import serial.tools.list_ports
+import threading
+import time
+
+class IlMattoGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title(&quot;Il Matto Control Panel&quot;)
+        self.root.geometry(&quot;600x850&quot;)
+        
+        self.ser = None
+        self.monitoring = False
+        self.wave_playing = False
+        self.wave_after_id = None
+        self.wave_index = 0
+        
+        self.wave_resolution = 50
+        self.wave_data = [0] * self.wave_resolution
+        
+        conn_frame = ttk.LabelFrame(root, text=&quot;Connection&quot;)
+        conn_frame.pack(pady=10, padx=10, fill=&quot;x&quot;)
+        
+        ttk.Label(conn_frame, text=&quot;Port:&quot;).pack(side=&quot;left&quot;, padx=5)
+        self.port_combo = ttk.Combobox(conn_frame, width=25)
+        self.port_combo.pack(side=&quot;left&quot;, padx=5)
+        self.refresh_ports()
+        
+        ttk.Button(conn_frame, text=&quot;⟳&quot;, width=3, command=self.refresh_ports).pack(side=&quot;left&quot;)
+        self.btn_connect = ttk.Button(conn_frame, text=&quot;Connect&quot;, command=self.toggle_connection)
+        self.btn_connect.pack(side=&quot;left&quot;, padx=10)
+        
+        self.status_canvas = tk.Canvas(conn_frame, width=20, height=20)
+        self.status_circle = self.status_canvas.create_oval(2, 2, 18, 18, fill=&quot;red&quot;)
+        self.status_canvas.pack(side=&quot;left&quot;, padx=5)
+        
+        ctrl_frame = ttk.LabelFrame(root, text=&quot;Voltage Control&quot;)
+        ctrl_frame.pack(pady=10, padx=10, fill=&quot;x&quot;)
+        
+        ttk.Label(ctrl_frame, text=&quot;Target Voltage(Auto PID):&quot;).pack(anchor=&quot;w&quot;, padx=5)
+        self.slider_target = tk.Scale(ctrl_frame, from_=0, to=1023, orient=&quot;horizontal&quot;, length=500)
+        self.slider_target.pack(pady=5)
+        ttk.Button(ctrl_frame, text=&quot;SET TARGET&quot;, command=self.send_auto).pack(pady=5)
+        
+        ttk.Label(ctrl_frame, text=&quot;Constant PWM (Manual):&quot;).pack(anchor=&quot;w&quot;, padx=5, pady=(15,0))
+        self.slider_pwm = tk.Scale(ctrl_frame, from_=0, to=255, orient=&quot;horizontal&quot;, length=500)
+        self.slider_pwm.pack(pady=5)
+        ttk.Button(ctrl_frame, text=&quot;SET PWM&quot;, command=self.send_pwm).pack(pady=5)
+
+        pid_frame = ttk.LabelFrame(root, text=&quot;PID Tuning&quot;)
+        pid_frame.pack(pady=10, padx=10, fill=&quot;x&quot;)
+        f_pid = ttk.Frame(pid_frame)
+        f_pid.pack(pady=5)
+        
+        ttk.Label(f_pid, text=&quot;Kp:&quot;).pack(side=&quot;left&quot;)
+        self.entry_kp = ttk.Entry(f_pid, width=6)
+        self.entry_kp.insert(0, &quot;0.5&quot;)
+        self.entry_kp.pack(side=&quot;left&quot;, padx=5)
+        
+        ttk.Label(f_pid, text=&quot;Ki:&quot;).pack(side=&quot;left&quot;)
+        self.entry_ki = ttk.Entry(f_pid, width=6)
+        self.entry_ki.insert(0, &quot;0.05&quot;)
+        self.entry_ki.pack(side=&quot;left&quot;, padx=5)
+        
+        ttk.Label(f_pid, text=&quot;Kd:&quot;).pack(side=&quot;left&quot;)
+        self.entry_kd = ttk.Entry(f_pid, width=6)
+        self.entry_kd.insert(0, &quot;0.001&quot;)
+        self.entry_kd.pack(side=&quot;left&quot;, padx=5)
+        
+        ttk.Button(f_pid, text=&quot;UPDATE PID&quot;, command=self.send_pid).pack(side=&quot;left&quot;, padx=10)
+        
+        wave_frame = ttk.LabelFrame(root, text=&quot;Arbitrary Waveform Generator (Draw Here)&quot;)
+        wave_frame.pack(pady=10, padx=10, fill=&quot;x&quot;)
+        
+        self.cv_height = 150
+        self.cv_width = 500
+        self.cv = tk.Canvas(wave_frame, width=self.cv_width, height=self.cv_height, bg=&quot;white&quot;, cursor=&quot;cross&quot;)
+        self.cv.pack(pady=5)
+        self.cv.bind(&quot;&lt;B1-Motion&gt;&quot;, self.draw_wave) # Bind mouse drag
+        self.cv.bind(&quot;&lt;Button-1&gt;&quot;, self.draw_wave)  # Bind mouse click
+        
+        self.draw_grid()
+        
+        f_wave_btn = ttk.Frame(wave_frame)
+        f_wave_btn.pack(pady=5)
+        self.btn_play_wave = ttk.Button(f_wave_btn, text=&quot;PLAY WAVE LOOP&quot;, command=self.start_wave)
+        self.btn_play_wave.pack(side=&quot;left&quot;, padx=5)
+        self.btn_stop_wave = ttk.Button(f_wave_btn, text=&quot;STOP WAVE&quot;, command=self.stop_wave, state=&quot;disabled&quot;)
+        self.btn_stop_wave.pack(side=&quot;left&quot;, padx=5)
+        ttk.Button(f_wave_btn, text=&quot;CLEAR&quot;, command=self.clear_wave).pack(side=&quot;left&quot;, padx=5)
+
+        disp_frame = ttk.LabelFrame(root, text=&quot;Readings&quot;)
+        disp_frame.pack(pady=10, padx=10, fill=&quot;x&quot;)
+        
+        self.lbl_current = ttk.Label(disp_frame, text=&quot;Current: -- V (ADC: --) | PWM: --&quot;, font=(&quot;Arial&quot;, 16, &quot;bold&quot;))
+        self.lbl_current.pack(pady=10)
+        self.lbl_prev = ttk.Label(disp_frame, text=&quot;Previous: N/A&quot;, font=(&quot;Arial&quot;, 12))
+        self.lbl_prev.pack(pady=5)
+        
+        btn_frame = ttk.Frame(disp_frame)
+        btn_frame.pack(pady=10)
+        ttk.Button(btn_frame, text=&quot;READ ONCE&quot;, command=self.read_once).pack(side=&quot;left&quot;, padx=5)
+        self.btn_monitor = ttk.Button(btn_frame, text=&quot;MONITOR&quot;, command=self.start_monitor)
+        self.btn_monitor.pack(side=&quot;left&quot;, padx=5)
+        self.btn_stop = ttk.Button(btn_frame, text=&quot;STOP MONITOR&quot;, command=self.stop_monitor, state=&quot;disabled&quot;)
+        self.btn_stop.pack(side=&quot;left&quot;, padx=5)
+
+
+    def refresh_ports(self):
+        ports = [p.device for p in serial.tools.list_ports.comports()]
+        self.port_combo[&#x27;values&#x27;] = ports
+        if ports: self.port_combo.current(0)
+
+    def toggle_connection(self):
+        if self.ser and self.ser.is_open:
+            self.stop_monitor()
+            self.stop_wave()
+            self.ser.close()
+            self.status_canvas.itemconfig(self.status_circle, fill=&quot;red&quot;)
+            self.btn_connect.config(text=&quot;Connect&quot;)
+        else:
+            try:
+                self.ser = serial.Serial(self.port_combo.get(), 9600, timeout=1)
+                self.status_canvas.itemconfig(self.status_circle, fill=&quot;green&quot;)
+                self.btn_connect.config(text=&quot;Disconnect&quot;)
+            except Exception as e:
+                print(&quot;Connection error:&quot;, e)
+
+
+    def send_cmd(self, cmd):
+        if self.ser and self.ser.is_open:
+            full_cmd = cmd + &quot;\r&quot; 
+            self.ser.write(full_cmd.encode())
+
+    def send_auto(self):
+        self.stop_wave()
+        self.send_cmd(f&quot;AUTO {self.slider_target.get()}&quot;)
+
+    def send_pwm(self):
+        self.stop_wave()
+        self.send_cmd(f&quot;SET {self.slider_pwm.get()}&quot;)
+
+    def send_pid(self):
+        try:
+            kp = int(float(self.entry_kp.get()) * 1000)
+            ki = int(float(self.entry_ki.get()) * 1000)
+            kd = int(float(self.entry_kd.get()) * 1000)
+            self.send_cmd(f&quot;KP {kp}&quot;)
+            time.sleep(0.05)
+            self.send_cmd(f&quot;KI {ki}&quot;)
+            time.sleep(0.05)
+            self.send_cmd(f&quot;KD {kd}&quot;)
+        except:
+            print(&quot;Invalid PID&quot;)
+
+    def read_once(self):
+        if not self.ser: return
+        curr = self.lbl_current.cget(&quot;text&quot;)
+        if &quot;Current:&quot; in curr:
+            self.lbl_prev.config(text=curr.replace(&quot;Current:&quot;, &quot;Previous:&quot;))
+        self.send_cmd(&quot;READ&quot;)
+        try:
+            # Earlier command acknowledgements can precede the requested ADC line.
+            for _ in range(10):
+                line = self.ser.readline().decode().strip()
+                if not line:
+                    break
+                if line.startswith(&quot;ADC:&quot;):
+                    self.update_display(line)
+                    break
+        except: pass
+
+    def update_display(self, line):
+        try:
+            parts = line.split(&#x27;|&#x27;)
+            adc_val = int(parts[0].split(&#x27;:&#x27;)[1])
+            voltage = (adc_val / 1023.0) * 3.3
+            pwm_str = parts[1].split(&#x27;:&#x27;)[1].strip() if len(parts) &gt; 1 else &quot;--&quot;
+            self.lbl_current.config(text=f&quot;Current: {voltage:.2f} V (ADC: {adc_val}) | PWM: {pwm_str}&quot;)
+        except: pass
+
+    def draw_grid(self):
+        self.cv.delete(&quot;all&quot;)
+        self.cv.create_line(0, self.cv_height-1, self.cv_width, self.cv_height-1, fill=&quot;gray&quot;)
+        self.cv.create_line(0, 0, self.cv_width, 0, fill=&quot;gray&quot;)
+        self.cv.create_text(10, 10, text=&quot;3.3V (255)&quot;, anchor=&quot;w&quot;)
+        self.cv.create_text(10, self.cv_height-10, text=&quot;0V (0)&quot;, anchor=&quot;w&quot;)
+
+    def clear_wave(self):
+        self.draw_grid()
+        self.wave_data = [0] *self.wave_resolution
+
+
+    def draw_wave(self, event):
+        x = event.x
+        if x &lt; 0: x = 0
+        if x &gt;= self.cv_width: x = self.cv_width - 1
+        
+        index = int((x / self.cv_width) * self.wave_resolution)
+        
+        y = event.y
+        if y &lt; 0: y = 0
+        if y &gt; self.cv_height: y = self.cv_height
+        
+        pwm_val = int(255 - (y / self.cv_height * 255))
+        
+        self.wave_data[index] = pwm_val
+        
+        r = 2
+        self.cv.create_oval(x-r, y-r, x+r, y+r, fill=&quot;blue&quot;, outline=&quot;blue&quot;)
+
+    def start_wave(self):
+        if not self.ser or not self.ser.is_open: return
+        self.stop_wave()
+        self.stop_monitor()
+        self.wave_playing = True
+        self.wave_index = 0
+        self.btn_play_wave.config(state=&quot;disabled&quot;)
+        self.btn_stop_wave.config(state=&quot;normal&quot;)
+        self.wave_after_id = self.root.after(0, self.wave_loop)
+
+    def stop_wave(self):
+        self.wave_playing = False
+        if self.wave_after_id is not None:
+            self.root.after_cancel(self.wave_after_id)
+            self.wave_after_id = None
+        self.btn_play_wave.config(state=&quot;normal&quot;)
+        self.btn_stop_wave.config(state=&quot;disabled&quot;)
+
+    def wave_loop(self):
+        # Tk runs this callback and mode changes serially: no stale SET after AUTO.
+        self.wave_after_id = None
+        if not self.wave_playing or not self.ser or not self.ser.is_open:
+            self.stop_wave()
+            return
+        try:
+            self.send_cmd(f&quot;SET {self.wave_data[self.wave_index]}&quot;)
+            if self.ser.in_waiting:
+                self.ser.read_all()
+        except Exception:
+            self.stop_wave()
+            return
+        self.wave_index = (self.wave_index + 1) % self.wave_resolution
+        self.wave_after_id = self.root.after(50, self.wave_loop)
+
+    def start_monitor(self):
+        if not self.ser: return
+        self.stop_wave()
+        self.monitoring = True
+        self.btn_monitor.config(state=&quot;disabled&quot;)
+        self.btn_stop.config(state=&quot;normal&quot;)
+        self.send_cmd(&quot;MONITOR&quot;)
+        threading.Thread(target=self.monitor_loop, daemon=True).start()
+
+    def stop_monitor(self):
+        self.monitoring = False
+        self.send_cmd(&quot;STOP&quot;)
+        self.btn_monitor.config(state=&quot;normal&quot;)
+        self.btn_stop.config(state=&quot;disabled&quot;)
+
+    def monitor_loop(self):
+        while self.monitoring and self.ser and self.ser.is_open:
+            if self.ser.in_waiting:
+                try:
+                    line = self.ser.readline().decode().strip()
+                    if &quot;ADC:&quot; in line:
+                        self.root.after(0, self.update_display, line)
+                except: pass
+            time.sleep(0.01)
+if __name__ == &quot;__main__&quot;:
+    root = tk.Tk()
+    app = IlMattoGUI(root)
+    root.mainloop()</pre></section><section id="file-protocol.c"><h2>protocol.c</h2><p><a href="pwm-dac-pid/protocol.c" download>Download raw file ↓</a> · <a href="pwm-dac-pid.html#file-protocol.c">Back to file index</a></p><pre>#include &quot;protocol.h&quot;
+#include &lt;ctype.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+int parse_command(const char* text, command* out) {
+    const char* names[]={&quot;SET&quot;,&quot;AUTO&quot;,&quot;READ&quot;,&quot;MONITOR&quot;,&quot;STOP&quot;,&quot;KP&quot;,&quot;KI&quot;,&quot;KD&quot;};
+    while (isspace((unsigned char)*text)) ++text;
+    const char* end=text;
+    while (*end &amp;&amp; !isspace((unsigned char)*end)) ++end;
+    unsigned n=(unsigned)(end-text), kind;
+    for(kind=0;kind&lt;sizeof names/sizeof names[0];++kind)
+        if(strlen(names[kind])==n &amp;&amp; strncmp(text,names[kind],n)==0) break;
+    if(kind==sizeof names/sizeof names[0]) return 0;
+    while(isspace((unsigned char)*end)) ++end;
+    long value=0;
+    if(kind==CMD_SET || kind==CMD_AUTO || kind&gt;=CMD_KP) {
+        if(!*end) return 0;
+        char* tail;
+        errno=0; value=strtol(end,&amp;tail,10);
+        if(tail==end || errno==ERANGE) return 0;
+        while(isspace((unsigned char)*tail)) ++tail;
+        if(*tail) return 0;
+        if(kind&gt;=CMD_KP &amp;&amp; (value&lt;0 || value&gt;30000)) return 0;
+        if(kind==CMD_SET || kind==CMD_AUTO) {
+            long max=kind==CMD_SET ? 255 : 1023;
+            if(value&lt;0) value=0;
+            if(value&gt;max) value=max;
+        }
+    } else if(*end) return 0;
+    out-&gt;kind=(command_kind)kind; out-&gt;value=(int)value;
+    return 1;
+}
+int command_feed(command_buffer* b,char byte) {
+    if(byte==&#x27;\r&#x27; || byte==&#x27;\n&#x27;) {
+        int result=b-&gt;overflow ? -1 : (b-&gt;length ? 1 : 0);
+        b-&gt;text[b-&gt;length]=&#x27;\0&#x27;; b-&gt;length=0; b-&gt;overflow=0;
+        return result;
+    }
+    if(b-&gt;length+1&lt;sizeof b-&gt;text &amp;&amp; !b-&gt;overflow) b-&gt;text[b-&gt;length++]=byte;
+    else b-&gt;overflow=1;
+    return 0;
+}
+</pre></section><section id="file-protocol.h"><h2>protocol.h</h2><p><a href="pwm-dac-pid/protocol.h" download>Download raw file ↓</a> · <a href="pwm-dac-pid.html#file-protocol.h">Back to file index</a></p><pre>#ifndef PWM_PROTOCOL_H
+#define PWM_PROTOCOL_H
+#ifdef __cplusplus
+extern &quot;C&quot; {
+#endif
+typedef enum {CMD_SET, CMD_AUTO, CMD_READ, CMD_MONITOR, CMD_STOP, CMD_KP, CMD_KI, CMD_KD} command_kind;
+typedef struct { command_kind kind; int value; } command;
+typedef struct {char text[50]; unsigned length; int overflow;} command_buffer;
+int parse_command(const char* text, command* out);
+/* 1: complete line, -1: discarded oversized line, 0: incomplete/empty line. */
+int command_feed(command_buffer* buffer, char byte);
+#ifdef __cplusplus
+}
+#endif
+#endif
+</pre></section><section id="file-pwm_cli.cpp"><h2>pwm_cli.cpp</h2><p><a href="pwm-dac-pid/pwm_cli.cpp" download>Download raw file ↓</a> · <a href="pwm-dac-pid.html#file-pwm_cli.cpp">Back to file index</a></p><pre>// New reconstruction added during portfolio preparation; original host CLI was not recovered.
+// POSIX macOS/Linux serial client. Does not flash firmware.
+#include &quot;protocol.h&quot;
+#include &lt;cerrno&gt;
+#include &lt;csignal&gt;
+#include &lt;cstdio&gt;
+#include &lt;cstring&gt;
+#include &lt;iostream&gt;
+#include &lt;string&gt;
+#include &lt;fcntl.h&gt;
+#include &lt;poll.h&gt;
+#include &lt;termios.h&gt;
+#include &lt;unistd.h&gt;
+static volatile std::sig_atomic_t running = 1;
+static void stop(int) { running = 0; }
+static bool send_all(int fd, const std::string&amp; message) {
+    size_t sent = 0;
+    while (sent &lt; message.size()) {
+        ssize_t n = write(fd, message.data() + sent, message.size() - sent);
+        if (n &lt; 0 &amp;&amp; errno == EINTR) continue;
+        if (n &lt;= 0) return false;
+        sent += static_cast&lt;size_t&gt;(n);
+    }
+    return true;
+}
+int main(int argc, char** argv) {
+    if (argc &lt; 3 || argc &gt; 4) {
+        std::cerr &lt;&lt; &quot;Usage: pwm_cli PORT &#x27;READ|MONITOR|STOP&#x27; or PORT &#x27;SET|AUTO|KP|KI|KD&#x27; INTEGER\n&quot;;
+        return 2;
+    }
+    std::string text = argv[2];
+    if (argc == 4) text += &quot; &quot; + std::string(argv[3]);
+    command cmd;
+    if (!parse_command(text.c_str(), &amp;cmd)) {
+        std::cerr &lt;&lt; &quot;Invalid command or argument\n&quot;; return 2;
+    }
+    int fd = open(argv[1], O_RDWR | O_NOCTTY);
+    if (fd &lt; 0) { std::perror(&quot;open serial port&quot;); return 1; }
+    termios original{}, settings{};
+    if (tcgetattr(fd, &amp;original) &lt; 0) { std::perror(&quot;tcgetattr&quot;); close(fd); return 1; }
+    settings = original;
+    cfmakeraw(&amp;settings);
+    cfsetispeed(&amp;settings, B9600); cfsetospeed(&amp;settings, B9600);
+    settings.c_cflag |= CLOCAL | CREAD;
+    settings.c_cflag &amp;= ~CSTOPB;
+    settings.c_cc[VMIN] = 0; settings.c_cc[VTIME] = 0;
+    if (tcsetattr(fd, TCSANOW, &amp;settings) &lt; 0) { std::perror(&quot;tcsetattr&quot;); close(fd); return 1; }
+    std::signal(SIGINT, stop); std::signal(SIGTERM, stop);
+    bool okay = send_all(fd, text + &quot;\r&quot;), received = false;
+    while (okay &amp;&amp; running) {
+        pollfd port{fd, POLLIN, 0};
+        int ready = poll(&amp;port, 1, cmd.kind == CMD_MONITOR ? 500 : (received ? 200 : 2000));
+        if (ready &lt; 0 &amp;&amp; errno == EINTR) continue;
+        if (ready &lt; 0) { std::perror(&quot;poll&quot;); okay = false; break; }
+        if (!ready) {
+            if (cmd.kind == CMD_MONITOR) continue;
+            if (!received) { std::cerr &lt;&lt; &quot;No response from board\n&quot;; okay = false; }
+            break;
+        }
+        if (port.revents &amp; (POLLERR | POLLNVAL | POLLHUP)) { okay = false; break; }
+        char buffer[256];
+        ssize_t n = read(fd, buffer, sizeof buffer);
+        if (n &lt; 0 &amp;&amp; errno == EINTR) continue;
+        if (n &lt;= 0) { okay = false; break; }
+        std::cout.write(buffer, n); std::cout.flush(); received = true;
+    }
+    if (cmd.kind == CMD_MONITOR) send_all(fd, &quot;STOP\r&quot;);
+    tcsetattr(fd, TCSANOW, &amp;original); close(fd);
+    return okay ? 0 : 1;
+}
+</pre></section><section id="file-requirements.txt"><h2>requirements.txt</h2><p><a href="pwm-dac-pid/requirements.txt" download>Download raw file ↓</a> · <a href="pwm-dac-pid.html#file-requirements.txt">Back to file index</a></p><pre>pyserial&gt;=3.5,&lt;4
+</pre></section><section id="file-tests/test_gui.py"><h2>tests/test_gui.py</h2><p><a href="pwm-dac-pid/tests/test_gui.py" download>Download raw file ↓</a> · <a href="pwm-dac-pid.html#file-tests/test_gui.py">Back to file index</a></p><pre>import importlib.util
+import pathlib
+from types import SimpleNamespace
+spec=importlib.util.spec_from_file_location(&#x27;gui_plus&#x27;,pathlib.Path(__file__).parents[1]/&#x27;gui_plus.py&#x27;)
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+class Label:
+    def __init__(self): self.text=&#x27;Current: old&#x27;
+    def cget(self,key): return self.text
+    def config(self,**kwargs): self.text=kwargs.get(&#x27;text&#x27;,self.text)
+class Serial:
+    is_open=True
+    def __init__(self): self.sent=[];self.lines=[b&#x27;PID ON. Target: 512\r\n&#x27;,b&#x27;ADC: 512 | PWM: 128\r\n&#x27;]
+    def write(self,b):self.sent.append(b)
+    def readline(self):return self.lines.pop(0) if self.lines else b&#x27;&#x27;
+a=m.IlMattoGUI.__new__(m.IlMattoGUI);a.ser=Serial();a.lbl_current=Label();a.lbl_prev=Label()
+a.read_once()
+assert a.ser.sent==[b&#x27;READ\r&#x27;],a.ser.sent
+assert &#x27;ADC: 512&#x27; in a.lbl_current.text,a.lbl_current.text
+assert &#x27;1.65 V&#x27; in a.lbl_current.text
+# Outside-canvas drawing must stay within the 50 sample array and 0..255 range.
+a.cv_width=500;a.cv_height=150;a.wave_resolution=50;a.wave_data=[0]*50
+a.cv=SimpleNamespace(create_oval=lambda *args,**kwargs:None)
+a.draw_wave(SimpleNamespace(x=-20,y=-40));assert a.wave_data[0]==255
+a.draw_wave(SimpleNamespace(x=999,y=999));assert a.wave_data[49]==0
+print(&#x27;GUI READ framing, stale response handling, voltage display and 50-sample bounds PASS&#x27;)
+
+# Playback must share Tk&#x27;s event loop so mode changes can cancel every future SET.
+class Scheduler:
+    def __init__(self): self.jobs={}; self.next_id=0
+    def after(self,delay,callback,*args):
+        self.next_id+=1
+        self.jobs[self.next_id]=(delay,callback,args)
+        return self.next_id
+    def after_cancel(self,job): del self.jobs[job]
+    def run_next(self):
+        job=next(iter(self.jobs))
+        _,callback,args=self.jobs.pop(job)
+        callback(*args)
+class NoWorker:
+    def __init__(self,**kwargs): pass
+    def start(self): pass
+class PlaybackSerial(Serial):
+    in_waiting=0
+    def close(self): self.is_open=False
+    def write(self,b):
+        assert self.is_open,&#x27;Write after disconnect&#x27;
+        super().write(b)
+# Suppress only background acquisition; waveform scheduling is exercised unchanged.
+m.threading=SimpleNamespace(Thread=NoWorker)
+def playback():
+    a=m.IlMattoGUI.__new__(m.IlMattoGUI)
+    a.root=Scheduler();a.ser=PlaybackSerial();a.monitoring=False
+    a.wave_playing=False;a.wave_after_id=None;a.wave_index=0
+    a.wave_resolution=50;a.wave_data=list(range(50))
+    for name in [&#x27;btn_play_wave&#x27;,&#x27;btn_stop_wave&#x27;,&#x27;btn_monitor&#x27;,&#x27;btn_stop&#x27;,&#x27;btn_connect&#x27;]:
+        setattr(a,name,Label())
+    a.slider_target=SimpleNamespace(get=lambda:512)
+    a.slider_pwm=SimpleNamespace(get=lambda:200)
+    a.status_canvas=SimpleNamespace(itemconfig=lambda *args,**kwargs:None)
+    a.status_circle=1
+    return a
+for mode in [&#x27;stop_wave&#x27;,&#x27;send_auto&#x27;,&#x27;send_pwm&#x27;,&#x27;start_monitor&#x27;,&#x27;toggle_connection&#x27;]:
+    a=playback();a.start_wave()
+    assert a.root.jobs,&#x27;Waveform playback must queue a cancellable Tk callback&#x27;
+    a.root.run_next() # One sample is allowed before the mode change.
+    getattr(a,mode)()
+    commands=list(a.ser.sent)
+    assert not a.root.jobs,(mode,&#x27;uncancelled waveform callback&#x27;)
+    assert not a.wave_playing
+    if mode==&#x27;send_auto&#x27;: assert commands[-1]==b&#x27;AUTO 512\r&#x27;,commands
+    if mode==&#x27;send_pwm&#x27;: assert commands[-1]==b&#x27;SET 200\r&#x27;,commands
+    if mode==&#x27;start_monitor&#x27;: assert commands[-1]==b&#x27;MONITOR\r&#x27;,commands
+    if mode==&#x27;toggle_connection&#x27;: assert not a.ser.is_open
+# Starting twice must leave only one loop, and all 50 samples must repeat in order.
+a=playback();a.start_wave();a.start_wave()
+assert len(a.root.jobs)==1
+for _ in range(51): a.root.run_next()
+a.stop_wave()
+assert [cmd for cmd in a.ser.sent if cmd.startswith(b&#x27;SET &#x27;)]==[
+    f&#x27;SET {n}\r&#x27;.encode() for n in list(range(50))+[0]]
+assert not a.root.jobs
+print(&#x27;GUI cancellable waveform loop, mode changes, disconnect and 50-sample wrap PASS&#x27;)
+</pre></section><section id="file-tests/test_protocol.c"><h2>tests/test_protocol.c</h2><p><a href="pwm-dac-pid/tests/test_protocol.c" download>Download raw file ↓</a> · <a href="pwm-dac-pid.html#file-tests/test_protocol.c">Back to file index</a></p><pre>#include &quot;protocol.h&quot;
+#include &lt;assert.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+int main(void) {
+    command c;
+    const char* bad[]={&quot;SET&quot;,&quot;AUTO&quot;,&quot;KP&quot;,&quot;SET abc&quot;,&quot;SET 2garbage&quot;,&quot;SET 1 2&quot;,&quot;READ 0&quot;,&quot;MONITOR 1&quot;,&quot;NOPE&quot;,&quot;&quot;,&quot;SET 999999999999999999999999999&quot;,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA 7&quot;};
+    for(unsigned i=0;i&lt;sizeof bad/sizeof bad[0];++i) assert(!parse_command(bad[i],&amp;c));
+    assert(parse_command(&quot;SET -4&quot;,&amp;c) &amp;&amp; c.kind==CMD_SET &amp;&amp; c.value==0);
+    assert(parse_command(&quot;SET 999&quot;,&amp;c) &amp;&amp; c.value==255);
+    assert(parse_command(&quot;AUTO 2048&quot;,&amp;c) &amp;&amp; c.value==1023);
+    assert(parse_command(&quot;AUTO -1&quot;,&amp;c) &amp;&amp; c.value==0);
+    assert(parse_command(&quot; KP 500 &quot;,&amp;c) &amp;&amp; c.kind==CMD_KP &amp;&amp; c.value==500);
+    assert(!parse_command(&quot;KI -1&quot;,&amp;c));
+    assert(parse_command(&quot;KD 1&quot;,&amp;c) &amp;&amp; c.kind==CMD_KD);
+    assert(parse_command(&quot;READ&quot;,&amp;c) &amp;&amp; c.kind==CMD_READ);
+    assert(parse_command(&quot;MONITOR&quot;,&amp;c) &amp;&amp; c.kind==CMD_MONITOR);
+    assert(parse_command(&quot;STOP&quot;,&amp;c) &amp;&amp; c.kind==CMD_STOP);
+    command_buffer b={{0},0,0};
+    for(int i=0;i&lt;100;++i) assert(command_feed(&amp;b,&#x27;A&#x27;)==0);
+    assert(command_feed(&amp;b,&#x27;\r&#x27;)==-1);
+    assert(command_feed(&amp;b,&#x27;S&#x27;)==0); assert(command_feed(&amp;b,&#x27;E&#x27;)==0);
+    assert(command_feed(&amp;b,&#x27;T&#x27;)==0); assert(command_feed(&amp;b,&#x27; &#x27;)==0);
+    assert(command_feed(&amp;b,&#x27;5&#x27;)==0); assert(command_feed(&amp;b,&#x27;\n&#x27;)==1);
+    assert(parse_command(b.text,&amp;c) &amp;&amp; c.value==5);
+    puts(&quot;Malformed command rejection, bounded framing, ranges and gain commands PASS&quot;);
+}
+</pre></section><section id="file-tests/test_serial.py"><h2>tests/test_serial.py</h2><p><a href="pwm-dac-pid/tests/test_serial.py" download>Download raw file ↓</a> · <a href="pwm-dac-pid.html#file-tests/test_serial.py">Back to file index</a></p><pre>&quot;&quot;&quot;Local pseudoterminal transport test; never opens a physical serial port.&quot;&quot;&quot;
+import importlib.util, os, pathlib, pty, select, subprocess, threading
+import serial
+root=pathlib.Path(__file__).parents[1]
+exe=root/&#x27;build/pwm_cli&#x27;
+errors=[]
+def peer(master, expected, reply):
+    try:
+        _peer(master,expected,reply)
+    except Exception as exc:
+        errors.append(exc)
+def _peer(master, expected, reply):
+    data=b&#x27;&#x27;
+    while not data.endswith(b&#x27;\r&#x27;):
+        ready,_,_=select.select([master],[],[],3)
+        assert ready,&#x27;No command received&#x27;
+        data+=os.read(master,4096)
+    assert data==expected,(data,expected)
+    os.write(master,reply)
+for cmd,reply in [(&#x27;SET 128&#x27;,b&#x27;Manual PWM: 128\r\n&#x27;),(&#x27;AUTO 512&#x27;,b&#x27;PID ON. Target: 512\r\n&#x27;),(&#x27;READ&#x27;,b&#x27;ADC: 512 | PWM: 128\r\n&#x27;),(&#x27;KP 500&#x27;,b&#x27;KP updated\r\n&#x27;),(&#x27;STOP&#x27;,b&#x27;Monitor stopped\r\n&#x27;)]:
+    master,slave=pty.openpty()
+    worker=threading.Thread(target=peer,args=(master,(cmd+&#x27;\r&#x27;).encode(),reply));worker.start()
+    result=subprocess.run([str(exe),os.ttyname(slave),*cmd.split()],capture_output=True,timeout=4)
+    worker.join();os.close(master);os.close(slave)
+    assert not errors,errors
+    assert result.returncode==0,result.stderr
+    assert reply.replace(b&#x27;\r&#x27;,b&#x27;&#x27;) in result.stdout.replace(b&#x27;\r&#x27;,b&#x27;&#x27;),result.stdout
+r=subprocess.run([str(exe),&#x27;/no/device&#x27;,&#x27;SET&#x27;],capture_output=True)
+assert r.returncode==2
+# Exercise actual recovered GUI methods over real pySerial and a PTY.
+spec=importlib.util.spec_from_file_location(&#x27;gui_plus&#x27;,root/&#x27;gui_plus.py&#x27;);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+class Label:
+    def __init__(self):self.text=&#x27;Current: --&#x27;
+    def cget(self,_):return self.text
+    def config(self,**kw):self.text=kw.get(&#x27;text&#x27;,self.text)
+master,slave=pty.openpty()
+a=m.IlMattoGUI.__new__(m.IlMattoGUI);a.ser=serial.Serial(os.ttyname(slave),9600,timeout=.5)
+a.lbl_current=Label();a.lbl_prev=Label()
+worker=threading.Thread(target=peer,args=(master,b&#x27;READ\r&#x27;,b&#x27;ADC: 512 | PWM: 128\r\n&#x27;));worker.start()
+a.read_once();worker.join();a.ser.close();os.close(master);os.close(slave)
+assert not errors,errors
+assert &#x27;ADC: 512&#x27; in a.lbl_current.text,a.lbl_current.text
+print(&#x27;C++ CLI and GUI pySerial pseudoterminal roundtrips PASS&#x27;)
+</pre></section></main></body></html>

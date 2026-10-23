@@ -1,0 +1,57 @@
+{
+  "matlab_version": "24.2.0.2923080 (R2024b) Update 6",
+  "override_n_feedfw_feedbk_ctrl": {
+    "antiwindup": "PI internal output clamping (not external limiter tracking)",
+    "original_step": {
+      "final_rpm": 75.048509867432216,
+      "final_target": 75,
+      "final_error": 0.04850986743221597,
+      "fuel_min": 500,
+      "fuel_max": 827.314416652955,
+      "max_accel_limit_excess": 1.1368683772161603E-13
+    },
+    "idle": {
+      "final_rpm": 40,
+      "final_target": 40,
+      "final_error": 0,
+      "fuel_min": 180.96748256561114,
+      "fuel_max": 200,
+      "max_accel_limit_excess": -300
+    },
+    "full_to_idle": {
+      "final_rpm": 40.000021008855065,
+      "final_target": 40,
+      "final_error": 2.1008855064508225E-5,
+      "fuel_min": 180,
+      "fuel_max": 1770.1576632141014,
+      "max_accel_limit_excess": 2.2737367544323206E-13
+    }
+  },
+  "override_n_feedfw_feedbk_ctrl_torque_plant": {
+    "antiwindup": "PI internal output clamping (not external limiter tracking)",
+    "original_step": {
+      "final_rpm": 87.500000000019142,
+      "final_target": 87.5,
+      "final_error": 1.91420213013771E-11,
+      "fuel_min": 1138.137180945813,
+      "fuel_max": 2346.7132636976185,
+      "max_accel_limit_excess": 4.5474735088646412E-13
+    },
+    "idle": {
+      "final_rpm": 40,
+      "final_target": 40,
+      "final_error": 0,
+      "fuel_min": 180,
+      "fuel_max": 202.74156199643477,
+      "max_accel_limit_excess": -297.25843800356523
+    },
+    "full_to_idle": {
+      "final_rpm": 40.000000006628639,
+      "final_target": 40,
+      "final_error": 6.6286389710512594E-9,
+      "fuel_min": 180,
+      "fuel_max": 2629.2714453678136,
+      "max_accel_limit_excess": 4.5474735088646412E-13
+    }
+  }
+}

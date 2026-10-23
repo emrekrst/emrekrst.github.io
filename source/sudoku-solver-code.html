@@ -1,0 +1,416 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sudoku solver · Code</title><style>*{box-sizing:border-box}html{color-scheme:light}body{margin:0;background:#f5f3ed;color:#20261f;font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1120px;margin:auto;padding:40px 28px 80px}a{color:#2756dc;text-underline-offset:4px}a:hover{color:#173b9e}a:focus-visible{outline:3px solid #2756dc;outline-offset:5px}nav{display:flex;gap:24px;flex-wrap:wrap;font-size:14px}h1{font-size:clamp(32px,5vw,64px);line-height:1.08;letter-spacing:-.045em;margin:36px 0 18px;max-width:900px}h2{font-size:25px;letter-spacing:-.025em;margin-top:44px}p{max-width:850px}.eyebrow{text-transform:uppercase;font-size:12px;font-weight:700;letter-spacing:.14em;color:#52604c}.status{display:inline-block;border:1px solid #cbd1c4;border-radius:3px;padding:8px 12px;background:#eaf0e3;font-size:14px}.rights{border-left:3px solid #2756dc;padding:6px 22px;margin:28px 0;background:#efeee7}.actions{display:flex;gap:20px;flex-wrap:wrap;margin:24px 0}.button{display:inline-block;background:#2756dc;color:white;padding:11px 18px;text-decoration:none;border-radius:3px}.button:hover{background:#173b9e;color:white}table{border-collapse:collapse;width:100%;font:14px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}th{text-align:left;background:#e7e7de}td,th{padding:11px 14px;border-bottom:1px solid #d9dcd1}td:first-child{overflow-wrap:anywhere}td:nth-child(2),th:nth-child(2){text-align:right;white-space:nowrap}.table-wrap{overflow:auto}pre{padding:24px;border:1px solid #d9dcd1;border-radius:4px;background:#faf9f5;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace}footer{margin-top:48px;font-size:13px;color:#52604c}@media(max-width:540px){main{padding:25px 18px 50px}pre{padding:16px;font-size:13px}td,th{padding:9px 7px}}section{scroll-margin-top:25px}h2{overflow-wrap:anywhere}@media(max-width:540px){nav{gap:8px 16px}a{min-height:44px;display:inline-flex;align-items:center}td a{font-size:14px;overflow-wrap:anywhere}pre{font-size:14px;line-height:1.65}h1{overflow-wrap:anywhere}.actions{gap:8px 16px}.table-wrap{border:1px solid #d9dcd1}.rights{padding:8px 14px}}</style></head><body><main><nav><a href="sudoku-solver.html">← Source package</a><a href="../index.html#library">Portfolio projects</a></nav><p class="eyebrow">READABLE SOURCE / ORIGINAL NOTICES RETAINED</p><h1>Sudoku solver</h1><section id="file-.gitignore"><h2>.gitignore</h2><p><a href="sudoku-solver/.gitignore" download>Download raw file ↓</a> · <a href="sudoku-solver.html#file-.gitignore">Back to file index</a></p><pre>build/
+__pycache__/
+.DS_Store
+</pre></section><section id="file-Makefile"><h2>Makefile</h2><p><a href="sudoku-solver/Makefile" download>Download raw file ↓</a> · <a href="sudoku-solver.html#file-Makefile">Back to file index</a></p><pre>CXX = c++
+CXXFLAGS = -std=c++17 -O2 -Wall -Wextra -pedantic
+.PHONY: all test clean
+all: build/sudoku
+build:
+	mkdir -p build
+build/sudoku: main.cpp board.cpp solver.cpp board.h | build
+	$(CXX) $(CXXFLAGS) main.cpp board.cpp solver.cpp -o $@
+build/tests: tests.cpp board.cpp solver.cpp board.h | build
+	$(CXX) $(CXXFLAGS) tests.cpp board.cpp solver.cpp -o $@
+test: all build/tests
+	./build/tests invalid
+	./build/tests load
+	./build/tests
+	python3 test_cli.py
+clean:
+	rm -rf build
+</pre></section><section id="file-README.md"><h2>README.md</h2><p><a href="sudoku-solver/README.md" download>Download raw file ↓</a> · <a href="sudoku-solver.html#file-README.md">Back to file index</a></p><pre># Sudoku solver
+
+A C++ command-line Sudoku game with a backtracking solver that chooses the empty cell with the fewest legal candidates (minimum remaining values). The supplied text puzzle is included.
+
+## Build and run
+
+Requires a C++17 compiler, Make and Python 3 for CLI tests.
+
+```sh
+make
+./build/sudoku                 # use board.txt from this directory
+./build/sudoku path/to/puzzle.txt
+make test
+make clean
+```
+
+Enter `s` to select an empty cell, `a` to display a solution without changing the current board, `v` to check completion, or `q` to quit. Row/column coordinates are 1–9. A puzzle file must have exactly 81 integers in 0–9; zero means empty. Invalid, missing or conflicting puzzles return a nonzero exit status.
+
+## Provenance and preparation changes
+
+Recovered university coursework associated with Emre Karausta. This project is an additional programming example; it is not listed in the master CV. The standalone copy retains the original board representation, CLI and MRV solver. Preparation added input validation, atomic puzzle loading, invalid-board rejection, safe EOF handling and regression tests. Original coursework files were left untouched.
+
+No project-wide licence has been inferred or added. Confirm rights to any supplied coursework material before public release.
+
+See [VERIFICATION.md](VERIFICATION.md) for executed checks and limits.
+</pre></section><section id="file-VERIFICATION.md"><h2>VERIFICATION.md</h2><p><a href="sudoku-solver/VERIFICATION.md" download>Download raw file ↓</a> · <a href="sudoku-solver.html#file-VERIFICATION.md">Back to file index</a></p><pre># Verification
+
+Executed on 2026-10-22 on macOS arm64 with Apple clang 17.0.0 and Python 3.14.0. Run commands from this project directory.
+
+```sh
+make test
+make clean
+make test CXXFLAGS=&quot;-std=c++17 -O1 -g -Wall -Wextra -pedantic -fsanitize=address,undefined -fno-sanitize-recover=all&quot;
+```
+
+PASS, exit 0, with no compiler warnings:
+
+- supplied puzzle matches a hand-checked complete 9×9 solution;
+- complete invalid board is rejected;
+- a locally valid but unsatisfiable puzzle returns false and preserves clues;
+- missing file, too few/many entries, nonnumeric entries, out-of-range values and conflicting clues are rejected;
+- move boundary checks reject invalid coordinates/values, including minimum-integer CLI input before coordinate subtraction;
+- CLI exits on EOF and recovers from nonnumeric row/column/number input;
+- autosolve and quit finish within a five-second subprocess timeout.
+
+Before fixes, independent regressions failed because the original solver accepted an all-ones complete board and the loader returned normally for a missing file. CLI EOF and nonnumeric input exceeded a subprocess timeout. The test suite now exercises those paths. An additional UBSan regression caught signed overflow when converting the minimum integer to a zero-based coordinate; coordinates are now checked before subtraction.
+
+Limits: solution uniqueness is not checked. The solver reports the first solution. No external puzzle corpus, performance benchmark, or exhaustive proof was run. This is an educational application, not a general Sudoku library.
+</pre></section><section id="file-board.cpp"><h2>board.cpp</h2><p><a href="sudoku-solver/board.cpp" download>Download raw file ↓</a> · <a href="sudoku-solver.html#file-board.cpp">Back to file index</a></p><pre>//board.cpp
+
+#include &quot;board.h&quot;
+#include &lt;limits&gt;
+#include &lt;stdexcept&gt;
+using namespace std;
+
+//define functions
+
+//load sudoku puzzle from txt file into board array
+void loadBoardFromFile(const string&amp; filename, int board[9][9]) { //defines a function with string and array input
+    ifstream file(filename);
+    if (!file) throw runtime_error(&quot;Could not open puzzle: &quot; + filename);
+    int loaded[9][9] = {};
+    for (auto&amp; row : loaded) {
+        for (int&amp; value : row) {
+            if (!(file &gt;&gt; value) || value &lt; 0 || value &gt; 9)
+                throw runtime_error(&quot;Puzzle must contain exactly 81 integers in 0..9&quot;);
+        }
+    }
+    string extra;
+    if (file &gt;&gt; extra) throw runtime_error(&quot;Puzzle has extra data&quot;);
+    if (!isBoardValid(loaded)) throw runtime_error(&quot;Puzzle has conflicting clues&quot;);
+    for (int r = 0; r &lt; 9; ++r)
+        for (int c = 0; c &lt; 9; ++c) board[r][c] = loaded[r][c];
+}
+
+// display sudoku board in formatted CLI grid
+void displayBoard(int board[9][9]) {
+    cout &lt;&lt; &quot;\n==============================\n&quot;;
+    cout &lt;&lt; &quot;          SUDOKU GAME         \n&quot;; //nice title
+    cout &lt;&lt; &quot;==============================\n&quot;;
+
+    for (int i = 0; i &lt; 9; ++i) {
+        if (i % 3 == 0) //if remainder equals zero
+            cout &lt;&lt; &quot;+-------+-------+-------+\n&quot;; //prints row borders
+
+        for (int j = 0; j &lt; 9; ++j) {
+            if (j % 3 == 0) cout &lt;&lt; &quot;| &quot;; //prints column borders
+
+            if (board[i][j] == 0)
+                cout &lt;&lt; &quot;_ &quot;; //show _ for empty cells
+            else
+                cout &lt;&lt; board[i][j] &lt;&lt; &quot; &quot;; //show the number
+        }
+        cout &lt;&lt; &quot;|\n&quot;; //end-of-row line
+    }
+    cout &lt;&lt; &quot;+-------+-------+-------+\n\n&quot;; //final bottom grid line
+}
+
+//check if placing a number is valid
+bool isValidMove(int board[9][9], int row, int col, int num) {
+    if (row &lt; 0 || row &gt;= 9 || col &lt; 0 || col &gt;= 9 || num &lt; 1 || num &gt; 9) return false;
+    // check row
+    for (int j = 0; j &lt; 9; ++j) {
+        if (board[row][j] == num) return false; //scan row for duplicates
+    }
+
+    // check column
+    for (int i = 0; i &lt; 9; ++i) {
+        if (board[i][col] == num) return false; //scan column for duplicates
+    }
+
+    // check 3x3 subgrid
+    int startRow = row - row % 3; //finds the top left of the 3x3 box of interest
+    int startCol = col - col % 3;
+    for (int i = 0; i &lt; 3; ++i) //scans 3x3 box for duplicates
+        for (int j = 0; j &lt; 3; ++j)
+            if (board[startRow + i][startCol + j] == num)
+                return false;
+
+    return true; //valid move if duplicates not found
+}
+
+//check if all cells are filled
+bool isBoardFull(int board[9][9]) {
+    for (int i = 0; i &lt; 9; ++i)
+        for (int j = 0; j &lt; 9; ++j)
+            if (board[i][j] == 0) //false if any of the cells are 0
+                return false;
+    return true;
+}
+
+//check if the entire board is valid (for final victory check)
+bool isBoardValid(int board[9][9]) {
+    //validate all filled cells
+    for (int i = 0; i &lt; 9; ++i) {
+        for (int j = 0; j &lt; 9; ++j) {
+            int num = board[i][j]; //store current number of the cell
+            if (num != 0) {
+                board[i][j] = 0; //temporarily clear current cell
+                if (!isValidMove(board, i, j, num)) { //test if placing that number was valid
+                    board[i][j] = num; 
+                    return false;
+                }
+                board[i][j] = num; //restore value
+            }
+        }
+    }
+    return true; 
+}
+
+//allow user to select and fill a cell
+void selectCell(int board[9][9]) {
+    int row, col, num; //declare variables for coordinates and number
+
+    cout &lt;&lt; &quot;Enter row (1-9): &quot;;
+    if (!(cin &gt;&gt; row)) {
+        if (!cin.eof()) { cin.clear(); cin.ignore(numeric_limits&lt;streamsize&gt;::max(), &#x27;\n&#x27;); }
+        cout &lt;&lt; &quot;Invalid numeric input.\n&quot;; return;
+    }
+    cout &lt;&lt; &quot;Enter column (1-9): &quot;;
+    if (!(cin &gt;&gt; col)) {
+        if (!cin.eof()) { cin.clear(); cin.ignore(numeric_limits&lt;streamsize&gt;::max(), &#x27;\n&#x27;); }
+        cout &lt;&lt; &quot;Invalid numeric input.\n&quot;; return;
+    }
+
+    // Validate before subtraction, including the minimum representable integer.
+    if (row &lt; 1 || row &gt; 9 || col &lt; 1 || col &gt; 9) {
+        cout &lt;&lt; &quot;Invalid position! Try again.\n&quot;;
+        return;
+    }
+
+
+    row -= 1;
+    col -= 1;
+
+    //disallow overwriting filled cell
+    if (board[row][col] != 0) {
+        cout &lt;&lt; &quot;Cell already filled! Choose another.\n&quot;;
+        return;
+    }
+
+    //ask user number input
+    cout &lt;&lt; &quot;Enter number (1-9): &quot;;
+    if (!(cin &gt;&gt; num)) {
+        if (!cin.eof()) { cin.clear(); cin.ignore(numeric_limits&lt;streamsize&gt;::max(), &#x27;\n&#x27;); }
+        cout &lt;&lt; &quot;Invalid numeric input.\n&quot;; return;
+    }
+
+    //validate number range
+    if (num &lt; 1 || num &gt; 9) {
+        cout &lt;&lt; &quot;Invalid number! Must be between 1 and 9.\n&quot;;
+        return;
+    }
+
+    //if valid, fill cell; else print warning
+    if (isValidMove(board, row, col, num)) {
+        board[row][col] = num;
+        cout &lt;&lt; &quot;Move accepted.\n&quot;;
+    } else {
+        cout &lt;&lt; &quot;Invalid move (violates Sudoku rules).\n&quot;;
+    }
+}</pre></section><section id="file-board.h"><h2>board.h</h2><p><a href="sudoku-solver/board.h" download>Download raw file ↓</a> · <a href="sudoku-solver.html#file-board.h">Back to file index</a></p><pre>//board.h
+
+#ifndef BOARD_H
+#define BOARD_H
+
+#include &lt;iostream&gt;
+#include &lt;fstream&gt;
+#include &lt;string&gt;
+
+// SUDOKU FUNCTIONS
+
+// Loads the Sudoku puzzle from a text file into the 9x9 board array
+void loadBoardFromFile(const std::string&amp; filename, int board[9][9]);
+
+// Displays the current Sudoku board in a formatted grid
+void displayBoard(int board[9][9]);
+
+// Checks whether a number can be legally placed at a given position
+bool isValidMove(int board[9][9], int row, int col, int num);
+
+// Checks if all cells are filled (no zero values)
+bool isBoardFull(int board[9][9]);
+
+// Checks whether the Sudoku board is completely valid (used to confirm victory)
+bool isBoardValid(int board[9][9]);
+
+// Allows the user to select a cell and enter a number
+void selectCell(int board[9][9]);
+
+// Sudoku solver to give the answer when the user wants access
+bool solveSudoku(int board[9][9]); 
+
+#endif // BOARD_H</pre></section><section id="file-board.txt"><h2>board.txt</h2><p><a href="sudoku-solver/board.txt" download>Download raw file ↓</a> · <a href="sudoku-solver.html#file-board.txt">Back to file index</a></p><pre>5 3 0 0 7 0 0 0 0
+6 0 0 1 9 5 0 0 0
+0 9 8 0 0 0 0 6 0
+8 0 0 0 6 0 0 0 3
+4 0 0 8 0 3 0 0 1
+7 0 0 0 2 0 0 0 6
+0 6 0 0 0 0 2 8 0
+0 0 0 4 1 9 0 0 5
+0 0 0 0 8 0 0 7 9</pre></section><section id="file-main.cpp"><h2>main.cpp</h2><p><a href="sudoku-solver/main.cpp" download>Download raw file ↓</a> · <a href="sudoku-solver.html#file-main.cpp">Back to file index</a></p><pre>//main.cpp
+
+#include &lt;iostream&gt;
+#include &lt;string&gt;
+#include &quot;board.h&quot;
+
+int main(int argc, char** argv) {
+    int board[9][9] = {}; //define 9x9 2D array for board number representations
+    std::string filename = argc &gt; 1 ? argv[1] : &quot;board.txt&quot;; //string defines a sequence of characters which is the name of the file here
+    try { loadBoardFromFile(filename, board); }
+    catch (const std::exception&amp; e) { std::cerr &lt;&lt; e.what() &lt;&lt; &quot;\n&quot;; return 1; } // //use filename string to get information from the txt file to the 9x9 array
+
+    bool running = true; //to create an infinite loop
+    while (running) { //loop will always run
+        displayBoard(board); //shows the board with visuals
+        char command; //define a one letter char of which command is selected
+        std::cout &lt;&lt; &quot;Enter command (s = select, a = autosolve/answer, v = validate, q = quit): &quot;; //shows this to user from the terminal
+        if (!(std::cin &gt;&gt; command)) break; // //lets user enter a one letter input to be the next command
+
+        switch (command) { //this is like an if-else loop that just switches to the case whatever the command was by the user
+            case &#x27;s&#x27;:
+                selectCell(board); //allows user to select the cell and place 1-9 number to the cell
+                break;
+            case &#x27;a&#x27;:
+                int solved[9][9]; //defines a new array for solution
+                for (int i = 0; i &lt; 9; ++i) {
+                    for (int j = 0; j &lt; 9; ++j) {
+                        solved[i][j] = board[i][j]; //prints the board to the solved array
+                    }
+                }
+                if (solveSudoku(solved)) { //uses the algorithm for this seperate array to fill in the answers
+                    std::cout &lt;&lt; &quot;Solution:\n&quot;; //print this message
+                    displayBoard(solved); //display the solved board
+                } else {
+                    std::cout &lt;&lt; &quot;No solution exists.\n&quot;; //to show when algorithm fails to find a solution
+                }
+                break;
+            case &#x27;v&#x27;:
+                if (isBoardFull(board)) { //checks if board is full
+                    if (isBoardValid(board)) { 
+                        std::cout &lt;&lt; &quot;Congratulations! Puzzle solved!\n&quot;; //prints this if solved
+                        running = false; //ends game loop
+                    } else {
+                        std::cout &lt;&lt; &quot;Some cells are incorrect.\n&quot;; //prints this if answers are incorrect, the board must be full to see this
+                    }
+                } else {
+                    std::cout &lt;&lt; &quot;The board is not complete yet. Keep going!\n&quot;; //isBoardFull function gives not true
+                }
+                break;
+            case &#x27;q&#x27;:
+                running = false; //directly ends the game loop
+                break;
+            default: //if none of the valid command is entered
+                std::cout &lt;&lt; &quot;Invalid command.\n&quot;;
+        }
+    }
+    return 0;
+}</pre></section><section id="file-solver.cpp"><h2>solver.cpp</h2><p><a href="sudoku-solver/solver.cpp" download>Download raw file ↓</a> · <a href="sudoku-solver.html#file-solver.cpp">Back to file index</a></p><pre>//solver.cpp
+//uses backtracking with MRV
+
+#include &quot;board.h&quot;
+#include &lt;limits&gt;
+
+using namespace std;
+
+//helper find the cell with Minimum Remaining Values (MRV)
+bool findBestCell(int board[9][9], int &amp;row, int &amp;col) { //new function, chooses best cell
+    int minOptions = numeric_limits&lt;int&gt;::max(); //initialize smallest option to count to the max possible integer
+    bool found = false; //finds if empty cell is found
+
+    for (int r = 0; r &lt; 9; r++) { // loop over every cell on the board
+        for (int c = 0; c &lt; 9; c++) {
+            if (board[r][c] == 0) { //if cell is empty
+                int count = 0;
+                for (int num = 1; num &lt;= 9; num++) { //count how many numbers are valid for this cell
+                    if (isValidMove(board, r, c, num)) count++;
+                }
+                if (count &lt; minOptions) {
+                    minOptions = count;
+                    row = r; //if this cell has fewer valid numbers than
+                    col = c; //current min, store it as new best cell
+                    found = true;
+                }
+            }
+        }
+    }
+    return found; //continue scanning board until its found
+}
+
+//core solver
+bool solveSudoku(int board[9][9]) {
+    if (!isBoardValid(board)) return false;
+    int row, col;
+
+    if (!findBestCell(board, row, col))  //if no empty cell left
+        return true; //solved
+
+    for (int num = 1; num &lt;= 9; num++) { //try numbers 1-9 in celected cell
+        if (isValidMove(board, row, col, num)) { //if number is valid
+            board[row][col] = num; //temporarily place number
+            if (solveSudoku(board)) //solve the rest of the board
+                return true; //and if it works its done
+            board[row][col] = 0; //otherwise reset to zero and try next number (backtrack)
+        }
+    }
+    return false; //if none worked backtrack to findBestCell step
+}</pre></section><section id="file-test_cli.py"><h2>test_cli.py</h2><p><a href="sudoku-solver/test_cli.py" download>Download raw file ↓</a> · <a href="sudoku-solver.html#file-test_cli.py">Back to file index</a></p><pre>import pathlib, subprocess, tempfile
+exe = str(pathlib.Path(&quot;build/sudoku&quot;).resolve())
+for data in [&quot;&quot;, &quot;s\nx\nq\n&quot;, &quot;s\n1\nx\nq\n&quot;, &quot;s\n1\n1\nx\nq\n&quot;, &quot;a\nq\n&quot;, &quot;s\n-2147483648\n1\nq\n&quot;]:
+    r = subprocess.run([exe], input=data, text=True, capture_output=True, timeout=5)
+    assert r.returncode == 0, r.stderr
+for text in [&quot;&quot;, &quot;0 &quot;*80, &quot;0 &quot;*80+&quot;x&quot;, &quot;0 &quot;*80+&quot;10&quot;, &quot;1 &quot;*81, &quot;0 &quot;*82]:
+    with tempfile.TemporaryDirectory() as tmp:
+        fixture = pathlib.Path(tmp)/&quot;bad.txt&quot;
+        fixture.write_text(text)
+        r = subprocess.run([exe, str(fixture)],input=&quot;&quot;,text=True,capture_output=True,timeout=5)
+        assert r.returncode == 1, repr(text)
+r=subprocess.run([exe,&quot;missing-file&quot;],capture_output=True,timeout=5)
+assert r.returncode == 1
+print(&quot;CLI EOF, nonnumeric input, missing/malformed/conflicting puzzle PASS&quot;)
+</pre></section><section id="file-tests.cpp"><h2>tests.cpp</h2><p><a href="sudoku-solver/tests.cpp" download>Download raw file ↓</a> · <a href="sudoku-solver.html#file-tests.cpp">Back to file index</a></p><pre>#include &quot;board.h&quot;
+#include &lt;cassert&gt;
+#include &lt;sstream&gt;
+#include &lt;fstream&gt;
+int main(int argc, char** argv) {
+    int b[9][9] = {};
+    if (argc &gt; 1 &amp;&amp; std::string(argv[1]) == &quot;invalid&quot;) {
+        for(auto&amp; row:b) for(auto&amp; v:row) v=1;
+        assert(!solveSudoku(b));
+    } else if(argc &gt; 1 &amp;&amp; std::string(argv[1]) == &quot;load&quot;) {
+        bool rejected=false;
+        try { loadBoardFromFile(&quot;no-such-puzzle.txt&quot;, b); } catch(const std::exception&amp;) {rejected=true;}
+        assert(rejected);
+    } else {
+        loadBoardFromFile(&quot;board.txt&quot;, b);
+        assert(isBoardValid(b));
+        assert(solveSudoku(b));
+        assert(isBoardFull(b) &amp;&amp; isBoardValid(b));
+        const int expected[9][9] = {
+            {5,3,4,6,7,8,9,1,2},{6,7,2,1,9,5,3,4,8},{1,9,8,3,4,2,5,6,7},
+            {8,5,9,7,6,1,4,2,3},{4,2,6,8,5,3,7,9,1},{7,1,3,9,2,4,8,5,6},
+            {9,6,1,5,3,7,2,8,4},{2,8,7,4,1,9,6,3,5},{3,4,5,2,8,6,1,7,9}};
+        for (int r=0;r&lt;9;++r) for(int c=0;c&lt;9;++c) assert(b[r][c]==expected[r][c]);
+        loadBoardFromFile(&quot;board.txt&quot;, b);
+        b[0][2]=1; // Locally legal clue, but inconsistent with the puzzle solution.
+        assert(isBoardValid(b));
+        assert(!solveSudoku(b));
+        assert(b[0][2]==1 &amp;&amp; b[0][3]==0);
+        assert(!isValidMove(b,-1,0,1));
+        assert(!isValidMove(b,0,9,1));
+        assert(!isValidMove(b,0,0,10));
+        std::cout &lt;&lt; &quot;Sudoku solve PASS\n&quot;;
+    }
+}
+</pre></section></main></body></html>

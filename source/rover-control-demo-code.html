@@ -1,0 +1,934 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rover control demo · Code</title><style>*{box-sizing:border-box}html{color-scheme:light}body{margin:0;background:#f5f3ed;color:#20261f;font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1120px;margin:auto;padding:40px 28px 80px}a{color:#2756dc;text-underline-offset:4px}a:hover{color:#173b9e}a:focus-visible{outline:3px solid #2756dc;outline-offset:5px}nav{display:flex;gap:24px;flex-wrap:wrap;font-size:14px}h1{font-size:clamp(32px,5vw,64px);line-height:1.08;letter-spacing:-.045em;margin:36px 0 18px;max-width:900px}h2{font-size:25px;letter-spacing:-.025em;margin-top:44px}p{max-width:850px}.eyebrow{text-transform:uppercase;font-size:12px;font-weight:700;letter-spacing:.14em;color:#52604c}.status{display:inline-block;border:1px solid #cbd1c4;border-radius:3px;padding:8px 12px;background:#eaf0e3;font-size:14px}.rights{border-left:3px solid #2756dc;padding:6px 22px;margin:28px 0;background:#efeee7}.actions{display:flex;gap:20px;flex-wrap:wrap;margin:24px 0}.button{display:inline-block;background:#2756dc;color:white;padding:11px 18px;text-decoration:none;border-radius:3px}.button:hover{background:#173b9e;color:white}table{border-collapse:collapse;width:100%;font:14px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}th{text-align:left;background:#e7e7de}td,th{padding:11px 14px;border-bottom:1px solid #d9dcd1}td:first-child{overflow-wrap:anywhere}td:nth-child(2),th:nth-child(2){text-align:right;white-space:nowrap}.table-wrap{overflow:auto}pre{padding:24px;border:1px solid #d9dcd1;border-radius:4px;background:#faf9f5;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace}footer{margin-top:48px;font-size:13px;color:#52604c}@media(max-width:540px){main{padding:25px 18px 50px}pre{padding:16px;font-size:13px}td,th{padding:9px 7px}}section{scroll-margin-top:25px}h2{overflow-wrap:anywhere}@media(max-width:540px){nav{gap:8px 16px}a{min-height:44px;display:inline-flex;align-items:center}td a{font-size:14px;overflow-wrap:anywhere}pre{font-size:14px;line-height:1.65}h1{overflow-wrap:anywhere}.actions{gap:8px 16px}.table-wrap{border:1px solid #d9dcd1}.rights{padding:8px 14px}}</style></head><body><main><nav><a href="rover-control-demo.html">← Source package</a><a href="../index.html#library">Portfolio projects</a></nav><p class="eyebrow">READABLE SOURCE / ORIGINAL NOTICES RETAINED</p><h1>Rover control demo</h1><section id="file-.gitignore"><h2>.gitignore</h2><p><a href="rover-control-demo/.gitignore" download>Download raw file ↓</a> · <a href="rover-control-demo.html#file-.gitignore">Back to file index</a></p><pre>build*/
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+logs/
+demo-output/
+*.elf
+*.uf2
+*.hex
+*.o
+</pre></section><section id="file-CMakeLists.txt"><h2>CMakeLists.txt</h2><p><a href="rover-control-demo/CMakeLists.txt" download>Download raw file ↓</a> · <a href="rover-control-demo.html#file-CMakeLists.txt">Back to file index</a></p><pre>cmake_minimum_required(VERSION 3.20)
+project(RoverControlDemo LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+include(CTest)
+add_executable(rover_demo src/demo.cpp)
+target_include_directories(rover_demo PRIVATE include)
+if(BUILD_TESTING)
+    foreach(name drive_logic motor_control_core remote_command)
+        add_executable(${name}_test tests/${name}_test.cpp)
+        target_include_directories(${name}_test PRIVATE include)
+        add_test(NAME ${name} COMMAND ${name}_test)
+    endforeach()
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME demo COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/demo_test.py $&lt;TARGET_FILE:rover_demo&gt;)
+endif()
+</pre></section><section id="file-README.md"><h2>README.md</h2><p><a href="rover-control-demo/README.md" download>Download raw file ↓</a> · <a href="rover-control-demo.html#file-README.md">Back to file index</a></p><pre># Rover command, ramp and watchdog demo
+
+A small hardware-free extraction from an internship rover control project. It preserves the original C++ command parser/sequence gate, keyboard mixer, acceleration/deceleration ramp, and normalized differential-drive controller with a command watchdog. It does not contain ROS, serial drivers, motor control transports or deployment configuration.
+
+## Run
+
+Requires a C++17 compiler, CMake 3.20+ and Python 3 for the CLI test.
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+./build/rover_demo
+```
+
+The CLI uses deterministic simulated time and prints CSV. It accepts a `ROVER1` command at 0 ms, rejects its duplicate at 20 ms, accepts the next sequence at 40 ms, rejects a malformed packet at 60 ms, stops at 140 ms when command age reaches 100 ms, and resumes from zero after a fresh command at 180 ms. See [samples/demo.csv](samples/demo.csv).
+
+`include/drive_logic.hpp`, `include/motor_teleop_v2/motor_control_core.hpp`, `include/remote_mvp/remote_command.hpp` and their original tests were extracted without modification. `src/demo.cpp` and its subprocess test are a new demonstration harness. The sequence gate deduplicates within the current session; it is not an authentication or general replay-protection mechanism. This CLI never binds a socket or opens a serial port.
+
+## Evidence and rights
+
+See [VERIFICATION.md](VERIFICATION.md) for results and limits. This sample supports the command/ramp/watchdog aspect of the project. It does not reproduce Jetson deployment, F310 input, RealSense video, ROS 2 telemetry, BusLinker/servo communication, or the historical UART baud diagnosis.
+
+Prepared from Emre Karausta&#x27;s internship working copy, retaining original source comments. No source license was present in this extraction and no blanket license is inferred. This is a local release candidate; nothing has been published.
+</pre></section><section id="file-VERIFICATION.md"><h2>VERIFICATION.md</h2><p><a href="rover-control-demo/VERIFICATION.md" download>Download raw file ↓</a> · <a href="rover-control-demo.html#file-VERIFICATION.md">Back to file index</a></p><pre># Verification — 22 October 2026
+
+macOS 15.7.3 arm64, AppleClang 17, CMake 4.3.0, Python 3.14.6. No hardware or network activity.
+
+Commands from the preparation workspace:
+
+```bash
+cmake -S outputs/github-ready/rover-control-demo -B work/vision-rover/control-build -DCMAKE_BUILD_TYPE=Release
+cmake --build work/vision-rover/control-build -j4
+PYTHONDONTWRITEBYTECODE=1 ctest --test-dir work/vision-rover/control-build --output-on-failure
+work/vision-rover/control-build/rover_demo &gt; outputs/github-ready/rover-control-demo/samples/demo.csv
+```
+
+**PASS: 4/4 CTest targets**, zero failures: `drive_logic`, `motor_control_core`, `remote_command`, and `demo`. The first three are the extracted original tests and cover keyboard mixing, ramps/reversal, emergency stopping, watchdog boundaries, invalid/nonfinite input, normalized motor commands, protocol parsing, bounds, and duplicate sequence rejection.
+
+The new CLI subprocess test failed before the CLI existed and passed after the harness was implemented. It checks actual CSV output: acceleration starts at 0.015, a duplicate is rejected, fresh commands ramp, watchdog expiry at command age 100 ms zeros both wheels, and a fresh packet resumes from zero. The included deterministic sample has 11 rows (0–200 ms, 20 ms steps). The three extracted production headers and their tests match the source working copy byte-for-byte.
+
+This demonstrates the command/ramp/watchdog subset of the master CV&#x27;s rover control platform. Jetson/Ubuntu/ROS 2 deployment, USB/UART BusLinker servo integration, RealSense streaming, telemetry, F310 control and UART clock/baud diagnosis are **NOT_RUN**. No claim of physical stopping distance or reliable network operation follows from this isolated software demo. No motors, cameras or serial ports were activated. No full rover stack or deployment paths were included.
+
+Logs retained outside the release folder: `work/vision-rover/control-build.log`, `control-ctest-final.log`, `control-demo-before.log`. No original files were modified and nothing was committed or published.
+</pre></section><section id="file-include/drive_logic.hpp"><h2>include/drive_logic.hpp</h2><p><a href="rover-control-demo/include/drive_logic.hpp" download>Download raw file ↓</a> · <a href="rover-control-demo.html#file-include/drive_logic.hpp">Back to file index</a></p><pre>#pragma once
+
+#include &lt;stdexcept&gt;
+#include &lt;algorithm&gt;
+#include &lt;cmath&gt;
+
+struct KeyState {
+  bool w{};
+  bool a{};
+  bool s{};
+  bool d{};
+};
+
+struct WheelCommand {
+  double left{};
+  double right{};
+};
+
+inline WheelCommand mixKeys(const KeyState&amp; keys, double inner_ratio) {
+  if (!std::isfinite(inner_ratio) || inner_ratio &lt; 0.0 || inner_ratio &gt; 1.0) {
+    throw std::invalid_argument(&quot;inner ratio must be between zero and one&quot;);
+  }
+  const int translation = static_cast&lt;int&gt;(keys.w) - static_cast&lt;int&gt;(keys.s);
+  const int turn = static_cast&lt;int&gt;(keys.d) - static_cast&lt;int&gt;(keys.a);
+
+  if (translation == 0 &amp;&amp; turn == 0) {
+    return {};
+  }
+  if (translation == 0) {
+    return {static_cast&lt;double&gt;(turn), static_cast&lt;double&gt;(-turn)};
+  }
+  if (turn == 0) {
+    return {static_cast&lt;double&gt;(translation), static_cast&lt;double&gt;(translation)};
+  }
+
+  const double direction = static_cast&lt;double&gt;(translation);
+  if (turn &gt; 0) {
+    return {direction, direction * inner_ratio};
+  }
+  return {direction * inner_ratio, direction};
+}
+
+struct RampConfig {
+  double acceleration_per_second{};
+  double deceleration_per_second{};
+};
+
+class RampState {
+ public:
+  explicit RampState(RampConfig config, WheelCommand initial = {})
+      : config_(config), current_(initial) {
+    if (!std::isfinite(config_.acceleration_per_second) ||
+        !std::isfinite(config_.deceleration_per_second) ||
+        config_.acceleration_per_second &lt;= 0.0 ||
+        config_.deceleration_per_second &lt;= 0.0) {
+      throw std::invalid_argument(&quot;ramp rates must be positive&quot;);
+    }
+  }
+
+  WheelCommand update(WheelCommand target, double elapsed_seconds) {
+    if (!std::isfinite(elapsed_seconds) || elapsed_seconds &lt;= 0.0 ||
+        !std::isfinite(target.left) || !std::isfinite(target.right)) {
+      throw std::invalid_argument(&quot;ramp elapsed time must be positive&quot;);
+    }
+    current_.left = updateWheel(current_.left, target.left, elapsed_seconds);
+    current_.right = updateWheel(current_.right, target.right, elapsed_seconds);
+    return current_;
+  }
+
+  WheelCommand emergencyStop() {
+    current_ = {};
+    return current_;
+  }
+
+  WheelCommand current() const { return current_; }
+
+ private:
+  static double moveToward(double current, double target, double maximum_delta) {
+    if (current &lt; target) {
+      return std::min(current + maximum_delta, target);
+    }
+    return std::max(current - maximum_delta, target);
+  }
+
+  double updateWheel(double current, double target, double elapsed_seconds) const {
+    if (current * target &lt; 0.0) {
+      return moveToward(current, 0.0,
+                        config_.deceleration_per_second * elapsed_seconds);
+    }
+    const bool increasing_magnitude = std::fabs(target) &gt; std::fabs(current);
+    const double rate = increasing_magnitude
+                            ? config_.acceleration_per_second
+                            : config_.deceleration_per_second;
+    return moveToward(current, target, rate * elapsed_seconds);
+  }
+
+  RampConfig config_;
+  WheelCommand current_;
+};
+</pre></section><section id="file-include/motor_teleop_v2/motor_control_core.hpp"><h2>include/motor_teleop_v2/motor_control_core.hpp</h2><p><a href="rover-control-demo/include/motor_teleop_v2/motor_control_core.hpp" download>Download raw file ↓</a> · <a href="rover-control-demo.html#file-include/motor_teleop_v2/motor_control_core.hpp">Back to file index</a></p><pre>#pragma once
+
+#include &quot;drive_logic.hpp&quot;
+
+#include &lt;algorithm&gt;
+#include &lt;cmath&gt;
+#include &lt;cstdint&gt;
+#include &lt;limits&gt;
+#include &lt;stdexcept&gt;
+
+struct MotorControlConfig {
+  double acceleration_per_second{};
+  double deceleration_per_second{};
+  double maximum_command{1.0};
+  std::int64_t watchdog_ms{100};
+  bool invert_left{};
+  bool invert_right{};
+};
+
+struct MotorTickResult {
+  WheelCommand applied;
+  double requested_linear_x{};
+  double requested_angular_z{};
+  std::uint32_t command_age_ms{std::numeric_limits&lt;std::uint32_t&gt;::max()};
+  bool watchdog_stopped{true};
+};
+
+class MotorControlCore {
+ public:
+  explicit MotorControlCore(MotorControlConfig config)
+      : config_(config),
+        ramp_({config.acceleration_per_second,
+               config.deceleration_per_second}) {
+    if (!std::isfinite(config_.maximum_command) ||
+        config_.maximum_command &lt;= 0.0 || config_.maximum_command &gt; 1.0) {
+      throw std::invalid_argument(&quot;maximum command must be in (0, 1]&quot;);
+    }
+    if (config_.watchdog_ms &lt; 40) {
+      throw std::invalid_argument(&quot;watchdog must be at least 40 ms&quot;);
+    }
+  }
+
+  void acceptCommand(double linear_x, double angular_z,
+                     std::int64_t now_ms) {
+    if (!std::isfinite(linear_x) || !std::isfinite(angular_z)) {
+      throw std::invalid_argument(&quot;motion command must be finite&quot;);
+    }
+    if (now_ms &lt; 0) {
+      throw std::invalid_argument(&quot;command time cannot be negative&quot;);
+    }
+    requested_linear_x_ = linear_x;
+    requested_angular_z_ = angular_z;
+    last_command_ms_ = now_ms;
+    has_command_ = true;
+  }
+
+  MotorTickResult tick(std::int64_t now_ms, double elapsed_seconds) {
+    if (!std::isfinite(elapsed_seconds) || elapsed_seconds &lt;= 0.0) {
+      throw std::invalid_argument(&quot;elapsed time must be positive&quot;);
+    }
+    if (now_ms &lt; 0 || (has_command_ &amp;&amp; now_ms &lt; last_command_ms_)) {
+      throw std::invalid_argument(&quot;control clock moved backward&quot;);
+    }
+
+    MotorTickResult result;
+    result.requested_linear_x = requested_linear_x_;
+    result.requested_angular_z = requested_angular_z_;
+    if (!has_command_) {
+      result.applied = ramp_.emergencyStop();
+      return result;
+    }
+
+    const std::int64_t age = now_ms - last_command_ms_;
+    result.command_age_ms = static_cast&lt;std::uint32_t&gt;(std::min&lt;std::int64_t&gt;(
+        age, std::numeric_limits&lt;std::uint32_t&gt;::max()));
+    if (age &gt;= config_.watchdog_ms) {
+      result.applied = ramp_.emergencyStop();
+      return result;
+    }
+
+    double left = requested_linear_x_ - requested_angular_z_;
+    double right = requested_linear_x_ + requested_angular_z_;
+    const double divisor =
+        std::max({1.0, std::fabs(left), std::fabs(right)});
+    left = left / divisor * config_.maximum_command;
+    right = right / divisor * config_.maximum_command;
+    if (config_.invert_left) {
+      left = -left;
+    }
+    if (config_.invert_right) {
+      right = -right;
+    }
+
+    result.applied = ramp_.update({left, right}, elapsed_seconds);
+    result.watchdog_stopped = false;
+    return result;
+  }
+
+  WheelCommand emergencyStop() { return ramp_.emergencyStop(); }
+
+ private:
+  MotorControlConfig config_;
+  RampState ramp_;
+  bool has_command_{};
+  std::int64_t last_command_ms_{};
+  double requested_linear_x_{};
+  double requested_angular_z_{};
+};
+</pre></section><section id="file-include/remote_mvp/remote_command.hpp"><h2>include/remote_mvp/remote_command.hpp</h2><p><a href="rover-control-demo/include/remote_mvp/remote_command.hpp" download>Download raw file ↓</a> · <a href="rover-control-demo.html#file-include/remote_mvp/remote_command.hpp">Back to file index</a></p><pre>#pragma once
+
+#include &lt;array&gt;
+#include &lt;charconv&gt;
+#include &lt;cmath&gt;
+#include &lt;cstdint&gt;
+#include &lt;iomanip&gt;
+#include &lt;locale&gt;
+#include &lt;sstream&gt;
+#include &lt;stdexcept&gt;
+#include &lt;string&gt;
+#include &lt;string_view&gt;
+#include &lt;system_error&gt;
+
+namespace remote_mvp {
+
+struct RemoteCommand {
+  std::uint64_t session_id;
+  std::uint64_t sequence;
+  double linear_x;
+  double angular_z;
+};
+
+namespace detail {
+
+inline bool isDecimalFloatingPoint(std::string_view field) {
+  std::size_t index = 0;
+  if (index &lt; field.size() &amp;&amp; (field[index] == &#x27;+&#x27; || field[index] == &#x27;-&#x27;)) {
+    ++index;
+  }
+
+  bool integer_digits = false;
+  while (index &lt; field.size() &amp;&amp; field[index] &gt;= &#x27;0&#x27; &amp;&amp;
+         field[index] &lt;= &#x27;9&#x27;) {
+    integer_digits = true;
+    ++index;
+  }
+
+  bool fraction_digits = false;
+  if (index &lt; field.size() &amp;&amp; field[index] == &#x27;.&#x27;) {
+    ++index;
+    while (index &lt; field.size() &amp;&amp; field[index] &gt;= &#x27;0&#x27; &amp;&amp;
+           field[index] &lt;= &#x27;9&#x27;) {
+      fraction_digits = true;
+      ++index;
+    }
+  }
+  if (!integer_digits &amp;&amp; !fraction_digits) {
+    return false;
+  }
+
+  if (index &lt; field.size() &amp;&amp; (field[index] == &#x27;e&#x27; || field[index] == &#x27;E&#x27;)) {
+    ++index;
+    if (index &lt; field.size() &amp;&amp; (field[index] == &#x27;+&#x27; || field[index] == &#x27;-&#x27;)) {
+      ++index;
+    }
+    const auto exponent_start = index;
+    while (index &lt; field.size() &amp;&amp; field[index] &gt;= &#x27;0&#x27; &amp;&amp;
+           field[index] &lt;= &#x27;9&#x27;) {
+      ++index;
+    }
+    if (index == exponent_start) {
+      return false;
+    }
+  }
+  return index == field.size();
+}
+
+inline void validateCommandValues(const RemoteCommand&amp; command) {
+  if (!std::isfinite(command.linear_x) || !std::isfinite(command.angular_z)) {
+    throw std::invalid_argument(&quot;remote command values must be finite&quot;);
+  }
+  if (command.linear_x &lt; -1.0 || command.linear_x &gt; 1.0 ||
+      command.angular_z &lt; -1.0 || command.angular_z &gt; 1.0) {
+    throw std::invalid_argument(&quot;remote command values must be in [-1, 1]&quot;);
+  }
+}
+
+inline std::uint64_t parseUnsigned(std::string_view field,
+                                   const char* field_name) {
+  if (field.empty()) {
+    throw std::invalid_argument(std::string(&quot;missing &quot;) + field_name);
+  }
+  std::uint64_t value = 0;
+  const auto result = std::from_chars(field.data(), field.data() + field.size(),
+                                      value, 10);
+  if (result.ec != std::errc{} || result.ptr != field.data() + field.size()) {
+    throw std::invalid_argument(std::string(&quot;invalid &quot;) + field_name);
+  }
+  return value;
+}
+
+inline double parseDouble(std::string_view field, const char* field_name) {
+  if (field.empty() || !isDecimalFloatingPoint(field)) {
+    throw std::invalid_argument(std::string(&quot;missing &quot;) + field_name);
+  }
+
+  std::istringstream stream{std::string(field)};
+  stream.imbue(std::locale::classic());
+  double value = 0.0;
+  stream &gt;&gt; value;
+  if (stream.fail() || stream.peek() != std::char_traits&lt;char&gt;::eof() ||
+      !std::isfinite(value)) {
+    throw std::invalid_argument(std::string(&quot;invalid &quot;) + field_name);
+  }
+  return value;
+}
+
+}  // namespace detail
+
+inline std::string encodeRemoteCommand(const RemoteCommand&amp; command) {
+  detail::validateCommandValues(command);
+
+  std::ostringstream stream;
+  stream.imbue(std::locale::classic());
+  stream &lt;&lt; &quot;ROVER1 &quot; &lt;&lt; command.session_id &lt;&lt; &#x27; &#x27; &lt;&lt; command.sequence &lt;&lt; &#x27; &#x27;
+         &lt;&lt; std::setprecision(17) &lt;&lt; command.linear_x &lt;&lt; &#x27; &#x27; &lt;&lt; command.angular_z
+         &lt;&lt; &#x27;\n&#x27;;
+  const auto payload = stream.str();
+  if (payload.size() &gt; 128) {
+    throw std::invalid_argument(&quot;encoded remote command exceeds 128 bytes&quot;);
+  }
+  return payload;
+}
+
+inline RemoteCommand parseRemoteCommand(std::string_view payload) {
+  if (payload.size() &gt; 128) {
+    throw std::invalid_argument(&quot;remote command exceeds 128 bytes&quot;);
+  }
+  if (payload.size() &lt; 2 || payload.back() != &#x27;\n&#x27;) {
+    throw std::invalid_argument(&quot;remote command must end with one newline&quot;);
+  }
+
+  const auto body = payload.substr(0, payload.size() - 1);
+  std::array&lt;std::string_view, 5&gt; fields{};
+  std::size_t start = 0;
+  for (std::size_t index = 0; index &lt; fields.size() - 1; ++index) {
+    const auto separator = body.find(&#x27; &#x27;, start);
+    if (separator == std::string_view::npos) {
+      throw std::invalid_argument(&quot;remote command has missing fields&quot;);
+    }
+    fields[index] = body.substr(start, separator - start);
+    start = separator + 1;
+  }
+  fields.back() = body.substr(start);
+  if (fields[0] != &quot;ROVER1&quot; || fields[0].empty() || fields[1].empty() ||
+      fields[2].empty() || fields[3].empty() || fields[4].empty() ||
+      fields[4].find(&#x27; &#x27;) != std::string_view::npos) {
+    throw std::invalid_argument(&quot;malformed remote command&quot;);
+  }
+
+  RemoteCommand command{
+      detail::parseUnsigned(fields[1], &quot;session id&quot;),
+      detail::parseUnsigned(fields[2], &quot;sequence&quot;),
+      detail::parseDouble(fields[3], &quot;linear command&quot;),
+      detail::parseDouble(fields[4], &quot;angular command&quot;)};
+  detail::validateCommandValues(command);
+  return command;
+}
+
+class RemoteSequenceGate {
+ public:
+  bool accept(const RemoteCommand&amp; command) {
+    if (!has_last_ || command.session_id != session_id_) {
+      has_last_ = true;
+      session_id_ = command.session_id;
+      sequence_ = command.sequence;
+      return true;
+    }
+    if (command.sequence &lt;= sequence_) {
+      return false;
+    }
+    sequence_ = command.sequence;
+    return true;
+  }
+
+ private:
+  bool has_last_ = false;
+  std::uint64_t session_id_ = 0;
+  std::uint64_t sequence_ = 0;
+};
+
+}  // namespace remote_mvp
+</pre></section><section id="file-samples/demo.csv"><h2>samples/demo.csv</h2><p><a href="rover-control-demo/samples/demo.csv" download>Download raw file ↓</a> · <a href="rover-control-demo.html#file-samples/demo.csv">Back to file index</a></p><pre>time_ms,accepted,left,right,command_age_ms,watchdog_stopped
+0,1,0.015,0.015,0,0
+20,0,0.030,0.030,20,0
+40,1,0.045,0.045,0,0
+60,0,0.060,0.060,20,0
+80,0,0.075,0.075,40,0
+100,0,0.090,0.090,60,0
+120,0,0.105,0.105,80,0
+140,0,0.000,0.000,100,1
+160,0,0.000,0.000,120,1
+180,1,0.015,0.015,0,0
+200,0,0.030,0.030,20,0
+</pre></section><section id="file-src/demo.cpp"><h2>src/demo.cpp</h2><p><a href="rover-control-demo/src/demo.cpp" download>Download raw file ↓</a> · <a href="rover-control-demo.html#file-src/demo.cpp">Back to file index</a></p><pre>#include &quot;motor_teleop_v2/motor_control_core.hpp&quot;
+#include &quot;remote_mvp/remote_command.hpp&quot;
+#include &lt;iomanip&gt;
+#include &lt;iostream&gt;
+#include &lt;string&gt;
+
+// Deterministic timestamps, no sockets, serial port, timers, or motor drivers.
+int main() {
+    MotorControlCore core({0.75, 1.5, 1.0, 100, false, false});
+    remote_mvp::RemoteSequenceGate sequence;
+    std::cout &lt;&lt; &quot;time_ms,accepted,left,right,command_age_ms,watchdog_stopped\n&quot;;
+    std::cout &lt;&lt; std::fixed &lt;&lt; std::setprecision(3);
+    for (int now = 0; now &lt;= 200; now += 20) {
+        std::string packet;
+        if (now == 0 || now == 20) packet = &quot;ROVER1 1 0 0.8 0\n&quot;;
+        if (now == 40) packet = &quot;ROVER1 1 1 0.8 0.2\n&quot;;
+        if (now == 60) packet = &quot;ROVER1 1 2 nan 0\n&quot;;
+        if (now == 180) packet = &quot;ROVER1 1 2 0.4 0\n&quot;;
+        bool accepted = false;
+        if (!packet.empty()) {
+            try {
+                const auto command = remote_mvp::parseRemoteCommand(packet);
+                if (sequence.accept(command)) {
+                    core.acceptCommand(command.linear_x, command.angular_z, now);
+                    accepted = true;
+                }
+            } catch (const std::invalid_argument&amp;) {
+                // Malformed input cannot refresh the watchdog.
+            }
+        }
+        const auto result = core.tick(now, 0.020);
+        std::cout &lt;&lt; now &lt;&lt; &#x27;,&#x27; &lt;&lt; accepted &lt;&lt; &#x27;,&#x27; &lt;&lt; result.applied.left &lt;&lt; &#x27;,&#x27;
+                  &lt;&lt; result.applied.right &lt;&lt; &#x27;,&#x27; &lt;&lt; result.command_age_ms &lt;&lt; &#x27;,&#x27;
+                  &lt;&lt; result.watchdog_stopped &lt;&lt; &#x27;\n&#x27;;
+    }
+}
+</pre></section><section id="file-tests/demo_test.py"><h2>tests/demo_test.py</h2><p><a href="rover-control-demo/tests/demo_test.py" download>Download raw file ↓</a> · <a href="rover-control-demo.html#file-tests/demo_test.py">Back to file index</a></p><pre>import csv
+import io
+from pathlib import Path
+import subprocess
+import sys
+
+executable = Path(sys.argv[1])
+assert executable.is_file(), &quot;build the offline CLI demonstration first&quot;
+result = subprocess.run([str(executable)], capture_output=True, text=True)
+assert result.returncode == 0, result.stderr
+rows = list(csv.DictReader(io.StringIO(result.stdout)))
+assert len(rows) == 11
+assert rows[0][&quot;accepted&quot;] == &quot;1&quot;
+assert rows[1][&quot;accepted&quot;] == &quot;0&quot;, &quot;duplicate sequence must not refresh watchdog&quot;
+assert 0 &lt; float(rows[0][&quot;left&quot;]) &lt; 1, &quot;first movement must be ramped&quot;
+assert float(rows[3][&quot;left&quot;]) &gt; float(rows[0][&quot;left&quot;])
+assert rows[7][&quot;watchdog_stopped&quot;] == &quot;1&quot;, &quot;100ms without a new command must stop&quot;
+assert float(rows[7][&quot;left&quot;]) == float(rows[7][&quot;right&quot;]) == 0
+assert rows[9][&quot;accepted&quot;] == &quot;1&quot; and rows[9][&quot;watchdog_stopped&quot;] == &quot;0&quot;
+assert 0 &lt; float(rows[9][&quot;left&quot;]) &lt;= 0.02, &quot;recovery starts ramp from zero&quot;
+print(&quot;offline command/ramp/watchdog demo passed&quot;)
+</pre></section><section id="file-tests/drive_logic_test.cpp"><h2>tests/drive_logic_test.cpp</h2><p><a href="rover-control-demo/tests/drive_logic_test.cpp" download>Download raw file ↓</a> · <a href="rover-control-demo.html#file-tests/drive_logic_test.cpp">Back to file index</a></p><pre>#include &quot;drive_logic.hpp&quot;
+
+#include &lt;cmath&gt;
+#include &lt;cstdlib&gt;
+#include &lt;iostream&gt;
+#include &lt;limits&gt;
+#include &lt;stdexcept&gt;
+#include &lt;string&gt;
+
+namespace {
+
+int failures = 0;
+
+void expectNear(double actual, double expected, const std::string&amp; message) {
+  if (std::fabs(actual - expected) &gt; 1e-9) {
+    std::cerr &lt;&lt; &quot;FAIL: &quot; &lt;&lt; message &lt;&lt; &quot;: expected &quot; &lt;&lt; expected
+              &lt;&lt; &quot;, got &quot; &lt;&lt; actual &lt;&lt; &#x27;\n&#x27;;
+    ++failures;
+  }
+}
+
+void expectCommand(const KeyState&amp; keys, double left, double right,
+                   const std::string&amp; message) {
+  const auto command = mixKeys(keys, 0.20);
+  expectNear(command.left, left, message + &quot; left&quot;);
+  expectNear(command.right, right, message + &quot; right&quot;);
+}
+
+}  // namespace
+
+int main() {
+  expectCommand({}, 0.0, 0.0, &quot;neutral stops&quot;);
+  expectCommand({true, false, false, false}, 1.0, 1.0, &quot;W moves forward&quot;);
+  expectCommand({false, false, true, false}, -1.0, -1.0, &quot;S moves backward&quot;);
+  expectCommand({false, true, false, false}, -1.0, 1.0, &quot;A pivots left&quot;);
+  expectCommand({false, false, false, true}, 1.0, -1.0, &quot;D pivots right&quot;);
+  expectCommand({true, true, false, false}, 0.2, 1.0, &quot;W+A curves left&quot;);
+  expectCommand({true, false, false, true}, 1.0, 0.2, &quot;W+D curves right&quot;);
+  expectCommand({false, true, true, false}, -0.2, -1.0, &quot;S+A curves left&quot;);
+  expectCommand({false, false, true, true}, -1.0, -0.2, &quot;S+D curves right&quot;);
+  expectCommand({true, false, true, false}, 0.0, 0.0, &quot;W+S cancels&quot;);
+  expectCommand({false, true, false, true}, 0.0, 0.0, &quot;A+D cancels&quot;);
+  expectCommand({true, false, true, true}, 1.0, -1.0,
+                &quot;W+S+D reduces to D&quot;);
+  expectCommand({true, true, true, false}, -1.0, 1.0,
+                &quot;W+A+S reduces to A&quot;);
+  expectCommand({true, true, false, true}, 1.0, 1.0,
+                &quot;W+A+D reduces to W&quot;);
+  expectCommand({false, true, true, true}, -1.0, -1.0,
+                &quot;A+S+D reduces to S&quot;);
+  expectCommand({true, true, true, true}, 0.0, 0.0, &quot;all keys cancel&quot;);
+
+  bool rejected_ratio = false;
+  try {
+    (void)mixKeys({}, 1.01);
+  } catch (const std::invalid_argument&amp;) {
+    rejected_ratio = true;
+  }
+  if (!rejected_ratio) {
+    std::cerr &lt;&lt; &quot;FAIL: inner-wheel ratios above one are rejected\n&quot;;
+    ++failures;
+  }
+  bool rejected_nan_ratio = false;
+  try {
+    (void)mixKeys({}, std::numeric_limits&lt;double&gt;::quiet_NaN());
+  } catch (const std::invalid_argument&amp;) {
+    rejected_nan_ratio = true;
+  }
+  if (!rejected_nan_ratio) {
+    std::cerr &lt;&lt; &quot;FAIL: non-finite inner-wheel ratio is rejected\n&quot;;
+    ++failures;
+  }
+
+  RampState ramp({1.0, 2.0});
+  auto ramped = ramp.update({1.0, -1.0}, 0.1);
+  expectNear(ramped.left, 0.1, &quot;left accelerates forward&quot;);
+  expectNear(ramped.right, -0.1, &quot;right accelerates backward&quot;);
+
+  ramp = RampState({1.0, 2.0}, {0.5, -0.5});
+  ramped = ramp.update({0.0, 0.0}, 0.1);
+  expectNear(ramped.left, 0.3, &quot;left decelerates toward zero&quot;);
+  expectNear(ramped.right, -0.3, &quot;right decelerates toward zero&quot;);
+
+  ramp = RampState({1.0, 2.0}, {0.5, 0.1});
+  ramped = ramp.update({-1.0, -1.0}, 0.1);
+  expectNear(ramped.left, 0.3, &quot;reversal first decelerates&quot;);
+  expectNear(ramped.right, 0.0, &quot;reversal clamps at zero&quot;);
+  ramped = ramp.update({-1.0, -1.0}, 0.1);
+  expectNear(ramped.left, 0.1, &quot;continued reversal keeps decelerating&quot;);
+  expectNear(ramped.right, -0.1, &quot;reversal accelerates after zero&quot;);
+
+  ramp = RampState({1.0, 2.0}, {0.05, -0.05});
+  ramped = ramp.update({0.0, 0.0}, 0.1);
+  expectNear(ramped.left, 0.0, &quot;deceleration cannot overshoot zero&quot;);
+  expectNear(ramped.right, 0.0, &quot;negative deceleration cannot overshoot zero&quot;);
+
+  ramp = RampState({1.0, 2.0}, {0.8, -0.7});
+  ramped = ramp.emergencyStop();
+  expectNear(ramped.left, 0.0, &quot;emergency stop clears left immediately&quot;);
+  expectNear(ramped.right, 0.0, &quot;emergency stop clears right immediately&quot;);
+
+  bool rejected_dt = false;
+  try {
+    (void)ramp.update({}, 0.0);
+  } catch (const std::invalid_argument&amp;) {
+    rejected_dt = true;
+  }
+  if (!rejected_dt) {
+    std::cerr &lt;&lt; &quot;FAIL: non-positive ramp time is rejected\n&quot;;
+    ++failures;
+  }
+
+  bool rejected_rates = false;
+  try {
+    RampState invalid({0.0, 1.0});
+    (void)invalid;
+  } catch (const std::invalid_argument&amp;) {
+    rejected_rates = true;
+  }
+  if (!rejected_rates) {
+    std::cerr &lt;&lt; &quot;FAIL: non-positive ramp rates are rejected\n&quot;;
+    ++failures;
+  }
+  bool rejected_nan_rate = false;
+  try {
+    RampState invalid({std::numeric_limits&lt;double&gt;::quiet_NaN(), 1.0});
+    (void)invalid;
+  } catch (const std::invalid_argument&amp;) {
+    rejected_nan_rate = true;
+  }
+  if (!rejected_nan_rate) {
+    std::cerr &lt;&lt; &quot;FAIL: non-finite ramp rates are rejected\n&quot;;
+    ++failures;
+  }
+
+  if (failures != 0) {
+    std::cerr &lt;&lt; failures &lt;&lt; &quot; assertion(s) failed\n&quot;;
+    return EXIT_FAILURE;
+  }
+  std::cout &lt;&lt; &quot;drive logic tests passed\n&quot;;
+  return EXIT_SUCCESS;
+}
+</pre></section><section id="file-tests/motor_control_core_test.cpp"><h2>tests/motor_control_core_test.cpp</h2><p><a href="rover-control-demo/tests/motor_control_core_test.cpp" download>Download raw file ↓</a> · <a href="rover-control-demo.html#file-tests/motor_control_core_test.cpp">Back to file index</a></p><pre>#include &quot;motor_teleop_v2/motor_control_core.hpp&quot;
+
+#include &lt;cmath&gt;
+#include &lt;cstdlib&gt;
+#include &lt;iostream&gt;
+#include &lt;limits&gt;
+#include &lt;stdexcept&gt;
+#include &lt;string&gt;
+
+namespace {
+
+int failures = 0;
+
+void expectNear(double actual, double expected, const std::string&amp; message) {
+  if (std::fabs(actual - expected) &gt; 1e-9) {
+    std::cerr &lt;&lt; &quot;FAIL: &quot; &lt;&lt; message &lt;&lt; &quot;: expected &quot; &lt;&lt; expected
+              &lt;&lt; &quot;, got &quot; &lt;&lt; actual &lt;&lt; &#x27;\n&#x27;;
+    ++failures;
+  }
+}
+
+void expect(bool condition, const std::string&amp; message) {
+  if (!condition) {
+    std::cerr &lt;&lt; &quot;FAIL: &quot; &lt;&lt; message &lt;&lt; &#x27;\n&#x27;;
+    ++failures;
+  }
+}
+
+MotorControlConfig fastConfig() {
+  return {100.0, 100.0, 1.0, 100, false, false};
+}
+
+MotorTickResult command(double linear, double angular) {
+  MotorControlCore core(fastConfig());
+  core.acceptCommand(linear, angular, 0);
+  return core.tick(0, 0.02);
+}
+
+template &lt;typename Function&gt;
+void expectInvalid(Function function, const std::string&amp; message) {
+  try {
+    function();
+    std::cerr &lt;&lt; &quot;FAIL: &quot; &lt;&lt; message &lt;&lt; &quot; was accepted\n&quot;;
+    ++failures;
+  } catch (const std::invalid_argument&amp;) {
+  }
+}
+
+}  // namespace
+
+int main() {
+  MotorControlCore startup(fastConfig());
+  auto result = startup.tick(0, 0.02);
+  expect(result.watchdog_stopped, &quot;startup is watchdog-stopped&quot;);
+  expectNear(result.applied.left, 0.0, &quot;startup left is zero&quot;);
+  expectNear(result.applied.right, 0.0, &quot;startup right is zero&quot;);
+  expect(result.command_age_ms == std::numeric_limits&lt;std::uint32_t&gt;::max(),
+         &quot;startup command age is unknown&quot;);
+
+  result = command(1.0, 0.0);
+  expectNear(result.applied.left, 1.0, &quot;forward left&quot;);
+  expectNear(result.applied.right, 1.0, &quot;forward right&quot;);
+  result = command(-1.0, 0.0);
+  expectNear(result.applied.left, -1.0, &quot;backward left&quot;);
+  expectNear(result.applied.right, -1.0, &quot;backward right&quot;);
+  result = command(0.0, 1.0);
+  expectNear(result.applied.left, -1.0, &quot;positive angular pivots left&quot;);
+  expectNear(result.applied.right, 1.0, &quot;positive angular right wheel&quot;);
+  result = command(0.0, -1.0);
+  expectNear(result.applied.left, 1.0, &quot;negative angular left wheel&quot;);
+  expectNear(result.applied.right, -1.0, &quot;negative angular pivots right&quot;);
+
+  result = command(1.0, 1.0);
+  expectNear(result.applied.left, 0.0, &quot;forward-left inner wheel&quot;);
+  expectNear(result.applied.right, 1.0, &quot;forward-left outer wheel normalized&quot;);
+  result = command(1.0, -1.0);
+  expectNear(result.applied.left, 1.0, &quot;forward-right outer wheel normalized&quot;);
+  expectNear(result.applied.right, 0.0, &quot;forward-right inner wheel&quot;);
+  result = command(-1.0, 1.0);
+  expectNear(result.applied.left, -1.0, &quot;backward-left outer magnitude&quot;);
+  expectNear(result.applied.right, 0.0, &quot;backward-left inner wheel&quot;);
+  result = command(-1.0, -1.0);
+  expectNear(result.applied.left, 0.0, &quot;backward-right inner wheel&quot;);
+  expectNear(result.applied.right, -1.0, &quot;backward-right outer magnitude&quot;);
+
+  MotorControlCore limited({100.0, 100.0, 0.5, 100, false, false});
+  limited.acceptCommand(1.0, 0.0, 0);
+  result = limited.tick(0, 0.02);
+  expectNear(result.applied.left, 0.5, &quot;maximum command limits left&quot;);
+  expectNear(result.applied.right, 0.5, &quot;maximum command limits right&quot;);
+
+  MotorControlCore inverted({100.0, 100.0, 1.0, 100, true, false});
+  inverted.acceptCommand(1.0, 0.0, 0);
+  result = inverted.tick(0, 0.02);
+  expectNear(result.applied.left, -1.0, &quot;left inversion is physical only&quot;);
+  expectNear(result.applied.right, 1.0, &quot;right remains uninverted&quot;);
+
+  MotorControlCore ramped({1.0, 2.0, 1.0, 1000, false, false});
+  ramped.acceptCommand(1.0, 0.0, 0);
+  result = ramped.tick(0, 0.5);
+  expectNear(result.applied.left, 0.5, &quot;normal command ramps up&quot;);
+  ramped.acceptCommand(0.0, 0.0, 500);
+  result = ramped.tick(500, 0.1);
+  expectNear(result.applied.left, 0.3, &quot;stick center ramps down&quot;);
+
+  MotorControlCore watchdog(fastConfig());
+  watchdog.acceptCommand(1.0, 0.0, 0);
+  result = watchdog.tick(99, 0.02);
+  expect(!result.watchdog_stopped, &quot;99 ms command remains fresh&quot;);
+  expect(result.command_age_ms == 99, &quot;fresh command age is reported&quot;);
+  result = watchdog.tick(100, 0.02);
+  expect(result.watchdog_stopped, &quot;100 ms command expires&quot;);
+  expectNear(result.applied.left, 0.0, &quot;watchdog immediately clears left&quot;);
+  expectNear(result.applied.right, 0.0, &quot;watchdog immediately clears right&quot;);
+  watchdog.acceptCommand(0.5, 0.0, 101);
+  result = watchdog.tick(101, 0.02);
+  expect(!result.watchdog_stopped, &quot;new command recovers watchdog&quot;);
+  expectNear(result.applied.left, 0.5, &quot;recovery begins from stopped state&quot;);
+
+  expectInvalid(
+      [&amp;] {
+        MotorControlCore core(fastConfig());
+        core.acceptCommand(std::numeric_limits&lt;double&gt;::quiet_NaN(), 0.0, 0);
+      },
+      &quot;NaN command&quot;);
+  expectInvalid(
+      [&amp;] {
+        MotorControlCore core(fastConfig());
+        core.acceptCommand(0.0, 0.0, 100);
+        (void)core.tick(99, 0.02);
+      },
+      &quot;clock reversal&quot;);
+  expectInvalid(
+      [] { MotorControlCore core({1.0, 1.0, 0.0, 100, false, false}); },
+      &quot;zero command limit&quot;);
+  expectInvalid(
+      [] { MotorControlCore core({1.0, 1.0, 1.0, 39, false, false}); },
+      &quot;unsafe watchdog&quot;);
+
+  if (failures != 0) {
+    std::cerr &lt;&lt; failures &lt;&lt; &quot; assertion(s) failed\n&quot;;
+    return EXIT_FAILURE;
+  }
+  std::cout &lt;&lt; &quot;motor control core tests passed\n&quot;;
+  return EXIT_SUCCESS;
+}
+</pre></section><section id="file-tests/remote_command_test.cpp"><h2>tests/remote_command_test.cpp</h2><p><a href="rover-control-demo/tests/remote_command_test.cpp" download>Download raw file ↓</a> · <a href="rover-control-demo.html#file-tests/remote_command_test.cpp">Back to file index</a></p><pre>#include &quot;remote_mvp/remote_command.hpp&quot;
+
+#include &lt;cmath&gt;
+#include &lt;cstdlib&gt;
+#include &lt;functional&gt;
+#include &lt;iostream&gt;
+#include &lt;limits&gt;
+#include &lt;stdexcept&gt;
+#include &lt;string&gt;
+
+namespace {
+
+int failures = 0;
+
+void expect(bool condition, const std::string&amp; message) {
+  if (!condition) {
+    std::cerr &lt;&lt; &quot;FAIL: &quot; &lt;&lt; message &lt;&lt; &#x27;\n&#x27;;
+    ++failures;
+  }
+}
+
+bool rejects(const std::function&lt;void()&gt;&amp; operation) {
+  try {
+    operation();
+    return false;
+  } catch (const std::invalid_argument&amp;) {
+    return true;
+  }
+}
+
+}  // namespace
+
+int main() {
+  using remote_mvp::RemoteCommand;
+  using remote_mvp::RemoteSequenceGate;
+  using remote_mvp::encodeRemoteCommand;
+  using remote_mvp::parseRemoteCommand;
+
+  const RemoteCommand input{44, 7, 0.5, -0.25};
+  const auto encoded = encodeRemoteCommand(input);
+  expect(encoded.rfind(&quot;ROVER1 &quot;, 0) == 0, &quot;exact ROVER1 prefix&quot;);
+  expect(!encoded.empty() &amp;&amp; encoded.back() == &#x27;\n&#x27;,
+         &quot;encoded command ends with one newline&quot;);
+  const auto output = parseRemoteCommand(encoded);
+  expect(output.session_id == 44 &amp;&amp; output.sequence == 7,
+         &quot;round-trip identity&quot;);
+  expect(output.linear_x == input.linear_x &amp;&amp; output.angular_z == input.angular_z,
+         &quot;round-trip command values&quot;);
+  expect(encodeRemoteCommand({1, 2, 0.1, -0.2}) ==
+             &quot;ROVER1 1 2 0.10000000000000001 -0.20000000000000001\n&quot;,
+         &quot;classic-locale 17-digit encoding&quot;);
+
+  const RemoteCommand boundary{0, std::numeric_limits&lt;std::uint64_t&gt;::max(),
+                               -1.0, 1.0};
+  const auto boundary_output = parseRemoteCommand(encodeRemoteCommand(boundary));
+  expect(boundary_output.session_id == boundary.session_id &amp;&amp;
+             boundary_output.sequence == boundary.sequence &amp;&amp;
+             boundary_output.linear_x == boundary.linear_x &amp;&amp;
+             boundary_output.angular_z == boundary.angular_z,
+         &quot;negative and boundary values round-trip&quot;);
+
+  expect(rejects([] { parseRemoteCommand(std::string(129, &#x27;x&#x27;)); }),
+         &quot;payloads over 128 bytes are rejected&quot;);
+  expect(rejects([] { parseRemoteCommand(&quot;ROVER2 1 2 0 0\n&quot;); }),
+         &quot;wrong magic is rejected&quot;);
+  expect(rejects([] { parseRemoteCommand(&quot;ROVER1 1 2 0\n&quot;); }),
+         &quot;missing field is rejected&quot;);
+  expect(rejects([] { parseRemoteCommand(&quot;ROVER1 1 2 0 0 9\n&quot;); }),
+         &quot;extra field is rejected&quot;);
+  expect(rejects([] { parseRemoteCommand(&quot;ROVER1 1 2 nan 0\n&quot;); }),
+         &quot;NaN is rejected&quot;);
+  expect(rejects([] { parseRemoteCommand(&quot;ROVER1 1 2 0 inf\n&quot;); }),
+         &quot;infinity is rejected&quot;);
+  expect(rejects([] { parseRemoteCommand(&quot;ROVER1 1 2 1.0000001 0\n&quot;); }),
+         &quot;linear value above range is rejected&quot;);
+  expect(rejects([] { parseRemoteCommand(&quot;ROVER1 1 2 0 -1.0000001\n&quot;); }),
+         &quot;angular value below range is rejected&quot;);
+  expect(rejects([] { parseRemoteCommand(&quot;ROVER1 1 2 0 0\ntrailing&quot;); }),
+         &quot;trailing data is rejected&quot;);
+  expect(rejects([] { parseRemoteCommand(&quot;ROVER1 1 2 0 0&quot;); }),
+         &quot;missing terminating newline is rejected&quot;);
+  expect(rejects([] { parseRemoteCommand(&quot;ROVER1 1 2 0 0\n\n&quot;); }),
+         &quot;extra newline is rejected&quot;);
+  expect(rejects([] { parseRemoteCommand(&quot;ROVER1 1 2 oops 0\n&quot;); }),
+         &quot;malformed numeric value is rejected&quot;);
+  expect(rejects([] { parseRemoteCommand(&quot;ROVER1 1 2 0x0 0\n&quot;); }),
+         &quot;hexadecimal numeric value is rejected&quot;);
+  expect(rejects([] { parseRemoteCommand(&quot;ROVER1 -1 2 0 0\n&quot;); }),
+         &quot;negative session is rejected&quot;);
+  expect(rejects([] {
+           encodeRemoteCommand({0, 0, std::numeric_limits&lt;double&gt;::quiet_NaN(), 0});
+         }),
+         &quot;encoding NaN is rejected&quot;);
+  expect(rejects([] {
+           encodeRemoteCommand({0, 0, 0, std::numeric_limits&lt;double&gt;::infinity()});
+         }),
+         &quot;encoding infinity is rejected&quot;);
+  expect(rejects([] { encodeRemoteCommand({0, 0, 1.01, 0}); }),
+         &quot;encoding out-of-range value is rejected&quot;);
+
+  RemoteSequenceGate gate;
+  expect(gate.accept({44, 7, 0, 0}), &quot;first sequence is accepted&quot;);
+  expect(!gate.accept({44, 7, 0, 0}), &quot;duplicate sequence is rejected&quot;);
+  expect(!gate.accept({44, 6, 0, 0}), &quot;older sequence is rejected&quot;);
+  expect(gate.accept({45, 0, 0, 0}), &quot;new session is accepted&quot;);
+  expect(gate.accept({45, 1, 0, 0}), &quot;newer sequence is accepted&quot;);
+
+  if (failures != 0) {
+    std::cerr &lt;&lt; failures &lt;&lt; &quot; assertion(s) failed\n&quot;;
+    return EXIT_FAILURE;
+  }
+  std::cout &lt;&lt; &quot;remote command protocol tests passed\n&quot;;
+  return EXIT_SUCCESS;
+}
+</pre></section></main></body></html>

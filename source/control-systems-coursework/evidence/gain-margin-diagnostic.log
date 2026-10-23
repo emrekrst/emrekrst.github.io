@@ -1,0 +1,26 @@
+WARNING: package sun.awt.X11 not in java.desktop
+WARNING: package sun.awt.X11 not in java.desktop
+         0   65.5239         0   36.1632
+
+     GainMargin: 0
+    GMFrequency: 0
+    PhaseMargin: 65.5239
+    PMFrequency: 36.1632
+    DelayMargin: 0.0316
+    DMFrequency: 36.1632
+         Stable: 1
+
+null
+[Warning: The closed-loop system is unstable.] 
+[> In DynamicSystem/margin (line 82)
+In margins (line 3)] 
+         0  -13.0041         0   19.5702
+
+     GainMargin: [0 Inf]
+    GMFrequency: [0 Inf]
+    PhaseMargin: -13.0041
+    PMFrequency: 19.5702
+    DelayMargin: 0.3095
+    DMFrequency: 19.5702
+         Stable: 0
+

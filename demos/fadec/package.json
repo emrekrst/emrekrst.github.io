@@ -1,0 +1,9 @@
+{
+  "name": "fadec-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Educational triple-redundant engine-control simulation",
+  "scripts": {"test": "node --test tests/simulator.test.cjs"},
+  "engines": {"node": ">=20"},
+  "devDependencies": {"playwright": "1.62.1"}
+}

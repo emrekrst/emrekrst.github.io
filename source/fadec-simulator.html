@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Triple-redundant FADEC simulator · Prepared source</title><style>*{box-sizing:border-box}html{color-scheme:light}body{margin:0;background:#f5f3ed;color:#20261f;font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1120px;margin:auto;padding:40px 28px 80px}a{color:#2756dc;text-underline-offset:4px}a:hover{color:#173b9e}a:focus-visible{outline:3px solid #2756dc;outline-offset:5px}nav{display:flex;gap:24px;flex-wrap:wrap;font-size:14px}h1{font-size:clamp(32px,5vw,64px);line-height:1.08;letter-spacing:-.045em;margin:36px 0 18px;max-width:900px}h2{font-size:25px;letter-spacing:-.025em;margin-top:44px}p{max-width:850px}.eyebrow{text-transform:uppercase;font-size:12px;font-weight:700;letter-spacing:.14em;color:#52604c}.status{display:inline-block;border:1px solid #cbd1c4;border-radius:3px;padding:8px 12px;background:#eaf0e3;font-size:14px}.rights{border-left:3px solid #2756dc;padding:6px 22px;margin:28px 0;background:#efeee7}.actions{display:flex;gap:20px;flex-wrap:wrap;margin:24px 0}.button{display:inline-block;background:#2756dc;color:white;padding:11px 18px;text-decoration:none;border-radius:3px}.button:hover{background:#173b9e;color:white}table{border-collapse:collapse;width:100%;font:14px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}th{text-align:left;background:#e7e7de}td,th{padding:11px 14px;border-bottom:1px solid #d9dcd1}td:first-child{overflow-wrap:anywhere}td:nth-child(2),th:nth-child(2){text-align:right;white-space:nowrap}.table-wrap{overflow:auto}pre{padding:24px;border:1px solid #d9dcd1;border-radius:4px;background:#faf9f5;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace}footer{margin-top:48px;font-size:13px;color:#52604c}@media(max-width:540px){main{padding:25px 18px 50px}pre{padding:16px;font-size:13px}td,th{padding:9px 7px}}@media(max-width:540px){nav{gap:8px 16px}a{min-height:44px;display:inline-flex;align-items:center}td a{font-size:14px;overflow-wrap:anywhere}pre{font-size:14px;line-height:1.65}h1{overflow-wrap:anywhere}.actions{gap:8px 16px}.table-wrap{border:1px solid #d9dcd1}.rights{padding:8px 14px}}</style></head>
+<body><main><nav aria-label="Source navigation"><a href="../index.html">← Portfolio</a><a href="#files">Browse files</a><a href="#documentation">Read documentation</a></nav><p class="eyebrow">Emre Karausta / source collection</p><h1>Triple-redundant FADEC simulator</h1><p class="status">Prepared source; repository not yet published</p><p>A complete local release candidate with 11 files. Read the verification record for what was executed and what remains unverified.</p><div class="actions"><a class="button" href="../downloads/fadec-simulator.zip" download>Download complete source ZIP ↓</a><a href="fadec-simulator/README.md" download>Readme file</a></div><aside class="rights" aria-label="Publication and licensing"><p><strong>Licensing and attribution</strong><br>MIT licence and coauthor credits retained. Co-developed by Demir Akın and Emre Karausta. Confirm coauthor and internship clearance before distribution.</p><p>This local copy grants no additional rights. Existing notices and attributions remain in the source and ZIP.</p></aside><h2 id="files">Files <span aria-hidden="true">↗</span></h2><p>Text files open in a readable code view. Models, images and other binary files open or download in their native format. “Raw file” saves the original bytes.</p><div class="table-wrap"><table><thead><tr><th scope="col">File / path</th><th scope="col">Size</th><th scope="col">Source</th></tr></thead><tbody><tr id="file-.gitignore"><td><a href="fadec-simulator-code.html#file-.gitignore">.gitignore</a></td><td>38 B</td><td><a href="fadec-simulator/.gitignore" download>Raw file ↓</a></td></tr><tr id="file-LICENSE"><td><a href="fadec-simulator-code.html#file-LICENSE">LICENSE</a></td><td>1,065 B</td><td><a href="fadec-simulator/LICENSE" download>Raw file ↓</a></td></tr><tr id="file-README.md"><td><a href="fadec-simulator-code.html#file-README.md">README.md</a></td><td>3,214 B</td><td><a href="fadec-simulator/README.md" download>Raw file ↓</a></td></tr><tr id="file-VERIFICATION.md"><td><a href="fadec-simulator-code.html#file-VERIFICATION.md">VERIFICATION.md</a></td><td>3,044 B</td><td><a href="fadec-simulator/VERIFICATION.md" download>Raw file ↓</a></td></tr><tr><td><a href="fadec-simulator/evidence/commonMode.png">evidence/commonMode.png</a></td><td>447,476 B</td><td><a href="fadec-simulator/evidence/commonMode.png" download>Raw file ↓</a></td></tr><tr><td><a href="fadec-simulator/evidence/halfblind.png">evidence/halfblind.png</a></td><td>453,732 B</td><td><a href="fadec-simulator/evidence/halfblind.png" download>Raw file ↓</a></td></tr><tr><td><a href="fadec-simulator/evidence/nominal.png">evidence/nominal.png</a></td><td>433,655 B</td><td><a href="fadec-simulator/evidence/nominal.png" download>Raw file ↓</a></td></tr><tr id="file-evidence/scenarios.json"><td><a href="fadec-simulator-code.html#file-evidence/scenarios.json">evidence/scenarios.json</a></td><td>7,477 B</td><td><a href="fadec-simulator/evidence/scenarios.json" download>Raw file ↓</a></td></tr><tr id="file-index.html"><td><a href="fadec-simulator-code.html#file-index.html">index.html</a></td><td>200,659 B</td><td><a href="fadec-simulator/index.html" download>Raw file ↓</a></td></tr><tr id="file-package.json"><td><a href="fadec-simulator-code.html#file-package.json">package.json</a></td><td>289 B</td><td><a href="fadec-simulator/package.json" download>Raw file ↓</a></td></tr><tr id="file-tests/simulator.test.cjs"><td><a href="fadec-simulator-code.html#file-tests/simulator.test.cjs">tests/simulator.test.cjs</a></td><td>9,198 B</td><td><a href="fadec-simulator/tests/simulator.test.cjs" download>Raw file ↓</a></td></tr></tbody></table></div><div id="documentation"><section aria-label="Project readme"><h2>Project readme</h2><p><a href="fadec-simulator/README.md" download>Download README.md</a></p><pre># Triple Redundant FADEC Simulator and SCADA
+
+A browser-based educational engine-control simulation co-developed by Demir Akın and Emre Karausta using AI-assisted code generation and integration. It demonstrates a simplified plant, PI fuel control, three-channel voting, fault responses and SCADA-style instrumentation. The existing MIT licence and in-app contributor credits are retained.
+
+## Run
+
+Open `index.html` in a modern desktop browser. No installation, server, account or build is required. Select **EN** or **TR** for the interface language. The application uses a fixed 50 ms simulation step (20 Hz); browser scheduling can run slower under load.
+
+## Demonstration
+
+1. Click **START ENGINE** and watch CRANK, LIGHT-OFF, ACCEL and RUN. Move the thrust lever to observe the spool and temperature response.
+2. Select **Half-blind**: channel C&#x27;s exhaust-temperature fault reduces availability to two channels. **Leader handover** isolates A and transfers authority to B.
+3. Select **Common-mode**: all three N2 channels agree on the biased reading, while the onboard model detects the inconsistency. Contrast with **Total loss** (model synthesis) and **Open-loop** (measurement loss together with model failure).
+4. Try **Force: Overspeed** to latch protection and reduce commanded fuel. Clear faults to recover. Arm **Start: Hot** or **Start: Hung** before starting to demonstrate aborted starts.
+5. Enable **IETM**, select an indicator and expand its live explanation. **AUTO · FAB** exposes the simulated mission and decision log.
+
+Reload the page to repeat from the identical initial state and seeded noise sequence. Clear-faults resets injected/latching faults, not the entire plant or random-number sequence.
+
+## Tests
+
+Node.js 20 or newer is needed only for tests:
+
+```sh
+npm install
+npx playwright install chromium
+npm test
+```
+
+On macOS the suite also discovers an installed Google Chrome. Alternatively set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to a Chromium/Chrome executable. Set `EVIDENCE_DIR=evidence` to regenerate screenshots and scenario measurements.
+
+The tests drive the real HTML application in Chromium, including the model and UI controls. Most advance deterministic steps directly, so a simulated startup does not require a real-time wait. See [verification](VERIFICATION.md) and [scenario measurements](evidence/scenarios.json).
+
+## Scope
+
+This is a synthetic educational simulation, not production engine software, hardware-in-the-loop validation, aircraft certification evidence or a model calibrated against a particular engine. Fault scenarios demonstrate this implementation&#x27;s behavior under stated assumptions. The CV&#x27;s co-developed browser-simulation claim is supported; real ECU communication and thermocouple firmware exercises are separate work and are not supplied here.
+
+The release copy corrects displayed 50 Hz labels to the application&#x27;s actual 20 Hz update rate; it does not change plant/control parameters. A static footer that incorrectly asserted normal health during faults is relabelled as an educational simulation. Before publication, confirm that both contributors approve distributing the co-developed material and that internship-related material is cleared.
+</pre></section><section aria-label="Verification record"><h2>Verification record</h2><p><a href="fadec-simulator/VERIFICATION.md" download>Download VERIFICATION.md</a></p><pre># Verification record
+
+Verified 22 October 2026 on macOS arm64 using Node.js, Playwright 1.62.1 and installed Google Chrome in an isolated headless session. No real engine, aircraft, motor or controller was connected.
+
+## Result
+
+**19/19 browser tests passed.** Reproduce with `npm test` after the test dependencies in README are installed. Evidence regeneration: `EVIDENCE_DIR=evidence npm test`.
+
+- Startup reaches RUN and approximately 60% N2 at idle; a 75% lever command raises N2, and shutdown spins down. The actual start button and thrust slider are used.
+- All ten scenario buttons exercise their real handlers: nominal, half-blind, dual isolation, leader handover, total loss, open-loop, single-channel, common-mode, onboard-model crash and CCDL loss. Assertions check the expected availability, isolation, leader, synthesis, model residual or link state, plus fault-log latching and recovery.
+- Hot and hung starts abort with zero commanded fuel; clearing faults permits a new start.
+- Overspeed latches and commanded fuel is reduced to no more than 120 model units until reset. The forced-overspeed injection intentionally keeps plant speed high; this test proves simulated protection output, not real deceleration.
+- Every 16-bit fault word round trips through the real encoder/decoder (65,536 values).
+- Repeating an identical input sequence on a fresh page produces an identical model state.
+- English/Turkish controls and expanded technical-help close behavior work.
+- The ordinary browser timer advances the model through the briefing start button.
+- No uncaught page errors during the tests.
+
+## Reproduced defects and minimal corrections
+
+The first browser suite passed 16 of 18 checks. The two failures established that the displayed frequency (50 Hz) contradicted the running timer (50 ms / 20 Hz). The labels and live-help explanation were corrected in the copy, preserving the plant and control parameters. A separate failing regression established that the static footer said SYSTEM NOMINAL during a channel-isolation fault; it now identifies the application as an educational simulation. The final expanded suite passed all 19 tests.
+
+## Master CV correspondence
+
+The supplied application supports the co-developed, AI-assisted browser FADEC/SCADA simulation claim: simulated engine response, redundancy states and fault responses are operational in the copied application. The retained credits distinguish the contributors. The separate embedded ECU-header and MAX31855 exercises in the CV are not included and are not claimed to be verified by these browser tests.
+
+## Limits
+
+The tests cover this synthetic model and interface. They do not calibrate it to an engine, validate aerothermal fidelity, certify fault coverage, prove bumpless transfer at every operating point or substantiate real hardware safety. Screenshots were visually inspected. Contributors and internship owners must clear the co-developed content before publication; the existing MIT file has been preserved without inventing broader permissions.
+</pre></section><section aria-label="Original licence"><h2>Original licence</h2><p><a href="fadec-simulator/LICENSE" download>Download LICENSE</a></p><pre>MIT License
+
+Copyright (c) 2026 emrekrst
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the &quot;Software&quot;), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</pre></section></div><footer>Prepared local source · No repository has been published · <a href="../index.html">Return to portfolio</a></footer></main></body></html>

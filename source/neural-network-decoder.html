@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Neural network decoder · Prepared source</title><style>*{box-sizing:border-box}html{color-scheme:light}body{margin:0;background:#f5f3ed;color:#20261f;font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1120px;margin:auto;padding:40px 28px 80px}a{color:#2756dc;text-underline-offset:4px}a:hover{color:#173b9e}a:focus-visible{outline:3px solid #2756dc;outline-offset:5px}nav{display:flex;gap:24px;flex-wrap:wrap;font-size:14px}h1{font-size:clamp(32px,5vw,64px);line-height:1.08;letter-spacing:-.045em;margin:36px 0 18px;max-width:900px}h2{font-size:25px;letter-spacing:-.025em;margin-top:44px}p{max-width:850px}.eyebrow{text-transform:uppercase;font-size:12px;font-weight:700;letter-spacing:.14em;color:#52604c}.status{display:inline-block;border:1px solid #cbd1c4;border-radius:3px;padding:8px 12px;background:#eaf0e3;font-size:14px}.rights{border-left:3px solid #2756dc;padding:6px 22px;margin:28px 0;background:#efeee7}.actions{display:flex;gap:20px;flex-wrap:wrap;margin:24px 0}.button{display:inline-block;background:#2756dc;color:white;padding:11px 18px;text-decoration:none;border-radius:3px}.button:hover{background:#173b9e;color:white}table{border-collapse:collapse;width:100%;font:14px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}th{text-align:left;background:#e7e7de}td,th{padding:11px 14px;border-bottom:1px solid #d9dcd1}td:first-child{overflow-wrap:anywhere}td:nth-child(2),th:nth-child(2){text-align:right;white-space:nowrap}.table-wrap{overflow:auto}pre{padding:24px;border:1px solid #d9dcd1;border-radius:4px;background:#faf9f5;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace}footer{margin-top:48px;font-size:13px;color:#52604c}@media(max-width:540px){main{padding:25px 18px 50px}pre{padding:16px;font-size:13px}td,th{padding:9px 7px}}@media(max-width:540px){nav{gap:8px 16px}a{min-height:44px;display:inline-flex;align-items:center}td a{font-size:14px;overflow-wrap:anywhere}pre{font-size:14px;line-height:1.65}h1{overflow-wrap:anywhere}.actions{gap:8px 16px}.table-wrap{border:1px solid #d9dcd1}.rights{padding:8px 14px}}</style></head>
+<body><main><nav aria-label="Source navigation"><a href="../index.html">← Portfolio</a><a href="#files">Browse files</a><a href="#documentation">Read documentation</a></nav><p class="eyebrow">Emre Karausta / source collection</p><h1>Neural network decoder</h1><p class="status">Prepared source; repository not yet published</p><p>A complete local release candidate with 10 files. Read the verification record for what was executed and what remains unverified.</p><div class="actions"><a class="button" href="../downloads/neural-network-decoder.zip" download>Download complete source ZIP ↓</a><a href="neural-network-decoder/README.md" download>Readme file</a></div><aside class="rights" aria-label="Publication and licensing"><p><strong>Licensing and attribution</strong><br>Ivan Ling’s teaching-material copyright headers are retained. No blanket licence inferred; confirm redistribution terms and distinguish student changes.</p><p>This local copy grants no additional rights. Existing notices and attributions remain in the source and ZIP.</p></aside><h2 id="files">Files <span aria-hidden="true">↗</span></h2><p>Text files open in a readable code view. Models, images and other binary files open or download in their native format. “Raw file” saves the original bytes.</p><div class="table-wrap"><table><thead><tr><th scope="col">File / path</th><th scope="col">Size</th><th scope="col">Source</th></tr></thead><tbody><tr id="file-.gitignore"><td><a href="neural-network-decoder-code.html#file-.gitignore">.gitignore</a></td><td>17 B</td><td><a href="neural-network-decoder/.gitignore" download>Raw file ↓</a></td></tr><tr id="file-Makefile"><td><a href="neural-network-decoder-code.html#file-Makefile">Makefile</a></td><td>595 B</td><td><a href="neural-network-decoder/Makefile" download>Raw file ↓</a></td></tr><tr id="file-Matrix.cpp"><td><a href="neural-network-decoder-code.html#file-Matrix.cpp">Matrix.cpp</a></td><td>3,678 B</td><td><a href="neural-network-decoder/Matrix.cpp" download>Raw file ↓</a></td></tr><tr id="file-Matrix.h"><td><a href="neural-network-decoder-code.html#file-Matrix.h">Matrix.h</a></td><td>848 B</td><td><a href="neural-network-decoder/Matrix.h" download>Raw file ↓</a></td></tr><tr id="file-NeuralNetwork.cpp"><td><a href="neural-network-decoder-code.html#file-NeuralNetwork.cpp">NeuralNetwork.cpp</a></td><td>4,940 B</td><td><a href="neural-network-decoder/NeuralNetwork.cpp" download>Raw file ↓</a></td></tr><tr id="file-NeuralNetwork.h"><td><a href="neural-network-decoder-code.html#file-NeuralNetwork.h">NeuralNetwork.h</a></td><td>1,370 B</td><td><a href="neural-network-decoder/NeuralNetwork.h" download>Raw file ↓</a></td></tr><tr id="file-README.md"><td><a href="neural-network-decoder-code.html#file-README.md">README.md</a></td><td>1,996 B</td><td><a href="neural-network-decoder/README.md" download>Raw file ↓</a></td></tr><tr id="file-VERIFICATION.md"><td><a href="neural-network-decoder-code.html#file-VERIFICATION.md">VERIFICATION.md</a></td><td>1,373 B</td><td><a href="neural-network-decoder/VERIFICATION.md" download>Raw file ↓</a></td></tr><tr id="file-main.cpp"><td><a href="neural-network-decoder-code.html#file-main.cpp">main.cpp</a></td><td>2,660 B</td><td><a href="neural-network-decoder/main.cpp" download>Raw file ↓</a></td></tr><tr id="file-tests.cpp"><td><a href="neural-network-decoder-code.html#file-tests.cpp">tests.cpp</a></td><td>2,288 B</td><td><a href="neural-network-decoder/tests.cpp" download>Raw file ↓</a></td></tr></tbody></table></div><div id="documentation"><section aria-label="Project readme"><h2>Project readme</h2><p><a href="neural-network-decoder/README.md" download>Download README.md</a></p><pre># Four-bit neural-network decoder
+
+A small C++ matrix and feedforward neural-network exercise. The demo trains a 4–8–16 network to map each four-bit input to one of sixteen one-hot output classes, using sigmoid activations and backpropagation without a machine-learning framework.
+
+## Build, train and test
+
+Requires Make and a GCC/Clang C++17 compiler. There are no third-party runtime dependencies.
+
+```sh
+make
+./build/decoder
+make test
+make clean
+```
+
+The demo uses seed 7, 10,000 epochs and learning rate 0.1. It reports predictions for all sixteen inputs and exits nonzero unless all are classified correctly. `make test` stores the training transcript in ignored `build/training.log`.
+
+The update rule optimises half the sum of squared output errors. The progress metric printed as `Avg Loss` is the average per-example sum of absolute errors; it is not the squared-error optimisation objective. Activation derivative helpers take the already activated output. ReLU uses derivative zero at zero.
+
+## Provenance and changes
+
+`Matrix.h/.cpp` and `NeuralNetwork.h/.cpp` carry Ivan Ling&#x27;s University of Southampton teaching-material headers. Those headers and copyright notices are retained. The recovered decoder application and coursework modifications are associated with Emre Karausta. This example is not listed in the master CV.
+
+Preparation completed the four unfinished ReLU/tanh activation and derivative functions, corrected hidden-layer error propagation to use the forward pass weights, and made the example reproducible and checked across all sixteen inputs. Added numerical gradient and activation tests. Original files were not changed.
+
+No blanket open-source licence is granted for instructor material. Publication/redistribution rights must be confirmed separately.
+
+See [VERIFICATION.md](VERIFICATION.md). Fixed model dimensions are intentional: callers must provide matching matrix, target and layer shapes; this educational API does not validate every malformed shape.
+</pre></section><section aria-label="Verification record"><h2>Verification record</h2><p><a href="neural-network-decoder/VERIFICATION.md" download>Download VERIFICATION.md</a></p><pre># Verification
+
+Executed on 2026-10-22 on macOS arm64 using Apple clang 17.0.0.
+
+```sh
+make test
+```
+
+PASS, exit 0, no compiler warnings:
+
+- ReLU/tanh values and output-based derivatives at negative, zero and positive inputs;
+- central finite differences for every weight and bias of an actual 2–3–2 sigmoid ANN, comparing the half-squared-error derivative with the parameter change produced by `ANN::update`;
+- maximum absolute numerical/analytical gradient difference: **5.19785e-12**, tolerance 1e-7;
+- deterministic training demo: **Accuracy: 16/16** after 10,000 epochs.
+
+The same actual-model gradient regression failed before the backpropagation fix: maximum absolute difference **0.00043418**. The original activation TODOs produced four missing-return compiler warnings. Production classes gained no test-only hooks: the test executable uses GCC/Clang&#x27;s `-fno-access-control` solely to inspect model parameters for finite differences.
+
+Limits: all sixteen test examples are also the training set; 16/16 demonstrates memorisation of this finite decoder task, not generalisation. Seed 7 is repeatable with the same C library; `rand()` sequences are not standardised across platforms. The end-to-end gradient check uses sigmoid; ReLU/tanh helpers have direct value/derivative checks. No benchmark, large dataset, GPU training, or malformed-shape fuzzing was run.
+</pre></section></div><footer>Prepared local source · No repository has been published · <a href="../index.html">Return to portfolio</a></footer></main></body></html>

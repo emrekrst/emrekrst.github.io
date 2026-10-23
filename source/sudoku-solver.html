@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Sudoku solver · Prepared source</title><style>*{box-sizing:border-box}html{color-scheme:light}body{margin:0;background:#f5f3ed;color:#20261f;font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1120px;margin:auto;padding:40px 28px 80px}a{color:#2756dc;text-underline-offset:4px}a:hover{color:#173b9e}a:focus-visible{outline:3px solid #2756dc;outline-offset:5px}nav{display:flex;gap:24px;flex-wrap:wrap;font-size:14px}h1{font-size:clamp(32px,5vw,64px);line-height:1.08;letter-spacing:-.045em;margin:36px 0 18px;max-width:900px}h2{font-size:25px;letter-spacing:-.025em;margin-top:44px}p{max-width:850px}.eyebrow{text-transform:uppercase;font-size:12px;font-weight:700;letter-spacing:.14em;color:#52604c}.status{display:inline-block;border:1px solid #cbd1c4;border-radius:3px;padding:8px 12px;background:#eaf0e3;font-size:14px}.rights{border-left:3px solid #2756dc;padding:6px 22px;margin:28px 0;background:#efeee7}.actions{display:flex;gap:20px;flex-wrap:wrap;margin:24px 0}.button{display:inline-block;background:#2756dc;color:white;padding:11px 18px;text-decoration:none;border-radius:3px}.button:hover{background:#173b9e;color:white}table{border-collapse:collapse;width:100%;font:14px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}th{text-align:left;background:#e7e7de}td,th{padding:11px 14px;border-bottom:1px solid #d9dcd1}td:first-child{overflow-wrap:anywhere}td:nth-child(2),th:nth-child(2){text-align:right;white-space:nowrap}.table-wrap{overflow:auto}pre{padding:24px;border:1px solid #d9dcd1;border-radius:4px;background:#faf9f5;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace}footer{margin-top:48px;font-size:13px;color:#52604c}@media(max-width:540px){main{padding:25px 18px 50px}pre{padding:16px;font-size:13px}td,th{padding:9px 7px}}@media(max-width:540px){nav{gap:8px 16px}a{min-height:44px;display:inline-flex;align-items:center}td a{font-size:14px;overflow-wrap:anywhere}pre{font-size:14px;line-height:1.65}h1{overflow-wrap:anywhere}.actions{gap:8px 16px}.table-wrap{border:1px solid #d9dcd1}.rights{padding:8px 14px}}</style></head>
+<body><main><nav aria-label="Source navigation"><a href="../index.html">← Portfolio</a><a href="#files">Browse files</a><a href="#documentation">Read documentation</a></nav><p class="eyebrow">Emre Karausta / source collection</p><h1>Sudoku solver</h1><p class="status">Prepared source; repository not yet published</p><p>A complete local release candidate with 11 files. Read the verification record for what was executed and what remains unverified.</p><div class="actions"><a class="button" href="../downloads/sudoku-solver.zip" download>Download complete source ZIP ↓</a><a href="sudoku-solver/README.md" download>Readme file</a></div><aside class="rights" aria-label="Publication and licensing"><p><strong>Licensing and attribution</strong><br>Recovered student coursework; no original project-wide licence found. Select a licence for original code before an open-source release.</p><p>This local copy grants no additional rights. Existing notices and attributions remain in the source and ZIP.</p></aside><h2 id="files">Files <span aria-hidden="true">↗</span></h2><p>Text files open in a readable code view. Models, images and other binary files open or download in their native format. “Raw file” saves the original bytes.</p><div class="table-wrap"><table><thead><tr><th scope="col">File / path</th><th scope="col">Size</th><th scope="col">Source</th></tr></thead><tbody><tr id="file-.gitignore"><td><a href="sudoku-solver-code.html#file-.gitignore">.gitignore</a></td><td>30 B</td><td><a href="sudoku-solver/.gitignore" download>Raw file ↓</a></td></tr><tr id="file-Makefile"><td><a href="sudoku-solver-code.html#file-Makefile">Makefile</a></td><td>479 B</td><td><a href="sudoku-solver/Makefile" download>Raw file ↓</a></td></tr><tr id="file-README.md"><td><a href="sudoku-solver-code.html#file-README.md">README.md</a></td><td>1,376 B</td><td><a href="sudoku-solver/README.md" download>Raw file ↓</a></td></tr><tr id="file-VERIFICATION.md"><td><a href="sudoku-solver-code.html#file-VERIFICATION.md">VERIFICATION.md</a></td><td>1,554 B</td><td><a href="sudoku-solver/VERIFICATION.md" download>Raw file ↓</a></td></tr><tr id="file-board.cpp"><td><a href="sudoku-solver-code.html#file-board.cpp">board.cpp</a></td><td>5,045 B</td><td><a href="sudoku-solver/board.cpp" download>Raw file ↓</a></td></tr><tr id="file-board.h"><td><a href="sudoku-solver-code.html#file-board.h">board.h</a></td><td>901 B</td><td><a href="sudoku-solver/board.h" download>Raw file ↓</a></td></tr><tr id="file-board.txt"><td><a href="sudoku-solver-code.html#file-board.txt">board.txt</a></td><td>161 B</td><td><a href="sudoku-solver/board.txt" download>Raw file ↓</a></td></tr><tr id="file-main.cpp"><td><a href="sudoku-solver-code.html#file-main.cpp">main.cpp</a></td><td>2,953 B</td><td><a href="sudoku-solver/main.cpp" download>Raw file ↓</a></td></tr><tr id="file-solver.cpp"><td><a href="sudoku-solver-code.html#file-solver.cpp">solver.cpp</a></td><td>1,886 B</td><td><a href="sudoku-solver/solver.cpp" download>Raw file ↓</a></td></tr><tr id="file-test_cli.py"><td><a href="sudoku-solver-code.html#file-test_cli.py">test_cli.py</a></td><td>825 B</td><td><a href="sudoku-solver/test_cli.py" download>Raw file ↓</a></td></tr><tr id="file-tests.cpp"><td><a href="sudoku-solver-code.html#file-tests.cpp">tests.cpp</a></td><td>1,410 B</td><td><a href="sudoku-solver/tests.cpp" download>Raw file ↓</a></td></tr></tbody></table></div><div id="documentation"><section aria-label="Project readme"><h2>Project readme</h2><p><a href="sudoku-solver/README.md" download>Download README.md</a></p><pre># Sudoku solver
+
+A C++ command-line Sudoku game with a backtracking solver that chooses the empty cell with the fewest legal candidates (minimum remaining values). The supplied text puzzle is included.
+
+## Build and run
+
+Requires a C++17 compiler, Make and Python 3 for CLI tests.
+
+```sh
+make
+./build/sudoku                 # use board.txt from this directory
+./build/sudoku path/to/puzzle.txt
+make test
+make clean
+```
+
+Enter `s` to select an empty cell, `a` to display a solution without changing the current board, `v` to check completion, or `q` to quit. Row/column coordinates are 1–9. A puzzle file must have exactly 81 integers in 0–9; zero means empty. Invalid, missing or conflicting puzzles return a nonzero exit status.
+
+## Provenance and preparation changes
+
+Recovered university coursework associated with Emre Karausta. This project is an additional programming example; it is not listed in the master CV. The standalone copy retains the original board representation, CLI and MRV solver. Preparation added input validation, atomic puzzle loading, invalid-board rejection, safe EOF handling and regression tests. Original coursework files were left untouched.
+
+No project-wide licence has been inferred or added. Confirm rights to any supplied coursework material before public release.
+
+See [VERIFICATION.md](VERIFICATION.md) for executed checks and limits.
+</pre></section><section aria-label="Verification record"><h2>Verification record</h2><p><a href="sudoku-solver/VERIFICATION.md" download>Download VERIFICATION.md</a></p><pre># Verification
+
+Executed on 2026-10-22 on macOS arm64 with Apple clang 17.0.0 and Python 3.14.0. Run commands from this project directory.
+
+```sh
+make test
+make clean
+make test CXXFLAGS=&quot;-std=c++17 -O1 -g -Wall -Wextra -pedantic -fsanitize=address,undefined -fno-sanitize-recover=all&quot;
+```
+
+PASS, exit 0, with no compiler warnings:
+
+- supplied puzzle matches a hand-checked complete 9×9 solution;
+- complete invalid board is rejected;
+- a locally valid but unsatisfiable puzzle returns false and preserves clues;
+- missing file, too few/many entries, nonnumeric entries, out-of-range values and conflicting clues are rejected;
+- move boundary checks reject invalid coordinates/values, including minimum-integer CLI input before coordinate subtraction;
+- CLI exits on EOF and recovers from nonnumeric row/column/number input;
+- autosolve and quit finish within a five-second subprocess timeout.
+
+Before fixes, independent regressions failed because the original solver accepted an all-ones complete board and the loader returned normally for a missing file. CLI EOF and nonnumeric input exceeded a subprocess timeout. The test suite now exercises those paths. An additional UBSan regression caught signed overflow when converting the minimum integer to a zero-based coordinate; coordinates are now checked before subtraction.
+
+Limits: solution uniqueness is not checked. The solver reports the first solution. No external puzzle corpus, performance benchmark, or exhaustive proof was run. This is an educational application, not a general Sudoku library.
+</pre></section></div><footer>Prepared local source · No repository has been published · <a href="../index.html">Return to portfolio</a></footer></main></body></html>

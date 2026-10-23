@@ -1,0 +1,6 @@
+.git
+build
+build-rpi
+logs
+*.app
+.DS_Store

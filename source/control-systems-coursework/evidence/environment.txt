@@ -1,0 +1,4 @@
+MATLAB 24.2.0.2923080 (R2024b) Update 6
+macOS 15.7.3 Apple Silicon
+Simulink, Control System Toolbox, Signal Processing Toolbox, Simscape, Simscape Multibody:24.2
+Symbolic Math Toolbox24.2 installed; not needed for pre-generated ODE

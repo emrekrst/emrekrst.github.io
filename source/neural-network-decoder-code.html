@@ -1,0 +1,669 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Neural network decoder · Code</title><style>*{box-sizing:border-box}html{color-scheme:light}body{margin:0;background:#f5f3ed;color:#20261f;font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1120px;margin:auto;padding:40px 28px 80px}a{color:#2756dc;text-underline-offset:4px}a:hover{color:#173b9e}a:focus-visible{outline:3px solid #2756dc;outline-offset:5px}nav{display:flex;gap:24px;flex-wrap:wrap;font-size:14px}h1{font-size:clamp(32px,5vw,64px);line-height:1.08;letter-spacing:-.045em;margin:36px 0 18px;max-width:900px}h2{font-size:25px;letter-spacing:-.025em;margin-top:44px}p{max-width:850px}.eyebrow{text-transform:uppercase;font-size:12px;font-weight:700;letter-spacing:.14em;color:#52604c}.status{display:inline-block;border:1px solid #cbd1c4;border-radius:3px;padding:8px 12px;background:#eaf0e3;font-size:14px}.rights{border-left:3px solid #2756dc;padding:6px 22px;margin:28px 0;background:#efeee7}.actions{display:flex;gap:20px;flex-wrap:wrap;margin:24px 0}.button{display:inline-block;background:#2756dc;color:white;padding:11px 18px;text-decoration:none;border-radius:3px}.button:hover{background:#173b9e;color:white}table{border-collapse:collapse;width:100%;font:14px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}th{text-align:left;background:#e7e7de}td,th{padding:11px 14px;border-bottom:1px solid #d9dcd1}td:first-child{overflow-wrap:anywhere}td:nth-child(2),th:nth-child(2){text-align:right;white-space:nowrap}.table-wrap{overflow:auto}pre{padding:24px;border:1px solid #d9dcd1;border-radius:4px;background:#faf9f5;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace}footer{margin-top:48px;font-size:13px;color:#52604c}@media(max-width:540px){main{padding:25px 18px 50px}pre{padding:16px;font-size:13px}td,th{padding:9px 7px}}section{scroll-margin-top:25px}h2{overflow-wrap:anywhere}@media(max-width:540px){nav{gap:8px 16px}a{min-height:44px;display:inline-flex;align-items:center}td a{font-size:14px;overflow-wrap:anywhere}pre{font-size:14px;line-height:1.65}h1{overflow-wrap:anywhere}.actions{gap:8px 16px}.table-wrap{border:1px solid #d9dcd1}.rights{padding:8px 14px}}</style></head><body><main><nav><a href="neural-network-decoder.html">← Source package</a><a href="../index.html#library">Portfolio projects</a></nav><p class="eyebrow">READABLE SOURCE / ORIGINAL NOTICES RETAINED</p><h1>Neural network decoder</h1><section id="file-.gitignore"><h2>.gitignore</h2><p><a href="neural-network-decoder/.gitignore" download>Download raw file ↓</a> · <a href="neural-network-decoder.html#file-.gitignore">Back to file index</a></p><pre>build/
+.DS_Store
+</pre></section><section id="file-Makefile"><h2>Makefile</h2><p><a href="neural-network-decoder/Makefile" download>Download raw file ↓</a> · <a href="neural-network-decoder.html#file-Makefile">Back to file index</a></p><pre>CXX = c++
+CXXFLAGS = -std=c++17 -O2 -Wall -Wextra -pedantic
+.PHONY: all test clean
+all: build/decoder
+build:
+	mkdir -p build
+build/decoder: main.cpp Matrix.cpp NeuralNetwork.cpp Matrix.h NeuralNetwork.h | build
+	$(CXX) $(CXXFLAGS) main.cpp Matrix.cpp NeuralNetwork.cpp -o $@
+build/tests: tests.cpp Matrix.cpp NeuralNetwork.cpp Matrix.h NeuralNetwork.h | build
+	$(CXX) $(CXXFLAGS) -fno-access-control tests.cpp Matrix.cpp NeuralNetwork.cpp -o $@
+test: all build/tests
+	./build/tests
+	./build/tests gradient
+	./build/decoder &gt; build/training.log
+	tail -n 1 build/training.log
+clean:
+	rm -rf build
+</pre></section><section id="file-Matrix.cpp"><h2>Matrix.cpp</h2><p><a href="neural-network-decoder/Matrix.cpp" download>Download raw file ↓</a> · <a href="neural-network-decoder.html#file-Matrix.cpp">Back to file index</a></p><pre>/*
+@Filename: Matrix.cpp
+@Author: Ivan Ling (ivan.ling@soton.ac.uk)
+@Version: 1.0
+
+@Date: 27/10/2025
+@copyright Copyright (c) 2025
+*/
+
+#include &quot;Matrix.h&quot;
+#include &lt;cstdlib&gt; // For rand() and RAND_MAX
+
+Matrix::Matrix()
+{
+	rows = 0;
+    col = 0;
+}
+
+Matrix::Matrix(vector&lt;vector&lt;double&gt;&gt; d)
+{
+	if (d.empty()) {
+        rows = 0;
+        col = 0;
+        data = d; 
+    } else {
+        rows = d.size(); 
+        col = d[0].size();  
+        data = d;
+    }
+}
+
+Matrix::Matrix(int r, int c, bool isRandom)
+{
+	rows = r;
+	col = c;
+
+	data.resize(rows);
+	for(int i = 0; i &lt; rows; ++i) {
+		data[i].resize(col);
+	}
+	if (isRandom) {
+		for(int i=0; i&lt;r; ++i){
+			for(int j=0; j &lt; c; ++j) {
+				data[i][j]=(double)rand() / RAND_MAX;
+			}
+		}
+	}
+}
+
+int Matrix::getRows() const { return rows; }
+int Matrix::getCol() const { return col; }
+vector&lt;vector&lt;double&gt;&gt; Matrix::getData() const { return data; }
+
+void Matrix::print_matrix() const{
+	for (int i = 0; i &lt; rows; ++i){
+		for (int j = 0; j &lt; col; ++j){
+			std::cout &lt;&lt; std::fixed &lt;&lt; std::setprecision(4) &lt;&lt; std::setw(10) &lt;&lt; data[i][j] &lt;&lt; &quot; &quot;;
+		}
+		std::cout &lt;&lt; endl;
+	}
+}
+
+Matrix Matrix::operator*(const Matrix&amp; mat) const
+{
+	if(this-&gt;col != mat.getRows()){
+		std::cerr&lt;&lt;&quot;Error: Matrix A columm size must be equal to Matrix B rows for multiplication&quot;&lt;&lt;endl;
+		return Matrix();
+	}
+	int result_rows = this-&gt;rows;
+	int result_col = mat.getCol();
+	vector&lt;vector&lt;double&gt;&gt; result(result_rows, vector&lt;double&gt;(result_col, 0.0));
+
+	for (int i = 0; i &lt; result_rows; ++i) {
+		for (int j = 0; j &lt; result_col; ++j) {
+			double sum = 0.0;
+			for (int k = 0; k &lt; this-&gt;col; ++k){
+				sum += this-&gt;data[i][k]*mat.data[k][j]; 
+			}
+		result[i][j]=sum;
+		}
+	}
+	return Matrix(result);
+}
+
+Matrix Matrix::operator+(const Matrix&amp; mat) const
+{
+	if (this-&gt;rows != mat.getRows() || this-&gt;col != mat.getCol()){
+		std::cerr&lt;&lt; &quot;Error: Matrices must have the same dimensions for addition&quot;&lt;&lt;endl;
+		return Matrix();
+	}
+
+	vector&lt;vector&lt;double&gt;&gt; result(rows, vector&lt;double&gt;(col));
+
+	for(int i=0; i&lt;rows; ++i) {
+		for(int j = 0; j&lt;col; ++j){
+			result[i][j] = this-&gt;data[i][j] + mat.data[i][j];
+		}
+	}
+
+	return Matrix(result);
+}
+
+Matrix Matrix::operator-(const Matrix&amp; mat) const
+{
+	if (this-&gt;rows != mat.getRows() || this-&gt;col != mat.getCol()){
+		std::cerr&lt;&lt; &quot;Error: Matrices must have the same dimensions for substraction&quot;&lt;&lt;endl;
+		return Matrix();
+	}
+
+	vector&lt;vector&lt;double&gt;&gt; result(rows, vector&lt;double&gt;(col));
+
+	for(int i=0; i&lt;rows; ++i) {
+		for(int j = 0; j&lt;col; ++j){
+			result[i][j] = this-&gt;data[i][j] - mat.data[i][j];
+		}
+	}
+
+	return Matrix(result);
+}
+
+Matrix Matrix::operator*(double num) const
+{
+	vector&lt;vector&lt;double&gt;&gt; result(rows, vector&lt;double&gt;(col));
+	for (int i = 0; i &lt; rows; ++i) {
+		for(int j = 0; j &lt; col; ++j) {
+			result[i][j] = this-&gt;data[i][j] * num;
+		}
+	}
+	return Matrix(result);
+}
+
+Matrix Matrix::transpose() const
+{
+	vector&lt;vector&lt;double&gt;&gt; result_data(col, vector&lt;double&gt;(rows));
+	for (int i = 0; i &lt; rows; ++i) {
+		for (int j = 0; j &lt; col; ++j) {
+			result_data[j][i] = this-&gt;data[i][j];
+		}
+	}
+	return Matrix(result_data);
+}
+
+Matrix Matrix::element_multiply(const Matrix&amp; mat) const
+{
+	if(this-&gt;rows != mat.getRows()||this-&gt;col != mat.getCol()) {
+		std::cerr &lt;&lt; &quot;Error: Matrices must have the same dimensions for element-wise multiplication.&quot; &lt;&lt; endl;
+		exit(1);
+	}
+	vector&lt;vector&lt;double&gt;&gt; result_data(rows, vector&lt;double&gt;(col));
+	for(int i = 0; i &lt; rows; ++i){
+		for(int j = 0; j &lt; col; ++j){
+			result_data[i][j] = this-&gt;data[i][j] * mat.data[i][j];
+		}
+	}
+	return Matrix(result_data);
+}</pre></section><section id="file-Matrix.h"><h2>Matrix.h</h2><p><a href="neural-network-decoder/Matrix.h" download>Download raw file ↓</a> · <a href="neural-network-decoder.html#file-Matrix.h">Back to file index</a></p><pre>/*
+@Filename: Matrix.h
+@Author: Ivan Ling (ivan.ling@soton.ac.uk)
+@Version: 1.0
+
+@Date: 27/10/2025
+@copyright Copyright (c) 2025
+*/
+
+#ifndef MATRIX_H
+#define MATRIX_H
+
+#include &lt;vector&gt;
+#include &lt;iostream&gt;
+#include &lt;iomanip&gt;
+
+using namespace std;
+
+class Matrix
+{
+private:
+	int rows;
+	int col;
+
+public:
+	vector&lt;vector&lt;double&gt;&gt; data;
+
+	Matrix();
+	Matrix(vector&lt;vector&lt;double&gt;&gt; d);
+	Matrix(int r, int c, bool isRandom);
+
+	int getRows() const;
+	int getCol() const;
+	vector&lt;vector&lt;double&gt;&gt; getData() const;
+
+	void print_matrix() const;
+
+	Matrix operator*(const Matrix&amp; mat) const;
+	Matrix operator+(const Matrix&amp; mat) const;
+	Matrix operator-(const Matrix&amp; mat) const;
+	Matrix operator*(double num) const;
+
+	Matrix transpose() const;
+	Matrix element_multiply(const Matrix&amp; mat) const;
+};
+
+#endif // MATRIX_H</pre></section><section id="file-NeuralNetwork.cpp"><h2>NeuralNetwork.cpp</h2><p><a href="neural-network-decoder/NeuralNetwork.cpp" download>Download raw file ↓</a> · <a href="neural-network-decoder.html#file-NeuralNetwork.cpp">Back to file index</a></p><pre>/*
+@Filename: NeuralNetwork.cpp
+@Author: Ivan Ling (ivan.ling@soton.ac.uk)
+@Version: 1.2
+
+@Date: 27/10/2025
+@copyright Copyright (c) 2025
+*/
+
+
+#include &quot;NeuralNetwork.h&quot;
+#include &lt;cmath&gt;      
+
+using namespace std;
+
+
+//A layer refers to the neurons in a single layer
+//Each will have their own wieghts and biases
+
+Layer::Layer(int input_size, int output_size, ActivationType act_type) ////////////////
+{
+	weights = Matrix(output_size, input_size, true);
+	bias = Matrix(output_size, 1, true);
+	activation = act_type;
+}
+
+Layer::Layer() {}
+
+
+ANN::ANN(vector&lt;int&gt; sizes, vector&lt;ActivationType&gt; activations)
+{
+	this-&gt;layerSizes = sizes;
+	for (size_t i = 0; i + 1 &lt; sizes.size(); ++i) {
+		layers.push_back(Layer(sizes[i], sizes[i+1], activations[i]));/////////////////
+	}
+}
+
+Matrix ANN::feedforward(Matrix input)
+{
+	activations.clear();
+	activations.push_back(input); //First activation layer is always the input
+	Matrix current_activation = input;
+
+	for (size_t i=0; i&lt;layers.size(); ++i){
+		Layer&amp; current_layer = layers[i];
+		Matrix z = (current_layer.weights * current_activation) + current_layer.bias;
+
+		switch (current_layer.activation)
+        {
+            case SIGMOID:
+                current_activation = nn_utils::sigmoid(z);
+                break;
+            case RELU:
+                current_activation = nn_utils::relu(z); 
+                break;
+            case TANH:
+                current_activation = nn_utils::tanh(z);
+                break;
+			// can add more cases, FLEXIBILITY+++
+        }
+		activations.push_back(current_activation);
+	}
+
+	return current_activation;
+}
+
+double ANN::update(Matrix target, double training_rate)
+{
+	Matrix output_activation = activations.back();
+	Matrix error_matrix = target - output_activation;
+
+	double absError = 0.0;
+	for(int i=0; i&lt;error_matrix.getRows(); ++i) {
+		absError += abs(error_matrix.data[i][0]);
+	}
+
+
+
+	for (int i = layers.size() - 1; i&gt;=0; --i){
+		Matrix current_output = activations[i+1];
+		Matrix derivative;
+
+		switch(layers[i].activation){
+			case SIGMOID:
+				derivative = nn_utils::dsigmoid(current_output);
+				break;
+			case RELU:
+				derivative = nn_utils::drelu(current_output);
+				break;
+			case TANH:
+				derivative = nn_utils::dtanh(current_output);
+				break;
+		}
+
+		Matrix gradient = error_matrix.element_multiply(derivative);
+		Matrix scaled_gradient = gradient * training_rate;
+
+		Matrix prev_output = activations[i];
+		Matrix prev_output_transposed = prev_output.transpose();
+		Matrix delta_weights = scaled_gradient * prev_output_transposed;
+		
+        // Propagate through the weights used by this forward pass, before updating them.
+        Matrix previous_error;
+        if (i &gt; 0) previous_error = layers[i].weights.transpose() * gradient;
+		layers[i].weights = layers[i].weights + delta_weights;
+		layers[i].bias = layers[i].bias + scaled_gradient;
+		if(i&gt;0){
+            error_matrix = previous_error; 
+		}
+	}
+
+	return absError;
+}
+
+
+// Utility functions for ANN
+Matrix nn_utils::sigmoid(const Matrix&amp; m)
+{
+	vector&lt;vector&lt;double&gt;&gt; result_data(m.getRows(), vector&lt;double&gt;(m.getCol()));
+	for (int i = 0; i &lt; m.getRows(); ++i)
+	{
+		for (int j = 0; j &lt; m.getCol(); ++j)
+		{
+			result_data[i][j] = 1.0 / (1.0 + exp(-m.data[i][j]));
+		}
+	}
+	return Matrix(result_data);
+}
+
+Matrix nn_utils::relu(const Matrix&amp; m)
+{
+    Matrix result(m.getRows(), m.getCol(), false);
+    for (int i = 0; i &lt; m.getRows(); ++i)
+        for (int j = 0; j &lt; m.getCol(); ++j)
+            result.data[i][j] = m.data[i][j] &gt; 0 ? m.data[i][j] : 0.0;
+    return result;
+}
+
+Matrix nn_utils::tanh(const Matrix&amp; m)
+{
+    Matrix result(m.getRows(), m.getCol(), false);
+    for (int i = 0; i &lt; m.getRows(); ++i)
+        for (int j = 0; j &lt; m.getCol(); ++j)
+            result.data[i][j] = std::tanh(m.data[i][j]);
+    return result;
+}
+
+Matrix nn_utils::dsigmoid(const Matrix&amp; m)
+{
+	vector&lt;vector&lt;double&gt;&gt; result_data(m.getRows(), vector&lt;double&gt;(m.getCol()));
+	for (int i = 0; i &lt; m.getRows(); ++i)
+	{
+		for (int j = 0; j &lt; m.getCol(); ++j)
+		{
+			result_data[i][j] = m.data[i][j] * (1.0 - m.data[i][j]);
+		}
+	}
+	return Matrix(result_data);
+}
+
+Matrix nn_utils::drelu(const Matrix&amp; m)
+{
+    Matrix result(m.getRows(), m.getCol(), false);
+    for (int i = 0; i &lt; m.getRows(); ++i)
+        for (int j = 0; j &lt; m.getCol(); ++j)
+            result.data[i][j] = m.data[i][j] &gt; 0 ? 1.0 : 0.0;
+    return result;
+}
+
+Matrix nn_utils::dtanh(const Matrix&amp; m)
+{
+    Matrix result(m.getRows(), m.getCol(), false);
+    for (int i = 0; i &lt; m.getRows(); ++i)
+        for (int j = 0; j &lt; m.getCol(); ++j)
+            result.data[i][j] = 1.0 - m.data[i][j] * m.data[i][j];
+    return result;
+}
+
+int nn_utils::argmax(const Matrix&amp; m)
+{
+	if (m.getCol() != 1)
+	{
+		cout&lt;&lt; &quot;argmax only supports 1-column matrices!&quot;;
+	}
+	double max_val = -99999;
+	int max_idx = 0;
+	for (int i = 0; i &lt; m.getRows(); i++)
+	{
+		if (m.data[i][0] &gt; max_val)
+		{
+			max_val = m.data[i][0];
+			max_idx = i;
+		}
+	}
+	return max_idx;
+}
+</pre></section><section id="file-NeuralNetwork.h"><h2>NeuralNetwork.h</h2><p><a href="neural-network-decoder/NeuralNetwork.h" download>Download raw file ↓</a> · <a href="neural-network-decoder.html#file-NeuralNetwork.h">Back to file index</a></p><pre>/*
+@Filename: NeuralNetwork.h
+@Author: Ivan Ling (ivan.ling@soton.ac.uk)
+@Version: 1.2
+
+@Date: 27/10/2025
+@copyright Copyright (c) 2025
+*/
+
+
+#ifndef ANN_H
+#define ANN_H
+
+#include &lt;vector&gt;
+#include &quot;Matrix.h&quot;
+
+using namespace std;
+
+enum ActivationType {
+    SIGMOID,
+    RELU,
+    TANH
+};
+
+//Utility functions for Neural Network
+namespace nn_utils {
+	Matrix sigmoid(const Matrix&amp; m); //Sigmoid function
+	Matrix dsigmoid(const Matrix&amp; m); //Derivative of the sigmoid for backprop
+	Matrix relu(const Matrix&amp; m);
+	Matrix drelu(const Matrix&amp; m);
+	Matrix tanh(const Matrix&amp; m);
+	Matrix dtanh(const Matrix&amp; m); 
+	int argmax(const Matrix&amp; m); // Returns the index with the highest probability in output layer
+}
+
+
+class Layer {
+public:
+	Matrix weights;
+	Matrix bias;
+	ActivationType activation; //////////////////////////////////////////////////
+	Layer(int input_size, int output_size, ActivationType act_type); ////////////
+	Layer();
+};
+
+class ANN {
+private:
+	vector&lt;int&gt; layerSizes; //A vector describing the size of your neural network layers
+	vector&lt;Layer&gt; layers; //The layers in the network
+	vector&lt;Matrix&gt; activations; //Output of each layers
+
+public:
+	ANN(vector&lt;int&gt; sizes,vector&lt;ActivationType&gt; activations);
+	Matrix feedforward(Matrix input);
+	double update(Matrix target, double training_rate);
+};
+
+
+#endif 
+</pre></section><section id="file-README.md"><h2>README.md</h2><p><a href="neural-network-decoder/README.md" download>Download raw file ↓</a> · <a href="neural-network-decoder.html#file-README.md">Back to file index</a></p><pre># Four-bit neural-network decoder
+
+A small C++ matrix and feedforward neural-network exercise. The demo trains a 4–8–16 network to map each four-bit input to one of sixteen one-hot output classes, using sigmoid activations and backpropagation without a machine-learning framework.
+
+## Build, train and test
+
+Requires Make and a GCC/Clang C++17 compiler. There are no third-party runtime dependencies.
+
+```sh
+make
+./build/decoder
+make test
+make clean
+```
+
+The demo uses seed 7, 10,000 epochs and learning rate 0.1. It reports predictions for all sixteen inputs and exits nonzero unless all are classified correctly. `make test` stores the training transcript in ignored `build/training.log`.
+
+The update rule optimises half the sum of squared output errors. The progress metric printed as `Avg Loss` is the average per-example sum of absolute errors; it is not the squared-error optimisation objective. Activation derivative helpers take the already activated output. ReLU uses derivative zero at zero.
+
+## Provenance and changes
+
+`Matrix.h/.cpp` and `NeuralNetwork.h/.cpp` carry Ivan Ling&#x27;s University of Southampton teaching-material headers. Those headers and copyright notices are retained. The recovered decoder application and coursework modifications are associated with Emre Karausta. This example is not listed in the master CV.
+
+Preparation completed the four unfinished ReLU/tanh activation and derivative functions, corrected hidden-layer error propagation to use the forward pass weights, and made the example reproducible and checked across all sixteen inputs. Added numerical gradient and activation tests. Original files were not changed.
+
+No blanket open-source licence is granted for instructor material. Publication/redistribution rights must be confirmed separately.
+
+See [VERIFICATION.md](VERIFICATION.md). Fixed model dimensions are intentional: callers must provide matching matrix, target and layer shapes; this educational API does not validate every malformed shape.
+</pre></section><section id="file-VERIFICATION.md"><h2>VERIFICATION.md</h2><p><a href="neural-network-decoder/VERIFICATION.md" download>Download raw file ↓</a> · <a href="neural-network-decoder.html#file-VERIFICATION.md">Back to file index</a></p><pre># Verification
+
+Executed on 2026-10-22 on macOS arm64 using Apple clang 17.0.0.
+
+```sh
+make test
+```
+
+PASS, exit 0, no compiler warnings:
+
+- ReLU/tanh values and output-based derivatives at negative, zero and positive inputs;
+- central finite differences for every weight and bias of an actual 2–3–2 sigmoid ANN, comparing the half-squared-error derivative with the parameter change produced by `ANN::update`;
+- maximum absolute numerical/analytical gradient difference: **5.19785e-12**, tolerance 1e-7;
+- deterministic training demo: **Accuracy: 16/16** after 10,000 epochs.
+
+The same actual-model gradient regression failed before the backpropagation fix: maximum absolute difference **0.00043418**. The original activation TODOs produced four missing-return compiler warnings. Production classes gained no test-only hooks: the test executable uses GCC/Clang&#x27;s `-fno-access-control` solely to inspect model parameters for finite differences.
+
+Limits: all sixteen test examples are also the training set; 16/16 demonstrates memorisation of this finite decoder task, not generalisation. Seed 7 is repeatable with the same C library; `rand()` sequences are not standardised across platforms. The end-to-end gradient check uses sigmoid; ReLU/tanh helpers have direct value/derivative checks. No benchmark, large dataset, GPU training, or malformed-shape fuzzing was run.
+</pre></section><section id="file-main.cpp"><h2>main.cpp</h2><p><a href="neural-network-decoder/main.cpp" download>Download raw file ↓</a> · <a href="neural-network-decoder.html#file-main.cpp">Back to file index</a></p><pre>
+#include &lt;iostream&gt;
+#include &lt;vector&gt;
+#include &lt;cstdlib&gt;
+
+#include &lt;iomanip&gt;
+#include &quot;NeuralNetwork.h&quot; 
+
+using namespace std;
+
+
+Matrix create_input_matrix(int n)
+{
+    vector&lt;vector&lt;double&gt;&gt; d(4, vector&lt;double&gt;(1, 0.0));
+
+    d[0][0] = (n &gt;&gt; 3) &amp; 1;
+    d[1][0] = (n &gt;&gt; 2) &amp; 1;
+    d[2][0] = (n &gt;&gt; 1) &amp; 1;
+    d[3][0] = (n &gt;&gt; 0) &amp; 1;
+    return Matrix(d);
+}
+
+Matrix create_target_matrix(int n)
+{
+    vector&lt;vector&lt;double&gt;&gt; d(16, vector&lt;double&gt;(1, 0.0));
+    if (n &gt;= 0 &amp;&amp; n &lt; 16) {
+        d[n][0] = 1.0;
+    }
+    return Matrix(d);
+}
+
+int main()
+{
+    srand(7); // Reproducible training demo.
+    cout &lt;&lt; &quot;--- 4-Bit Binary Decoder Training ---&quot; &lt;&lt; endl &lt;&lt; endl;
+    vector&lt;int&gt; network_sizes = {4, 8, 16};
+
+    vector&lt;ActivationType&gt; activations = {SIGMOID, SIGMOID};
+
+    ANN decoder(network_sizes, activations);
+   
+    double training_rate = 0.1;
+    int epochs = 10000; 
+    cout &lt;&lt; &quot;Network: 4-8-16 | Epochs: &quot; &lt;&lt; epochs &lt;&lt; &quot; | Rate: &quot; &lt;&lt; training_rate &lt;&lt; endl;
+
+    vector&lt;Matrix&gt; inputs;
+    vector&lt;Matrix&gt; targets;
+
+    for (int i = 0; i &lt; 16; i++)
+    {
+        inputs.push_back(create_input_matrix(i));
+        targets.push_back(create_target_matrix(i));
+    }
+    cout &lt;&lt; &quot;Generated 16 input/target pairs.&quot; &lt;&lt; endl &lt;&lt; endl;
+
+    cout &lt;&lt; &quot;Starting training...&quot; &lt;&lt; endl;
+    cout &lt;&lt; std::fixed &lt;&lt; std::setprecision(8);
+
+    for (int i = 0; i &lt; epochs; i++)
+    {
+        double total_epoch_loss = 0.0;
+        for (int j = 0; j &lt; 16; j++)
+        {
+            decoder.feedforward(inputs[j]); 
+            total_epoch_loss += decoder.update(targets[j], training_rate);
+        }
+        if ((i + 1) % 100 == 0)
+        {
+            cout &lt;&lt; &quot;Epoch: &quot; &lt;&lt; setw(5) &lt;&lt; (i + 1) &lt;&lt; &quot; | Avg Loss: &quot; &lt;&lt; (total_epoch_loss / 16.0) &lt;&lt; endl;
+        }
+    }
+
+    cout &lt;&lt; &quot;\n--- Training Complete: Testing ---&quot; &lt;&lt; endl;
+    cout &lt;&lt; std::fixed &lt;&lt; std::setprecision(2);
+
+    vector&lt;int&gt; test_values;
+    for (int i = 0; i &lt; 16; ++i) test_values.push_back(i);
+    int correct = 0;
+
+    for (int val : test_values)
+    {
+        Matrix test_input = create_input_matrix(val);
+        Matrix test_output = decoder.feedforward(test_input);
+
+        cout &lt;&lt; &quot;-----------------------------------&quot; &lt;&lt; endl;
+        cout &lt;&lt; &quot;Input: &quot; &lt;&lt; val &lt;&lt; endl;
+        cout &lt;&lt; &quot;Correct Output Index: &quot; &lt;&lt; val &lt;&lt; endl;
+        
+        int predicted = nn_utils::argmax(test_output);
+        correct += predicted == val;
+        cout &lt;&lt; &quot;Network Output Index: &quot; &lt;&lt; predicted &lt;&lt; endl;
+
+        cout &lt;&lt; &quot;Output Vector: &quot;;
+        test_output.transpose().print_matrix();
+        cout &lt;&lt; endl;
+    }
+    cout &lt;&lt; &quot;Accuracy: &quot; &lt;&lt; correct &lt;&lt; &quot;/16&quot; &lt;&lt; endl;
+    return correct == 16 ? 0 : 1;
+}</pre></section><section id="file-tests.cpp"><h2>tests.cpp</h2><p><a href="neural-network-decoder/tests.cpp" download>Download raw file ↓</a> · <a href="neural-network-decoder.html#file-tests.cpp">Back to file index</a></p><pre>// Test-only visibility lets finite differences inspect the actual ANN parameters.
+#include &lt;vector&gt;
+#include &lt;iostream&gt;
+#include &lt;iomanip&gt;
+#include &quot;NeuralNetwork.h&quot;
+#include &lt;cassert&gt;
+#include &lt;cmath&gt;
+#include &lt;cstdlib&gt;
+double loss(ANN&amp; net, const Matrix&amp; x, const Matrix&amp; y) {
+    Matrix out=net.feedforward(x);
+    double value=0;
+    for(int i=0;i&lt;out.getRows();++i) value+=0.5*std::pow(out.data[i][0]-y.data[i][0],2);
+    return value;
+}
+int main(int argc,char**argv) {
+    if(argc&gt;1 &amp;&amp; std::string(argv[1])==&quot;gradient&quot;) {
+        std::srand(7);
+        ANN net({2,3,2},{SIGMOID,SIGMOID});
+        Matrix x(std::vector&lt;std::vector&lt;double&gt;&gt;{{0.2},{0.7}}), y(std::vector&lt;std::vector&lt;double&gt;&gt;{{0.1},{0.9}});
+        ANN before=net;
+        net.feedforward(x); net.update(y,0.5);
+        double worst=0;
+        for(size_t l=0;l&lt;before.layers.size();++l) {
+            for(int kind=0;kind&lt;2;++kind) {
+                Matrix&amp; params=kind ? before.layers[l].bias : before.layers[l].weights;
+                Matrix&amp; actual=kind ? net.layers[l].bias : net.layers[l].weights;
+                for(int r=0;r&lt;params.getRows();++r) for(int c=0;c&lt;params.getCol();++c) {
+                    double v=params.data[r][c], eps=1e-5;
+                    params.data[r][c]=v+eps; double plus=loss(before,x,y);
+                    params.data[r][c]=v-eps; double minus=loss(before,x,y);
+                    params.data[r][c]=v;
+                    double numeric=(plus-minus)/(2*eps);
+                    double analytic=(v-actual.data[r][c])/0.5;
+                    worst=std::max(worst,std::abs(numeric-analytic));
+                }
+            }
+        }
+        std::cout&lt;&lt;&quot;Gradient max absolute error: &quot;&lt;&lt;worst&lt;&lt;std::endl;
+        assert(worst&lt;1e-7);
+    } else {
+        Matrix m(std::vector&lt;std::vector&lt;double&gt;&gt;{{-2,0,2}});
+        Matrix r=nn_utils::relu(m), t=nn_utils::tanh(m), dr=nn_utils::drelu(r), dt=nn_utils::dtanh(t);
+        assert(r.data[0][0]==0 &amp;&amp; r.data[0][1]==0 &amp;&amp; r.data[0][2]==2);
+        assert(std::abs(t.data[0][0]+0.9640275800758169)&lt;1e-12);
+        assert(dr.data[0][0]==0 &amp;&amp; dr.data[0][1]==0 &amp;&amp; dr.data[0][2]==1);
+        assert(std::abs(dt.data[0][0]-0.07065082485316443)&lt;1e-12 &amp;&amp; dt.data[0][1]==1);
+        std::cout&lt;&lt;&quot;Activation values and derivatives PASS\n&quot;;
+    }
+}
+</pre></section></main></body></html>

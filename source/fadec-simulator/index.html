@@ -1,0 +1,2040 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EGEMEN — UCAV FADEC · TMR SCADA</title>
+<meta name="description" content="Tek motorlu UCAV turbofanı için üç-kanal (TMR) FADEC — tarayıcıda canlı, deterministik tam-yetki dijital motor kontrolü simülasyonu.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a0e13'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%2345d6ff' stroke-width='1.6'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%2345d6ff'/%3E%3Cg stroke='%2345d6ff' stroke-width='1.6' stroke-linecap='round'%3E%3Cline x1='16' y1='7' x2='16' y2='11'/%3E%3Cline x1='16' y1='21' x2='16' y2='25'/%3E%3Cline x1='7' y1='16' x2='11' y2='16'/%3E%3Cline x1='21' y1='16' x2='25' y2='16'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+/* ============================================================
+   EGEMEN (v3.1) — UCAV FADEC SCADA DASHBOARD
+   Görsel dil: cam-kokpit / EICAS-ECAM. Renkler ANLAM taşır.
+   ============================================================ */
+:root{
+  /* Aviation color language (her renk bir durum kodudur) */
+  --bg:        #0a0e13;   /* deep cockpit slate */
+  --bg2:       #0d1219;
+  --panel:     #111722;
+  --panel2:    #0e141d;
+  --edge:      #233143;   /* panel hairline */
+  --edge2:     #1a2532;
+  --grid:      #2b3a4d;
+  --nominal:   #34e29b;   /* GREEN  = normal/in-range */
+  --caution:   #ffb020;   /* AMBER  = caution/degraded */
+  --warning:   #ff4242;   /* RED    = warning/fault */
+  --ref:       #45d6ff;   /* CYAN   = pilot reference/selected */
+  --active:    #eaf1f8;   /* WHITE  = active/current value */
+  --limit:     #d878ff;   /* MAGENTA= limit/constraint */
+  --ink:       #c4d0de;
+  --ink-dim:   #6f8197;
+  --ink-faint: #45566a;
+  --mono: 'IBM Plex Mono','SF Mono','Cascadia Code',ui-monospace,Consolas,monospace;
+  --disp: 'Chakra Petch','Oxanium','Segoe UI',system-ui,sans-serif;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--disp);-webkit-font-smoothing:antialiased}
+body{padding:14px;user-select:none;background-image:radial-gradient(1200px 600px at 70% -10%, #11202c 0%, transparent 60%);min-height:100vh}
+h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+.eyebrow{font-size:10px;letter-spacing:.22em;color:var(--ink-dim);font-weight:600}
+.mono{font-family:var(--mono)}
+
+/* ---------- TOP STATUS STRIP ---------- */
+.topbar{
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:18px;
+  background:linear-gradient(180deg,#121b27,#0c1119);border:1px solid var(--edge);
+  border-radius:8px;padding:10px 16px;margin-bottom:12px;
+}
+.brand{display:flex;align-items:center;gap:12px}
+.brand .sigil{width:30px;height:30px;border:1.5px solid var(--ref);border-radius:6px;display:grid;place-items:center;
+  color:var(--ref);font-weight:700;font-size:13px;box-shadow:0 0 12px rgba(69,214,255,.25) inset}
+.brand h1{font-size:15px;color:var(--active)}
+.brand .sub{font-size:10px;color:var(--ink-dim);letter-spacing:.18em}
+.status-cluster{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:11px;padding:5px 10px;border:1px solid var(--edge);border-radius:5px;
+  background:var(--panel2);color:var(--ink-dim);display:flex;gap:8px;align-items:center;letter-spacing:.04em}
+.chip b{color:var(--ink);font-weight:600}
+.chip.lang{padding:3px 4px;gap:2px}
+.lang-seg{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.06em;padding:3px 7px;border:0;border-radius:3px;background:transparent;color:var(--ink-faint);cursor:pointer;transition:background .12s,color .12s}
+.lang-seg.on{background:var(--ref);color:#001016}
+.lang-seg:hover:not(.on){color:var(--ink)}
+.chip.good b{color:var(--nominal)} .chip.warn b{color:var(--caution)} .chip.bad b{color:var(--warning)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ink-faint)}
+.dot.good{background:var(--nominal);box-shadow:0 0 7px var(--nominal)}
+.dot.warn{background:var(--caution);box-shadow:0 0 7px var(--caution)}
+.dot.bad{background:var(--warning);box-shadow:0 0 7px var(--warning);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:.25}}
+.master{display:flex;gap:8px}
+.lamp{font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 12px;border-radius:5px;letter-spacing:.08em;
+  border:1px solid var(--edge2);background:#0c1118;color:var(--ink-faint);text-align:center;min-width:96px}
+.lamp.caution.on{background:rgba(255,176,32,.16);border-color:var(--caution);color:var(--caution);box-shadow:0 0 14px rgba(255,176,32,.3)}
+.lamp.warning.on{background:rgba(255,66,66,.18);border-color:var(--warning);color:var(--warning);box-shadow:0 0 16px rgba(255,66,66,.35);animation:blink 1s steps(1) infinite}
+
+
+
+/* ---------- MAIN GRID ---------- */
+.grid{display:grid;grid-template-columns:248px 1fr 372px;gap:12px;align-items:start}
+.col{display:flex;flex-direction:column;gap:12px}
+.panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--edge);border-radius:9px;padding:13px}
+.panel > .ph{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px;border-bottom:1px solid var(--edge2);padding-bottom:8px}
+.panel > .ph h3{font-size:11px;color:var(--ink)}
+.panel > .ph .tag{font-family:var(--mono);font-size:9.5px;color:var(--ink-faint)}
+
+/* ---------- LEFT: PILOT / STATE ---------- */
+.tla-wrap{display:flex;gap:14px;align-items:stretch}
+.tla-track{position:relative;width:52px;height:230px;background:var(--panel2);border:1px solid var(--edge);border-radius:6px;flex:0 0 auto}
+.tla-fill{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(180deg,var(--ref),#1c6f93);border-radius:0 0 5px 5px;transition:height .12s linear}
+.tla-input{position:absolute;left:50%;top:50%;width:230px;height:52px;transform:translate(-50%,-50%) rotate(-90deg);
+  -webkit-appearance:none;appearance:none;background:transparent;cursor:ns-resize;margin:0}
+.tla-input::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:34px;border-radius:3px;background:var(--active);
+  border:2px solid #0a0e13;box-shadow:0 0 0 1px var(--ref),0 2px 6px rgba(0,0,0,.6)}
+.tla-input::-moz-range-thumb{width:18px;height:34px;border-radius:3px;background:var(--active);border:2px solid #0a0e13;box-shadow:0 0 0 1px var(--ref)}
+.tla-detents{display:flex;flex-direction:column;justify-content:space-between;font-family:var(--mono);font-size:9.5px;color:var(--ink-dim);padding:2px 0}
+.tla-detents span{display:flex;align-items:center;gap:5px}
+.tla-detents i{width:8px;height:1px;background:var(--ink-faint);display:inline-block}
+.tla-read{font-family:var(--mono);font-size:22px;color:var(--ref);text-align:center;margin-top:10px;font-weight:600}
+.tla-read small{font-size:11px;color:var(--ink-dim)}
+.btn{width:100%;font-family:var(--mono);font-weight:600;font-size:12px;letter-spacing:.1em;padding:12px;margin-top:11px;
+  border-radius:6px;cursor:pointer;background:transparent;border:1.5px solid var(--nominal);color:var(--nominal);transition:.15s}
+.btn:hover{background:rgba(52,226,155,.12)}
+.btn:active{background:var(--nominal);color:#06130d}
+.btn.stop{border-color:var(--warning);color:var(--warning)}
+.btn.stop:hover{background:rgba(255,66,66,.12)}
+.btn:focus-visible{outline:2px solid var(--ref);outline-offset:2px}
+
+/* state machine ladder */
+.sm{display:flex;flex-direction:column;gap:4px}
+.sm-step{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11px;color:var(--ink-faint);
+  padding:6px 9px;border:1px solid var(--edge2);border-radius:5px;background:#0c1118;transition:.2s}
+.sm-step .id{font-weight:600;width:20px;color:var(--ink-dim)}
+.sm-step.done{color:var(--ink-dim);border-color:var(--edge2)}
+.sm-step.done .id{color:var(--nominal)}
+.sm-step.active{color:var(--active);border-color:var(--ref);background:rgba(69,214,255,.1);box-shadow:0 0 12px rgba(69,214,255,.18)}
+.sm-step.active .id{color:var(--ref)}
+.sm-step.abn.active{border-color:var(--warning);background:rgba(255,66,66,.12);box-shadow:0 0 12px rgba(255,66,66,.2)}
+.sm-step.abn.active .id{color:var(--warning)}
+
+/* thrust mode */
+.pmode{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.pcell{font-family:var(--mono);font-size:9.5px;text-align:center;padding:7px 3px;border:1px solid var(--edge2);border-radius:4px;
+  color:var(--ink-faint);background:#0c1118;line-height:1.3}
+.pcell b{display:block;font-size:11px;color:var(--ink-dim)}
+.pcell.on{border-color:var(--ref);color:var(--active);background:rgba(69,214,255,.12)}
+.pcell.on b{color:var(--ref)}
+
+/* ---------- CENTER: INSTRUMENTS + TMR ---------- */
+.gauges{display:grid;grid-template-columns:1fr 1fr 84px 150px;gap:14px;align-items:center;margin-bottom:4px}
+.dial{position:relative;display:flex;flex-direction:column;align-items:center}
+.dial svg{display:block;overflow:visible}
+.dial .val{position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);font-family:var(--mono);font-size:24px;font-weight:600;color:var(--active)}
+.dial .lbl{position:absolute;top:64%;left:50%;transform:translate(-50%,-50%);font-family:var(--mono);font-size:10px;color:var(--ink-dim);letter-spacing:.1em}
+.dial .unit{font-family:var(--mono);font-size:9px;color:var(--ink-faint);margin-top:2px}
+/* EGT tape */
+.tape{display:flex;flex-direction:column;align-items:center;gap:6px}
+.tape-bar{position:relative;width:34px;height:150px;background:var(--panel2);border:1px solid var(--edge);border-radius:4px;overflow:hidden}
+.tape-fill{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(180deg,var(--nominal),#177a52);transition:height .15s,background .2s}
+.tape-red{position:absolute;left:0;right:0;height:2px;background:var(--warning);z-index:3;box-shadow:0 0 6px var(--warning)}
+.tape-amber{position:absolute;left:0;right:0;height:1px;background:var(--caution);z-index:2}
+.tape .v{font-family:var(--mono);font-size:15px;color:var(--active);font-weight:600}
+.tape .t{font-family:var(--mono);font-size:9px;color:var(--ink-dim);letter-spacing:.1em}
+/* Wf ghost-marker */
+.wf{display:flex;flex-direction:column;gap:7px;align-self:center}
+.wf-track{position:relative;height:22px;background:var(--panel2);border:1px solid var(--edge);border-radius:4px}
+.wf-act{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#1c6f93,var(--ref));transition:width .12s linear;border-radius:3px}
+.wf-bug{position:absolute;top:-3px;bottom:-3px;width:0;border-left:2px dashed var(--limit);z-index:2;transition:left .12s linear}
+.wf-bug::after{content:'';position:absolute;top:-3px;left:-4px;border:4px solid transparent;border-top-color:var(--limit)}
+.wf .v{font-family:var(--mono);font-size:15px;color:var(--active);font-weight:600}
+.wf .t{font-family:var(--mono);font-size:9px;color:var(--ink-dim);letter-spacing:.1em}
+
+/* TMR matrix — SIGNATURE */
+.tmr{margin-top:6px}
+.tmr-row{display:flex;justify-content:center;gap:14px;align-items:stretch}
+.ecu{position:relative;flex:1;max-width:150px;background:#0c1219;border:1.5px solid var(--edge);border-radius:8px;padding:11px;font-family:var(--mono)}
+.ecu .hd{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--ink);font-weight:600;margin-bottom:8px}
+.ecu .role{font-size:8.5px;padding:2px 6px;border-radius:3px;border:1px solid var(--edge);color:var(--ink-faint)}
+.ecu .r{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-dim);margin:3px 0}
+.ecu .r b{color:var(--active);font-weight:500}
+.ecu.leader{border-color:var(--ref);box-shadow:0 0 16px rgba(69,214,255,.22)}
+.ecu.leader .role{border-color:var(--ref);color:var(--ref);background:rgba(69,214,255,.12)}
+.ecu.iso{border-color:var(--warning);background:#1c0f10}
+.ecu.iso::after{content:'ISOLATED';position:absolute;inset:0;display:grid;place-items:center;font-size:13px;font-weight:700;
+  color:var(--warning);letter-spacing:.18em;background:rgba(12,10,10,.78);border-radius:7px}
+.ecu.synth{border-color:var(--caution)}
+.ecu .badge{font-size:8px;color:var(--caution);border:1px solid var(--caution);border-radius:3px;padding:1px 4px;display:none}
+.ecu.synth .badge{display:inline-block}
+
+.bus{display:flex;flex-direction:column;align-items:center;margin-top:2px}
+.ccdl{display:flex;justify-content:center;gap:7px;font-family:var(--mono);font-size:9px;color:var(--ink-dim);margin:8px 0 4px}
+.ccdl span{padding:2px 7px;border:1px solid var(--edge2);border-radius:3px}
+.ccdl span.ok{color:var(--nominal);border-color:rgba(52,226,155,.4)}
+.ccdl span.down{color:var(--warning);border-color:var(--warning);text-decoration:line-through}
+.route{position:relative;width:100%;max-width:430px;height:54px;margin:2px auto}
+.route svg{width:100%;height:100%;display:block}
+.ilk{font-family:var(--mono);font-size:10px;text-align:center;padding:6px 12px;border:1px solid var(--nominal);border-radius:5px;
+  color:var(--nominal);background:rgba(52,226,155,.08);margin:0 auto;width:fit-content}
+.ilk.tripped{border-color:var(--warning);color:var(--warning);background:rgba(255,66,66,.1)}
+.yks{font-family:var(--mono);font-size:11px;text-align:center;padding:9px 18px;border:1px solid var(--edge);border-radius:6px;
+  color:var(--ink);margin:8px auto 0;width:fit-content;letter-spacing:.1em}
+.openloop{display:none;text-align:center;color:var(--caution);font-family:var(--mono);font-size:12px;font-weight:600;
+  letter-spacing:.2em;margin-top:8px}
+.openloop.on{display:block;animation:blink 1.1s steps(1) infinite}
+
+/* ---------- RIGHT: ENGINEERING LAYER ---------- */
+.faultword{font-family:var(--mono)}
+.fw-hex{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+.fw-hex .h{font-size:22px;font-weight:600;color:var(--active);letter-spacing:.04em}
+.fw-hex .none{color:var(--nominal);font-size:14px}
+.fw-bits{display:flex;gap:2px;margin-bottom:9px}
+.fw-bit{flex:1;text-align:center;font-size:11px;font-weight:600;padding:6px 0;border-radius:3px;color:#0a0e13}
+.fw-bit small{display:block;font-size:7.5px;font-weight:500;letter-spacing:.04em;margin-top:2px;color:#0a0e13;opacity:.8}
+.fw-alan{background:#7a6cff} .fw-kod{background:var(--ref)} .fw-ch{background:var(--nominal)}
+.fw-voter{background:var(--caution)} .fw-comp{background:var(--limit)}
+.fw-bit.off{background:#1a2532;color:var(--ink-faint)} .fw-bit.off small{color:var(--ink-faint)}
+.fw-decode{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;font-size:9px}
+.fw-decode div{text-align:center;color:var(--ink-dim)}
+.fw-decode div b{display:block;color:var(--active);font-size:10px;margin-top:2px}
+
+/* status words */
+.swgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;font-family:var(--mono)}
+.bitcell{font-size:9px;padding:6px 7px;border:1px solid var(--edge2);border-radius:4px;background:#0c1118;color:var(--ink-faint);
+  display:flex;justify-content:space-between;align-items:center;gap:5px}
+.bitcell .b{font-size:11px;font-weight:600;color:var(--ink-faint)}
+.bitcell.on{border-color:var(--ref);color:var(--ink);background:rgba(69,214,255,.08)}
+.bitcell.on .b{color:var(--ref)}
+.bitcell.on.warnbit{border-color:var(--caution);background:rgba(255,176,32,.1)} .bitcell.on.warnbit .b{color:var(--caution)}
+.bitcell.on.badbit{border-color:var(--warning);background:rgba(255,66,66,.1)} .bitcell.on.badbit .b{color:var(--warning)}
+
+/* OBM expected vs actual */
+.obm-row{display:flex;align-items:center;gap:10px;margin:9px 0;font-family:var(--mono)}
+.obm-row .name{width:34px;font-size:10px;color:var(--ink-dim)}
+.obm-bar{position:relative;flex:1;height:18px;background:var(--panel2);border:1px solid var(--edge);border-radius:4px;overflow:hidden}
+.obm-band{position:absolute;top:0;bottom:0;background:rgba(52,226,155,.14)}
+.obm-exp{position:absolute;top:-2px;bottom:-2px;width:0;border-left:2px solid var(--nominal);z-index:2}
+.obm-act{position:absolute;top:0;bottom:0;width:0;background:rgba(69,214,255,.55);z-index:1}
+.obm-act.synth{background:rgba(255,176,32,.55)}
+.obm-act.out{background:rgba(255,66,66,.6)}
+.obm-row .nums{width:96px;font-size:9.5px;color:var(--ink-dim);text-align:right;line-height:1.4}
+.obm-row .nums b{color:var(--active)}
+.obm-legend{display:flex;gap:14px;font-family:var(--mono);font-size:8.5px;color:var(--ink-faint);margin-top:4px}
+.obm-legend i{display:inline-block;width:18px;height:0;border-top:2px solid;vertical-align:middle;margin-right:4px}
+
+/* overspeed + degrade ladder */
+.osp{display:flex;align-items:center;gap:12px}
+.osp-gauge{flex:1;font-family:var(--mono)}
+.osp-num{font-size:20px;font-weight:600;color:var(--active)}
+.osp-num.trip{color:var(--warning)}
+.osp-state{font-family:var(--mono);font-size:11px;padding:8px 12px;border-radius:5px;border:1px solid var(--nominal);color:var(--nominal);background:rgba(52,226,155,.08)}
+.osp-state.trip{border-color:var(--warning);color:var(--warning);background:rgba(255,66,66,.12);animation:blink 1s steps(1) infinite}
+.ladder{display:flex;align-items:center;gap:6px;margin-top:10px;font-family:var(--mono);font-size:10px}
+.rung{flex:1;text-align:center;padding:7px 3px;border:1px solid var(--edge2);border-radius:4px;color:var(--ink-faint);background:#0c1118}
+.rung.cur{font-weight:600}
+.rung.cur.l3{border-color:var(--nominal);color:var(--nominal);background:rgba(52,226,155,.1)}
+.rung.cur.l2{border-color:var(--caution);color:var(--caution);background:rgba(255,176,32,.12)}
+.rung.cur.l1{border-color:var(--warning);color:var(--warning);background:rgba(255,66,66,.12)}
+.rung.cur.l0{border-color:var(--warning);color:var(--warning);background:rgba(255,66,66,.18)}
+.ladder .arr{color:var(--ink-faint)}
+
+/* annunciator */
+.annun{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.led{font-family:var(--mono);font-size:9.5px;font-weight:600;text-align:center;padding:9px 5px;border-radius:5px;letter-spacing:.05em;
+  border:1px solid var(--edge2);background:#0c1118;color:var(--ink-faint)}
+.led.on.amber{border-color:var(--caution);color:var(--caution);background:rgba(255,176,32,.14)}
+.led.on.red{border-color:var(--warning);color:var(--warning);background:rgba(255,66,66,.16)}
+.led.on.green{border-color:var(--nominal);color:var(--nominal);background:rgba(52,226,155,.12)}
+
+/* ---------- BOTTOM: TEST RIG + PFR ---------- */
+.bottom{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.rig{border:3px solid #0a0e13;border-radius:9px;padding:14px;background:#0c0f15;
+  background-clip:padding-box;position:relative}
+.rig::before{content:'';position:absolute;inset:-3px;border-radius:9px;z-index:-1;
+  background:repeating-linear-gradient(45deg,var(--caution),var(--caution) 11px,#0a0e13 11px,#0a0e13 22px)}
+.rig h3{font-size:11px;color:var(--caution);margin-bottom:11px;letter-spacing:.14em}
+.rig-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.fi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:9px}
+.fi-grid label{display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--ink-dim);text-transform:uppercase}
+.fi-grid select{font-family:var(--mono);font-size:11px;padding:6px 5px;background:#10161f;color:#d6e0ec;border:1px solid var(--edge);border-radius:5px;outline:none}
+.fi-grid select:focus{border-color:var(--ref)}
+.fi-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:4px}
+.fi-actions .sim.reset{grid-column:1/-1}
+.scen-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.scen-grid .sim{text-align:left;display:flex;align-items:center;gap:7px}
+.scen-grid .sim .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.mode-toggle{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:9px}
+.seg{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.06em;padding:9px;border-radius:5px;
+  border:1px solid var(--edge);background:#10161f;color:var(--ink-dim);cursor:pointer;transition:.15s}
+.seg:hover{border-color:var(--ref)}
+.seg.on{background:rgba(69,214,255,.12);border-color:var(--ref);color:var(--ref)}
+.fab-leg{font-family:var(--mono);font-size:14px;color:var(--active);margin:4px 0 9px;letter-spacing:.04em}
+.fab-leg small{display:block;font-size:9px;color:var(--ink-dim);margin-top:2px;letter-spacing:.02em}
+.fab-timeline{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:9px}
+.fab-timeline .fl{font-family:var(--mono);font-size:8.5px;padding:3px 5px;border-radius:3px;background:#0c1118;color:var(--ink-faint);border:1px solid var(--edge2)}
+.fab-timeline .fl.done{color:var(--ink-dim);border-color:var(--edge2);opacity:.55}
+.fab-timeline .fl.cur{background:rgba(69,214,255,.14);border-color:var(--ref);color:var(--ref);font-weight:700}
+.fab-sup{font-family:var(--mono);font-size:11px;letter-spacing:.06em;margin-bottom:4px}
+.fab-log{font-family:var(--mono);font-size:9px;line-height:1.55;max-height:120px;overflow-y:auto;color:var(--ink-dim)}
+.fab-log .fll{padding:1px 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.fab-log .cy{color:var(--ref);opacity:.7}
+.sim{font-family:var(--mono);font-size:10px;padding:9px 7px;border:1px solid var(--edge);border-radius:5px;background:#10161f;
+  color:var(--ink);cursor:pointer;text-align:left;transition:.14s;letter-spacing:.02em}
+.sim:hover{border-color:var(--caution);background:#161d28}
+.sim.danger:hover{border-color:var(--warning);color:var(--warning)}
+.sim.reset{border-color:var(--nominal);color:var(--nominal);grid-column:span 3;text-align:center}
+.sim.reset:hover{background:rgba(52,226,155,.1)}
+.sim:focus-visible{outline:2px solid var(--ref);outline-offset:1px}
+.sim small{color:var(--ink-faint);display:block;font-size:8px;margin-top:2px}
+
+.pfr{display:flex;flex-direction:column}
+.pfr-term{flex:1;min-height:200px;max-height:240px;overflow-y:auto;background:#070a0e;border:1px solid var(--edge2);border-radius:6px;
+  padding:10px;font-family:var(--mono);font-size:10.5px;line-height:1.6;color:var(--ink-dim)}
+.pfr-term .ln{display:flex;gap:9px;white-space:nowrap}
+.pfr-term .ln .cy{color:var(--ink-faint)}
+.pfr-term .ln .hx{color:var(--caution);font-weight:600}
+.pfr-term .ln.warn .hx{color:var(--warning)}
+.pfr-term .ln .ds{color:var(--ink)}
+.pfr-term::-webkit-scrollbar{width:8px}.pfr-term::-webkit-scrollbar-thumb{background:var(--edge);border-radius:4px}
+.pfr-meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--ink-faint);margin-top:8px}
+
+/* seam footnote */
+.seam{font-family:var(--mono);font-size:9.5px;color:var(--ink-faint);text-align:center;margin-top:14px;line-height:1.7;
+  border-top:1px solid var(--edge2);padding-top:12px}
+.seam b{color:var(--ink-dim)}
+
+@media (max-width:1180px){.grid{grid-template-columns:1fr}.bottom{grid-template-columns:1fr}.gauges{grid-template-columns:1fr 1fr}}
+
+/* ---------- PRE-FLIGHT BRIEFING ---------- */
+#briefing{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:24px;overflow:auto;
+  background:radial-gradient(circle at 50% 28%,rgba(10,14,19,.84),rgba(4,7,11,.96));backdrop-filter:blur(3px)}
+#briefing.hidden{display:none}
+.brf{position:relative;max-width:880px;width:100%;background:linear-gradient(180deg,#0e1520,#0b1018);
+  border:1px solid var(--edge);border-radius:10px;padding:30px 34px 24px;overflow:hidden;
+  box-shadow:0 36px 90px rgba(0,0,0,.6),0 0 0 1px rgba(69,214,255,.05)}
+.brf::before,.brf::after{content:'';position:absolute;width:22px;height:22px;border:2px solid var(--ref);opacity:.65;pointer-events:none}
+.brf::before{top:-1px;left:-1px;border-right:0;border-bottom:0;border-top-left-radius:10px}
+.brf::after{bottom:-1px;right:-1px;border-left:0;border-top:0;border-bottom-right-radius:10px}
+.brf-scan{position:absolute;left:0;right:0;top:0;height:2px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,var(--ref),transparent);animation:brfscan 1.15s ease-out forwards}
+@keyframes brfscan{0%{top:0;opacity:.9}100%{top:100%;opacity:0}}
+.brf-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:var(--ref);margin-bottom:9px}
+.brf h2{font-family:var(--disp);font-size:30px;font-weight:700;letter-spacing:.03em;color:var(--active);margin:0 0 8px}
+.brf .thesis{font-size:13px;color:var(--ink-dim);max-width:64ch;line-height:1.55;margin:0 0 22px}
+.brf-grid{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-bottom:22px}
+.brf-h{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--ink-dim);
+  padding-bottom:8px;margin-bottom:12px;border-bottom:1px solid var(--edge2);display:flex;gap:8px;align-items:center}
+.brf-h::before{content:'';width:6px;height:6px;background:var(--ref);box-shadow:0 0 6px var(--ref)}
+.brf ul,.brf ol{list-style:none;margin:0;padding:0}
+.brf-eng li{font-size:12px;color:var(--ink);line-height:1.45;padding:5px 0 5px 17px;position:relative}
+.brf-eng li::before{content:'▸';position:absolute;left:0;color:var(--nominal)}
+.brf-eng b{color:var(--active);font-weight:600}
+.brf-steps{counter-reset:s}
+.brf-steps li{counter-increment:s;font-size:12px;color:var(--ink);line-height:1.4;padding:6px 0 6px 30px;position:relative}
+.brf-steps li::before{content:counter(s,decimal-leading-zero);position:absolute;left:0;top:4px;
+  font-family:var(--mono);font-size:10px;color:var(--ref);border:1px solid var(--edge);border-radius:4px;
+  width:20px;height:18px;display:grid;place-items:center}
+.brf-steps b{color:var(--active);font-weight:600}
+.brf-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  border-top:1px solid var(--edge2);padding-top:17px}
+.brf-foot .left{display:flex;align-items:center;gap:16px}
+.brf-start{font-family:var(--disp);font-weight:600;font-size:13px;letter-spacing:.04em;color:#04222c;
+  background:var(--ref);border:0;border-radius:6px;padding:11px 22px;cursor:pointer;box-shadow:0 0 18px rgba(69,214,255,.28)}
+.brf-start:hover{filter:brightness(1.1)}
+.brf-start:focus-visible,.brf-skip:focus-visible{outline:2px solid var(--active);outline-offset:2px}
+.brf-skip{font-family:var(--mono);font-size:10px;color:var(--ink-faint);background:none;border:0;cursor:pointer;letter-spacing:.06em}
+.brf-skip:hover{color:var(--ink-dim)}
+.brf-meta{font-family:var(--mono);font-size:9px;color:var(--ink-faint);letter-spacing:.16em;text-align:right;line-height:1.5}
+#brfOpen{cursor:pointer}
+@media (max-width:720px){.brf-grid{grid-template-columns:1fr;gap:18px}.brf h2{font-size:24px}.brf{padding:24px 22px 20px}
+  .brf-foot{flex-direction:column;align-items:stretch}.brf-meta{text-align:left}}
+
+/* ---------- VOTING MATRIX + SENSOR PANEL ---------- */
+.vm{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px}
+.vm th,.vm td{padding:7px 8px;text-align:center;border-bottom:1px solid var(--edge2)}
+.vm th{font-size:9px;letter-spacing:.1em;color:var(--ink-dim);font-weight:600}
+.vm th.a{color:var(--nominal)} .vm th.b{color:var(--ref)} .vm th.c{color:var(--caution)}
+.vm td.par{text-align:left;color:var(--ink-dim);font-weight:600}
+.vm td.par small{color:var(--ink-faint);font-weight:400;margin-left:3px}
+.vm td.lane{color:var(--ink)}
+.vm td.lane.iso{color:var(--warning);background:rgba(255,66,66,.08)}
+.vm td.voted{color:var(--nominal);font-weight:700;background:rgba(52,226,155,.07)}
+.vm td .pair{color:var(--ink-faint);font-size:8.5px;margin-top:2px}
+.vm .vchip{display:inline-block;font-size:8.5px;padding:2px 7px;border-radius:4px;border:1px solid var(--edge);letter-spacing:.05em}
+.vm .vchip.nom{color:var(--nominal);border-color:rgba(52,226,155,.4)}
+.vm .vchip.split{color:var(--caution);border-color:rgba(255,176,32,.5)}
+.vm .vchip.iso{color:var(--warning);border-color:rgba(255,66,66,.5)}
+.sensgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.senscol .sh{font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding-bottom:6px;margin-bottom:8px;
+  border-bottom:1px solid var(--edge2);display:flex;justify-content:space-between;align-items:center}
+.senscol .sh.a{color:var(--nominal)} .senscol .sh.b{color:var(--ref)} .senscol .sh.c{color:var(--caution)}
+.senscol .sh .st{font-size:8px;padding:1px 6px;border-radius:3px;letter-spacing:.04em}
+.senscol .sh.ok .st{color:var(--nominal);border:1px solid rgba(52,226,155,.35)}
+.senscol .sh.bad .st{color:var(--warning);border:1px solid rgba(255,66,66,.5)}
+.pills{display:flex;flex-wrap:wrap;gap:5px}
+.pill{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;padding:4px 7px;
+  border:1px solid var(--edge);border-radius:5px;color:var(--ink-dim);background:var(--panel2)}
+.pill .led{width:7px;height:7px;border-radius:50%;background:var(--nominal);box-shadow:0 0 5px var(--nominal)}
+.pill.bad{color:var(--warning);border-color:rgba(255,66,66,.55)}
+.pill.bad .led{background:var(--warning);box-shadow:0 0 7px var(--warning);animation:pblink .7s steps(2,end) infinite}
+@keyframes pblink{50%{opacity:.18}}
+@media (max-width:560px){.sensgrid{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* ===== IETM — Learning katmanı ===== */
+body.ietm-on [data-ietm]{ cursor:help; outline:1px dashed var(--ref); outline-offset:2px; border-radius:3px; transition:outline-color .15s, box-shadow .15s; }
+body.ietm-on [data-ietm]:hover{ outline-style:solid; box-shadow:0 0 0 2px rgba(69,214,255,.18); }
+#ietmBtn{ cursor:pointer; }
+#ietmBtn.on{ background:rgba(69,214,255,.16); border-color:var(--ref); }
+.ietm-card{ position:fixed; right:18px; bottom:18px; width:344px; max-width:calc(100vw - 36px); max-height:calc(100vh - 36px); overflow-y:auto; background:var(--panel); border:1px solid var(--ref); border-radius:10px; box-shadow:0 12px 40px rgba(0,0,0,.55); padding:14px 14px 12px; z-index:200; font-family:var(--disp); color:var(--ink); display:none; }
+.ietm-card.show{ display:block; animation:ietmIn .14s ease-out; }
+@keyframes ietmIn{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:none;} }
+.ietm-hd{ display:flex; justify-content:space-between; align-items:center; margin-bottom:7px; gap:8px; }
+.ietm-dom{ font-family:var(--mono); font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:var(--ref); }
+.ietm-x{ background:none; border:none; color:var(--ink-dim); font-size:13px; cursor:pointer; line-height:1; padding:0 2px; }
+.ietm-x:hover{ color:var(--active); }
+.ietm-term{ font-size:14px; font-weight:600; color:var(--active); margin-bottom:6px; line-height:1.3; }
+.ietm-def{ font-size:12px; line-height:1.5; color:var(--ink); }
+.ietm-bands{ font-family:var(--mono); font-size:10px; line-height:1.45; color:var(--ink-dim); margin-top:7px; padding:6px 8px; background:var(--panel2); border-radius:5px; border:1px solid var(--edge2); }
+.ietm-more{ margin-top:9px; width:100%; background:var(--panel2); border:1px solid var(--edge); color:var(--ref); font-family:var(--mono); font-size:10px; padding:6px; border-radius:5px; cursor:pointer; letter-spacing:.04em; }
+.ietm-more:hover{ border-color:var(--ref); }
+.ietm-why{ margin-top:9px; font-size:11.5px; line-height:1.55; color:var(--ink); padding:8px 9px; background:rgba(69,214,255,.05); border-left:2px solid var(--ref); border-radius:0 5px 5px 0; }
+.ietm-why b{ color:var(--active); font-weight:600; }
+.ietm-rel-row{ margin-top:9px; display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+.ietm-rel-lbl{ font-family:var(--mono); font-size:9px; color:var(--ink-faint); text-transform:uppercase; }
+.ietm-rel{ background:var(--panel2); border:1px solid var(--edge2); color:var(--ink-dim); font-size:10px; padding:3px 7px; border-radius:11px; cursor:pointer; font-family:var(--disp); }
+.ietm-rel:hover{ border-color:var(--ref); color:var(--ref); }
+
+</style>
+</head>
+<body>
+
+<!-- ===================== PRE-FLIGHT BRIEFING ===================== -->
+<div id="briefing">
+  <div class="brf">
+    <div class="brf-scan"></div>
+    <div class="brf-eyebrow" data-i18n="brf.eyebrow">◢ UÇUŞ ÖNCESİ BRİFİNG · PRE-FLIGHT</div>
+    <h2>EGEMEN</h2>
+    <p class="thesis" data-i18n="brf.thesis">Tek motorlu bir UCAV turbofanının üç-kanal (TMR) FADEC'i — tarayıcıda canlı, deterministik tam-yetki dijital motor kontrolü. Plant fiziği, kontrol yasası, arıza tespiti ve otonom misyon arka planda gerçekten çalışır; arayüz yalnızca tek bir durum sözleşmesini (FADECState) okur.</p>
+    <div class="brf-grid">
+      <div>
+        <div class="brf-h" data-i18n="brf.engHdr">GÖSTERDİĞİ MÜHENDİSLİK</div>
+        <ul class="brf-eng">
+          <li data-i18n="brf.eng1" data-i18n-html><b>2oo3 medyan oylama</b> + HARD/SOFT arıza ayrımı, bumpless lider devretme</li>
+          <li data-i18n="brf.eng2" data-i18n-html><b>OBM analitik redundans</b> — oylamanın göremediği common-mode arızayı yakalar</li>
+          <li data-i18n="brf.eng3" data-i18n-html><b>Min-max limit seçici</b> kontrol yasası — accel/decel, N2/EGT, flameout-emniyetli</li>
+          <li data-i18n="brf.eng4" data-i18n-html><b>FAB otonom misyon</b> — sağlık-tetikli derate / RTB / abort, denetlenebilir karar logu</li>
+          <li data-i18n="brf.eng5" data-i18n-html><b>Gerçek start sekansı</b> (hung/hot), indirgenmiş mod, 16-bit fault word kara kutu</li>
+          <li data-i18n="brf.eng6" data-i18n-html><b>IETM · interaktif teknik kılavuz</b> — arayüzdeki her göstergeye/sensöre tıkla; ne olduğunu ve o anki nedenini canlı gör (öğrenme modu)</li>
+        </ul>
+      </div>
+      <div>
+        <div class="brf-h" data-i18n="brf.howHdr">NASIL DENENİR</div>
+        <ol class="brf-steps">
+          <li data-i18n="brf.how1" data-i18n-html><b>Motoru çalıştır</b> — start sekansını izle: CRANK → LIGHT-OFF → RUN</li>
+          <li data-i18n="brf.how2" data-i18n-html><b>Gaz kolunu kaydır</b> — N2/EGT tepkisi; sabit gazda EGT yavaşça ısınır</li>
+          <li data-i18n="brf.how3" data-i18n-html><b>Arıza enjekte et</b> (sağ alt panel) — 2oo3 izolesini ve kara kutuyu izle</li>
+          <li data-i18n="brf.how4" data-i18n-html><b>"Common-mode" senaryosu</b> — OBM'in oylamadan farkını gör</li>
+          <li data-i18n="brf.how5" data-i18n-html><b>OTO · FAB</b> — otonom misyon; ortada arıza ver, FAB'ın kararını izle</li>
+          <li data-i18n="brf.how6" data-i18n-html><b>IETM moduna geç</b> (üst bar) — tanımadığın bir göstergeye tıkla, "DAHA FAZLA" ile canlı analizini oku</li>
+        </ol>
+      </div>
+    </div>
+    <div class="brf-foot">
+      <div class="left">
+        <button class="brf-start" id="brfStart" data-i18n="btn.brfStart">MOTORU ÇALIŞTIR →</button>
+        <button class="brf-skip" id="brfSkip" data-i18n="btn.brfSkip">brifingi atla</button>
+      </div>
+      <div class="brf-meta" data-i18n="brf.meta" data-i18n-html>TEK DOSYA · BUILD YOK<br>DETERMİNİSTİK · 20 Hz</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TOP STATUS STRIP ===================== -->
+<div class="topbar">
+  <div class="brand">
+    <div class="sigil">E</div>
+    <div>
+      <h1>EGEMEN FADEC</h1>
+      <div class="sub">UCAV · TMR (A/B/C) · MIL-STD-1553</div>
+    </div>
+  </div>
+  <div class="status-cluster">
+    <div class="chip" id="chMode" data-ietm="enginemode"><span class="dot good"></span>MODE <b>—</b></div>
+    <div class="chip mono" id="chCycle" data-ietm="cycle">CYC <b>0</b></div>
+    <div class="chip" id="chRM" style="display:none" data-ietm="reducedmode"><span class="dot warn"></span><span data-i18n="chip.reduced">İNDİRGENMİŞ MOD</span> <b>—</b></div>
+    <button class="chip" id="brfOpen" data-i18n="btn.brief" data-i18n-html>ℹ <b style="color:var(--ref)">BRİFİNG</b></button>
+    <button class="chip" id="ietmBtn">▦ <b style="color:var(--ref)">IETM</b></button>
+    <div class="chip lang" id="langToggle" title="dil / language">
+      <button class="lang-seg" id="langEn">EN</button>
+      <button class="lang-seg" id="langTr">TR</button>
+    </div>
+    <div class="chip" id="chSync" data-ietm="sync"><span class="dot" id="syncDot"></span>SYNC <b id="syncTxt">—</b></div>
+    <div class="chip" id="chVote" data-ietm="voterstate">VOTER <b id="voteTxt">NORMAL</b></div>
+    <div class="chip" id="chDeg" data-ietm="degrade">REDUNDANCY <b id="degTxt">3oo3</b></div>
+  </div>
+  <div class="master">
+    <div class="lamp caution" id="mCaution" data-ietm="mastercaution">MASTER<br>CAUTION</div>
+    <div class="lamp warning" id="mWarning" data-ietm="mastercaution">MASTER<br>WARNING</div>
+  </div>
+</div>
+
+
+
+<!-- ===================== MAIN GRID ===================== -->
+<div class="grid">
+
+  <!-- ---------- LEFT COLUMN ---------- -->
+  <div class="col">
+    <div class="panel">
+      <div class="ph"><h3 data-i18n="hdr.pilot">Pilot Konsolu</h3><span class="tag">INPUT</span></div>
+      <div class="tla-wrap">
+        <div class="tla-track"><div class="tla-fill" id="tlaFill" style="height:0%"></div>
+          <input type="range" class="tla-input" id="tla" min="0" max="100" value="0" step="1" aria-label="Thrust Lever Angle">
+        </div>
+        <div class="tla-detents">
+          <span><i></i>MAX 100</span><span><i></i>CRZ 75</span><span><i></i>IDLE 20</span><span><i></i>CUT 0</span>
+        </div>
+      </div>
+      <div class="tla-read" data-ietm="tla"><span id="tlaVal">0</span><small>% TLA</small></div>
+      <button class="btn" id="startBtn" data-ietm="start">ENGINE START</button>
+      <div class="mode-toggle" data-ietm="mode">
+        <button class="seg on" id="modeManual" data-i18n="seg.manual">MANUEL</button>
+        <button class="seg" id="modeAuto" data-i18n="seg.auto">OTO · FAB</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><h3 data-i18n="hdr.fabMission">FAB · Otonom Misyon</h3><span class="tag" id="fabTag">MANUEL</span></div>
+      <div class="fab-leg" id="fabLeg" data-ietm="fableg">—</div>
+      <div class="fab-timeline" id="fabTimeline"></div>
+      <div class="fab-sup" id="fabSup" data-ietm="fabsup"><span style="color:var(--nominal)">—</span></div>
+      <div class="ph" style="margin-top:11px;border-bottom:1px solid var(--edge2);padding-bottom:6px"><h3 style="font-size:10px" data-i18n="hdr.fabLog">FAB Karar Logu</h3><span class="tag" data-i18n="tag.scriptSup">SCRIPT + SÜPERVİZÖR</span></div>
+      <div class="fab-log" id="fabLog" data-ietm="fablog"></div>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><h3 data-i18n="hdr.engState">Motor Durumu</h3><span class="tag" id="smTag">S0</span></div>
+      <div class="sm" id="sm" data-ietm="statemachine"></div>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><h3 data-i18n="hdr.thrustMode">İtki Modu</h3><span class="tag" id="pTag">P0</span></div>
+      <div class="pmode" id="pmode" data-ietm="thrustmode"></div>
+    </div>
+  </div>
+
+  <!-- ---------- CENTER COLUMN ---------- -->
+  <div class="col">
+    <div class="panel">
+      <div class="ph"><h3 data-i18n="hdr.primary">Birincil Motor Göstergeleri</h3><span class="tag">VOTED (2oo3 MEDIAN)</span></div>
+      <div class="gauges">
+        <div class="dial" id="dialN1" data-ietm="n1"></div>
+        <div class="dial" id="dialN2" data-ietm="n2"></div>
+        <div class="tape">
+          <div class="tape-bar"><div class="tape-red" id="egtRed"></div><div class="tape-amber" id="egtAmb"></div><div class="tape-fill" id="egtFill" style="height:0%"></div></div>
+          <div class="v" id="egtVal" data-ietm="egt">15</div><div class="t">EGT °C</div>
+        </div>
+        <div class="wf">
+          <div class="t">Wf kg/h</div>
+          <div class="wf-track"><div class="wf-act" id="wfAct" style="width:0%"></div><div class="wf-bug" id="wfBug" style="left:0%"></div></div>
+          <div class="v" id="wfVal" data-ietm="wf">0</div>
+          <div class="t" style="color:var(--limit)" data-i18n="tag.wfLegend" data-i18n-html>▏ hedef &nbsp; ▎ gerçek</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel tmr">
+      <div class="ph"><h3 data-i18n="hdr.authMatrix">TMR ECU Otorite Matrisi</h3><span class="tag">DISTRIBUTED 2oo3 · NO MASTER VOTER</span></div>
+      <div class="tmr-row" id="ecuRow" data-ietm="ecu"></div>
+      <div class="ccdl" id="ccdl" data-ietm="ccdl">
+        <span id="ccdlAB">CCDL A↔B</span><span id="ccdlAC">CCDL A↔C</span><span id="ccdlBC">CCDL B↔C</span>
+      </div>
+      <div class="route" data-ietm="route"><svg viewBox="0 0 430 54" preserveAspectRatio="none" id="routeSvg"></svg></div>
+      <div class="ilk" id="ilk" data-ietm="interlock">PRIORITY INTERLOCK · ARMED</div>
+      <div class="yks" id="yks" data-ietm="yks" data-i18n="lbl.yksValve">YKS / FMV (YAKIT VALFİ)</div>
+      <div class="openloop" id="openloop" data-ietm="openloop">⚠ OPEN-LOOP · DIRECT DRIVE</div>
+    </div>
+
+    <div class="panel">
+      <div class="ph" data-ietm="votematrix"><h3 data-i18n="hdr.voteMatrix">2oo3 Oylama Matrisi</h3><span class="tag" data-i18n="tag.voteMatrix">HER KANAL BAĞIMSIZ OKUR · MEDIAN · AYKIRI LANE OYLANIR</span></div>
+      <table class="vm" id="voteMatrix"></table>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><h3 data-i18n="hdr.sensor">Sensör Durum Panosu</h3><span class="tag" data-i18n="tag.sensorLegend">YEŞİL=GEÇERLİ · KIRMIZI=HARD ARIZA (BIT)</span></div>
+      <div class="sensgrid" id="sensorPanel"></div>
+    </div>
+  </div>
+
+  <!-- ---------- RIGHT COLUMN ---------- -->
+  <div class="col">
+    <div class="panel faultword">
+      <div class="ph"><h3 data-i18n="hdr.faultWord">16-bit Fault Word · Canlı Decode</h3><span class="tag">1553 ALIGNED</span></div>
+      <div class="fw-hex"><span class="eyebrow" data-i18n="tag.latestFault">EN SON ARIZA</span><span class="h" id="fwHex" data-ietm="faultword"><span class="none">0x0000 · CLEAN</span></span></div>
+      <div class="fw-bits" id="fwBits"></div>
+      <div class="fw-decode" id="fwDecode" data-ietm="decodefields">
+        <div>ALAN<b id="dAlan">—</b></div><div>KOD<b id="dKod">—</b></div><div>CH<b id="dCh">—</b></div><div>VOTER<b id="dVoter">—</b></div><div>COMP<b id="dComp">—</b></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><h3 data-i18n="hdr.obm">OBM · Beklenen vs Gerçek</h3><span class="tag">ANALYTICAL REDUNDANCY</span></div>
+      <div class="obm-row"><div class="name">N2</div>
+        <div class="obm-bar"><div class="obm-band" id="obmBandN2"></div><div class="obm-act" id="obmActN2"></div><div class="obm-exp" id="obmExpN2"></div></div>
+        <div class="nums" id="obmNumN2" data-ietm="obm">exp <b>0.0</b><br>act <b>0.0</b></div>
+      </div>
+      <div class="obm-row"><div class="name">EGT</div>
+        <div class="obm-bar"><div class="obm-band" id="obmBandEGT"></div><div class="obm-act" id="obmActEGT"></div><div class="obm-exp" id="obmExpEGT"></div></div>
+        <div class="nums" id="obmNumEGT">exp <b>15</b><br>act <b>15</b></div>
+      </div>
+      <div class="obm-legend"><span><i style="border-color:var(--nominal)"></i>beklenen (golden)</span><span><i style="border-color:var(--ref)"></i>gerçek</span><span><i style="border-color:var(--caution)"></i>sentez</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><h3 data-i18n="hdr.overspeed">Bağımsız Overspeed Koruması</h3><span class="tag">DISSIMILAR</span></div>
+      <div class="osp">
+        <div class="osp-gauge"><div class="osp-num" id="ospN2" data-ietm="overspeed">0.0<small style="font-size:11px;color:var(--ink-dim)">% N2</small></div>
+          <div style="font-size:9px;font-family:var(--mono);color:var(--ink-faint);margin-top:2px" data-i18n="lbl.ovspSep">TRIP > 115.0% · ANA DÖNGÜDEN AYRI</div></div>
+        <div class="osp-state" id="ospState">ARMED</div>
+      </div>
+      <div class="ladder" id="ladder" data-ietm="degrade"></div>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><h3>Status Words · SW1 / SW2</h3><span class="tag">BIT-LEVEL</span></div>
+      <div class="eyebrow" style="margin-bottom:6px" data-i18n="tag.sw1">SW1 — LANE (LİDER)</div>
+      <div class="swgrid" id="sw1" data-ietm="sw1"></div>
+      <div class="eyebrow" style="margin:9px 0 6px" data-i18n="tag.sw2">SW2 — SİSTEM</div>
+      <div class="swgrid" id="sw2" data-ietm="sw2"></div>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><h3>Master Caution Annunciator</h3><span class="tag">EICAS</span></div>
+      <div class="annun" id="annun" data-ietm="annunciator"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== BOTTOM ===================== -->
+<div class="bottom">
+  <div class="rig">
+    <h3 data-ietm="faultinjector" data-i18n="hdr.fdia">[ ARIZA ENJEKTÖRÜ · FDIA ]</h3>
+    <div class="fi-grid">
+      <label><span data-i18n="lbl.sensor">Sensör</span><select id="fiParam"><option>N2</option><option>EGT</option><option>N1</option></select></label>
+      <label><span data-i18n="lbl.channel">Kanal</span><select id="fiCh"><option>A</option><option>B</option><option>C</option></select></label>
+      <label><span data-i18n="lbl.instance">Instance</span><select id="fiInst"><option value="1">1</option><option value="2">2</option></select></label>
+      <label><span data-i18n="lbl.faultType">Arıza tipi</span><select id="fiCode" data-ietm="faultcodes">
+        <option value="S01" data-i18n="fc.s01">S01 aralık-üstü · HARD</option>
+        <option value="S02" data-i18n="fc.s02">S02 aralık-altı · HARD</option>
+        <option value="S06" data-i18n="fc.s06">S06 sinyal-yok · HARD</option>
+        <option value="S04" selected data-i18n="fc.s04">S04 spike · SOFT</option>
+        <option value="S05" data-i18n="fc.s05">S05 gürültü · SOFT</option>
+        <option value="S07" data-i18n="fc.s07">S07 sapma · SOFT</option>
+        <option value="CPU" data-i18n="fc.cpu">CPU şüphesi · lane</option></select></label>
+      <label><span data-i18n="lbl.dir">Yön</span><select id="fiDir"><option value="1">+</option><option value="-1">−</option></select></label>
+      <label><span data-i18n="lbl.mag">Şiddet ×ε</span><select id="fiMag"><option>3</option><option selected>5</option><option>7</option><option>10</option></select></label>
+    </div>
+    <div class="fi-actions">
+      <button class="sim danger" id="fiGo" data-i18n="btn.inject">⚠ ENJEKTE ET</button>
+      <button class="sim danger" id="fiObm" data-i18n="btn.crashObm">Çökert: OBM</button>
+      <button class="sim danger" id="fiOvsp" data-i18n="btn.forceOvsp">Zorla: Overspeed</button>
+      <button class="sim danger" id="fiHung" data-i18n="btn.startHung">Start: Hung</button>
+      <button class="sim danger" id="fiHot" data-i18n="btn.startHot">Start: Hot</button>
+      <button class="sim reset" id="fiReset" data-i18n="btn.clearAll">◼ TÜM ARIZALARI SİL</button>
+    </div>
+    <h3 style="margin-top:12px" data-ietm="scenarios" data-i18n="hdr.scenarios">[ SENARYOLAR · tek tık ]</h3>
+    <div class="scen-grid" id="scenGrid"></div>
+  </div>
+
+  <div class="panel pfr">
+    <div class="ph"><h3 data-i18n="hdr.pfr">PFR / CMC · Bakım Logu (Kara Kutu)</h3><span class="tag">LATCHED · DEDUP</span></div>
+    <div class="pfr-term" id="pfrTerm" data-ietm="pfr">
+      <div class="ln"><span class="cy">[CYC 0]</span><span class="ds">SYSTEM BOOT · 1553 BUS ACTIVE · TMR SYNC PENDING</span></div>
+    </div>
+    <div class="pfr-meta"><span id="pfrCount">0 latched fault</span><span>FORMAT: 0xHHHH = [ALAN|KOD|CH|VOTER|COMP]</span></div>
+  </div>
+</div>
+
+<div class="seam" data-i18n="arch.body" data-i18n-html>
+  <b>MİMARİ:</b> Arayüz tek bir <b>FADECState</b> veri sözleşmesini okur; render katmanı backend'den tamamen bağımsızdır. Backend her 50 ms'de bir cycle ilerletir, sonucu FADECState'e yazar — arayüz yalnızca onu çizer.<br>
+  Backend = <b>plant modeli (Wf→spool, bağımsız N1/N2, EGT 2-zaman termal) + min-max limit seçici kontrol yasası + 2oo3 oylama/sağlık + OBM analitik redundans + FDIA</b>. Tüm arıza tespiti, oylama ve sentez gerçek; PFR kara kutusu backend'in ürettiği 16-bit fault word'leri latch'ler.
+</div></div>
+
+<div class="ietm-card" id="ietmCard"></div>
+
+<!-- ===================== EKİPMAN KÜNYESİ · ENGINEERING CREDIT ===================== -->
+<style>
+.eqplate{position:relative;overflow:hidden;margin-top:14px;
+  background:linear-gradient(180deg,var(--panel),var(--panel2));
+  border:1px solid var(--edge);border-radius:9px;padding:16px 18px 13px}
+.eqplate::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--ref),transparent);opacity:.6}
+.eqp-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.22em;
+  color:var(--ink-dim);font-weight:600;margin-bottom:14px}
+.eqp-grid{display:grid;grid-template-columns:auto 1fr auto;gap:22px;align-items:center}
+/* identity */
+.eqp-id{display:flex;align-items:center;gap:13px}
+.eqp-sigil{width:46px;height:46px;border:1.5px solid var(--ref);border-radius:7px;
+  display:grid;place-items:center;color:var(--ref);font-family:var(--disp);font-weight:700;
+  font-size:16px;letter-spacing:.06em;box-shadow:0 0 14px rgba(69,214,255,.22) inset;flex:0 0 auto}
+.eqp-photo{width:52px;height:52px;border-radius:8px;object-fit:cover;flex:0 0 auto;
+  border:1.5px solid var(--ref);box-shadow:0 0 14px rgba(69,214,255,.25);filter:saturate(.9)}
+.eqp-chip.dept{background:var(--panel2);border-color:var(--edge);color:var(--ink-dim);
+  justify-content:center;font-weight:500;cursor:default;letter-spacing:.1em}
+.eqp-chip.dept:hover{border-color:var(--edge);box-shadow:none;color:var(--ink-dim)}
+.eqp-name{font-family:var(--disp);font-size:16px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--active)}
+.eqp-role{font-family:var(--mono);font-size:11px;color:var(--ink);margin-top:3px;letter-spacing:.02em}
+.eqp-sub{font-family:var(--mono);font-size:10px;color:var(--ink-faint);letter-spacing:.16em;
+  text-transform:uppercase;margin-top:2px}
+/* spec rows */
+.eqp-specs{display:flex;flex-direction:column;gap:5px;
+  border-left:1px solid var(--edge2);border-right:1px solid var(--edge2);padding:0 20px}
+.eqp-row{display:grid;grid-template-columns:74px 1fr;gap:10px;font-size:11px;align-items:baseline}
+.eqp-row span{color:var(--ink-faint);letter-spacing:.08em}
+.eqp-row b{color:var(--ink);font-weight:500}
+.eqp-row b em{color:var(--ref);font-style:normal}
+/* contact */
+.eqp-contact{display:flex;flex-direction:column;gap:7px;min-width:148px}
+.eqp-chip{font-family:var(--mono);font-size:11px;padding:7px 11px;border:1px solid var(--edge);
+  border-radius:5px;background:var(--panel2);color:var(--ink-dim);text-decoration:none;
+  letter-spacing:.04em;display:flex;gap:8px;align-items:center;transition:all .14s}
+.eqp-chip:hover{color:var(--ink);border-color:var(--ref);box-shadow:0 0 10px rgba(69,214,255,.18)}
+.eqp-chip.cv{background:rgba(69,214,255,.1);border-color:var(--ref);color:var(--ref);
+  font-weight:600;justify-content:center}
+.eqp-chip.cv:hover{background:rgba(69,214,255,.18)}
+/* foot strip */
+.eqp-foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
+  margin-top:14px;padding-top:11px;border-top:1px solid var(--edge2);
+  font-size:10px;color:var(--ink-faint);letter-spacing:.08em}
+.eqp-stat{display:flex;align-items:center;gap:7px;color:var(--nominal)}
+.eqp-dot{width:7px;height:7px;border-radius:50%;background:var(--nominal);
+  box-shadow:0 0 7px var(--nominal);display:inline-block}
+@media(max-width:760px){
+  .eqp-grid{grid-template-columns:1fr;gap:16px}
+  .eqp-specs{border:none;border-top:1px solid var(--edge2);border-bottom:1px solid var(--edge2);
+    padding:13px 0}
+  .eqp-contact{flex-direction:row;flex-wrap:wrap;min-width:0}
+  .eqp-chip{flex:1 1 auto}
+}
+/* crew (multi-member) */
+.crew{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+.crew-head{display:flex;justify-content:space-between;align-items:baseline;
+  padding:0 2px 2px}
+.crew-head .eqp-eyebrow{margin:0}
+.crew-build{font-family:var(--mono);font-size:10px;color:var(--ink-faint);letter-spacing:.14em}
+.crew .eqplate{margin-top:0}
+.eqp-idx{position:absolute;top:12px;right:14px;font-family:var(--mono);font-size:11px;
+  font-weight:600;color:var(--ink-faint);letter-spacing:.16em;border:1px solid var(--edge2);
+  border-radius:4px;padding:2px 7px;background:var(--panel2)}
+.crew .eqplate .eqp-grid{padding-right:46px}
+</style>
+<section class="crew">
+  <div class="crew-head">
+    <span class="eqp-eyebrow" data-i18n="eqp.crew">◢ EKİP KÜNYESİ · BUILD CREW</span>
+    <span class="crew-build">EGEMEN · v9 · vanilla JS · 20 Hz</span>
+  </div>
+
+<footer class="eqplate">
+  <span class="eqp-idx">01</span>
+  <div class="eqp-grid">
+    <div class="eqp-id">
+      <img class="eqp-photo" src="data:image/jpeg;base64,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" alt="Demir Akın">
+      <div>
+        <div class="eqp-name">Demir Akın</div>
+        <div class="eqp-role" data-i18n="eqp.roleD">Elektrik-Elektronik Mühendisliği · 3. sınıf</div>
+        <div class="eqp-sub" data-i18n="eqp.uniKoc">Koç Üniversitesi</div>
+      </div>
+    </div>
+    <div class="eqp-specs mono">
+      <div class="eqp-row"><span data-i18n="eqp.focus">ODAK</span><b data-i18n="eqp.focusDemir" data-i18n-html><em>FADEC</em> · kontrol yasası · 2oo3 redundans</b></div>
+      <div class="eqp-row"><span data-i18n="eqp.field">ALAN</span><b data-i18n="eqp.fieldDemir">Jet motoru kontrol sistemleri · gömülü</b></div>
+      <div class="eqp-row"><span data-i18n="eqp.intern">STAJ</span><b>Kale Jet Motorları</b></div>
+    </div>
+    <div class="eqp-contact">
+      <a class="eqp-chip" href="https://www.linkedin.com/in/demir-akin" target="_blank" rel="noopener">in&nbsp;&nbsp;LinkedIn</a>
+      <a class="eqp-chip" href="mailto:demirakin.tr@gmail.com" data-i18n="eqp.email" data-i18n-html>✉&nbsp;&nbsp;E-posta</a>
+      <a class="eqp-chip" href="https://demirakin.github.io/" target="_blank" rel="noopener" data-i18n="eqp.portfolio" data-i18n-html>⬡&nbsp;&nbsp;Portfolyo</a>
+      <span class="eqp-chip dept">◈ Koç Uni. · ELEC</span>
+    </div>
+  </div>
+</footer>
+
+<footer class="eqplate">
+  <span class="eqp-idx">02</span>
+  <div class="eqp-grid">
+    <div class="eqp-id">
+      <div class="eqp-sigil">EK</div>
+      <div>
+        <div class="eqp-name">Emre Karausta</div>
+        <div class="eqp-role" data-i18n="eqp.roleE">Electrical &amp; Electronic Engineering · 2. sınıf</div>
+        <div class="eqp-sub">University of Southampton</div>
+      </div>
+    </div>
+    <div class="eqp-specs mono">
+      <div class="eqp-row"><span data-i18n="eqp.focus">ODAK</span><b data-i18n="eqp.focusEmre">Plant fiziği · sensör verisi modelleme</b></div>
+      <div class="eqp-row"><span data-i18n="eqp.contrib">KATKI</span><b data-i18n="eqp.contribEmre" data-i18n-html><em>2oo3</em> edge-case testi · UX optimizasyonu</b></div>
+      <div class="eqp-row"><span data-i18n="eqp.intern">STAJ</span><b>Kale Jet Motorları</b></div>
+    </div>
+    <div class="eqp-contact">
+      <a class="eqp-chip" href="https://linkedin.com/in/emre-karausta" target="_blank" rel="noopener">in&nbsp;&nbsp;LinkedIn</a>
+      <a class="eqp-chip" href="mailto:emrekarausta1903@gmail.com" data-i18n="eqp.email" data-i18n-html>✉&nbsp;&nbsp;E-posta</a>
+      <a class="eqp-chip" href="https://github.com/emrekrst" target="_blank" rel="noopener">⌬&nbsp;&nbsp;GitHub</a>
+      <span class="eqp-chip dept">◈ Southampton · EEE</span>
+    </div>
+  </div>
+</footer>
+
+<div class="eqp-foot mono">
+  <span data-i18n="eqp.rights">© 2026 Demir Akın &amp; Emre Karausta · Tüm hakları saklıdır</span>
+  <span>BUILD EGEMEN · TMR FADEC SCADA</span>
+  <span class="eqp-stat"><i class="eqp-dot"></i>EDUCATIONAL SIMULATION</span>
+</div>
+</section>
+
+<script>
+"use strict";
+/* ===================================================================
+   1) DATA CONTRACT — FADECState : UI'ın okuduğu TEK gerçek kaynak.
+      Gerçek backend (BK · §5.5) her cycle writeFADECState() ile bunu doldurur.
+   =================================================================== */
+const FADECState = {
+  engineOn:false, S:0, P:0, tla:0, cycle:0, reducedMode:0, startPhase:'OFF', starter:false,
+  n1:0, n2:0, egt:15, wf:0, wfTarget:0,
+  ch:{ A:{n2:0,egt:0,healthy:true,iso:false,leader:true},
+       B:{n2:0,egt:0,healthy:true,iso:false,leader:false},
+       C:{n2:0,egt:0,healthy:true,iso:false,leader:false} },
+  leader:'A', voter:0 /*0 normal 1 split 2 dual-loss 3 isolated*/, degrade:3,
+  obm:{ n2Exp:0, egtExp:0, n2Synth:false, egtSynth:false, crashed:false, n2Out:false, egtOut:false },
+  ccdl:{ AB:true, AC:true, BC:true }, sync:false, interlock:true, openLoop:false,
+  overspeed:false,
+  sw1:0, sw2:0,
+  faults:[], pfr:[] /* {cycle,fw,hex,decoded,warn} */
+};
+
+/* ===================================================================
+   2) FAULT WORD CODEC — GERÇEK (spec ile birebir).
+      16-bit: [ALAN:3 | KOD:4 | CH:2 | VOTER:2 | COMP:5]
+   =================================================================== */
+const FW = {
+  ALAN:['SENSOR','START','LIMIT','CHANNEL','CONTROL','MECHANICAL','—','—'],
+  CH:['A','B','C','SYS'],
+  VOTER:['NORMAL','SPLIT','DUAL-LOSS','ISOLATED'],
+  // KOD adları alan bağlamına göre (CHANNEL alanı = K-kodları)
+  KKOD:{2:'K02 ISOLATED',5:'K05 CCDL',7:'K07 DEGRADED',8:'K08 REDUCED',9:'K09 CPU',10:'K10 TIE-BREAK',11:'K11 SINGLE-CH'},
+  SKOD:{1:'S-SIGNAL',2:'S-RANGE',3:'S-CHANGE'},
+  LKOD:{1:'L-OVERSPEED',2:'L-EGT'},
+  encode(alan,kod,ch,voter,comp){
+    return ((alan&7)<<13)|((kod&15)<<9)|((ch&3)<<7)|((voter&3)<<5)|(comp&31);
+  },
+  decode(fw){ return {alan:(fw>>13)&7,kod:(fw>>9)&15,ch:(fw>>7)&3,voter:(fw>>5)&3,comp:fw&31}; },
+  hex(fw){ return '0x'+fw.toString(16).toUpperCase().padStart(4,'0'); },
+  kodName(alan,kod){
+    if(alan===3) return this.KKOD[kod]||('KOD '+kod);
+    if(alan===0) return this.SKOD[kod]||('KOD '+kod);
+    if(alan===2) return this.LKOD[kod]||('KOD '+kod);
+    return 'KOD '+kod;
+  }
+};
+
+/* (3-4) PLACEHOLDER DRIVER + Inject objesi KALDIRILDI — tek backend = BK (bkz. §5.5).
+        render'ın okuduğu görsel limit sabitleri BK'den türetilen Driver stub'ında (aşağıda). */
+
+/* ===================================================================
+   5) RENDER — yalnız FADECState okur. Backend-agnostik.
+   =================================================================== */
+const $=id=>document.getElementById(id);
+// statik kurulum
+const S_STEPS=[['0','OFF'],['1','CRANK (kuru çevirme)'],['2','LIGHT-OFF'],['3','ACCEL'],['4','RUN'],['5','SHUTDOWN'],['6','FLAMEOUT/RELIGHT']];
+const P_MODES=[['P0','GND-IDLE'],['P1','FLT-IDLE'],['P2','CLIMB'],['P3','CRUISE'],['P4','CONT'],['P5','MIL'],['P6','MAX']];
+const SW1_BITS=[['HEALTHY','g'],['START','n'],['SENS-INV','w'],['BIT-FAIL','b'],['LIMIT','w'],['FAULT','w'],['LEADER','n'],['ENG-RUN','n']];
+const SW2_BITS=[['CCDL-FULL','n'],['DEG-OK','n'],['VOTE-NOM','n'],['CH-C','n'],['CH-B','n'],['CH-A','n'],['INTERLOCK','n'],['SYNC-LOCK','n']];
+const LADDER=[['3oo3','l3'],['2oo3','l2'],['1·K11','l1'],['SAFE','l0']];
+const ANNUN=[['SENSOR FAULT','sensA','amber'],['ECU ISOLATED','iso','red'],['DEGRADED K07','k07','amber'],
+  ['TIE-BREAK K10','k10','amber'],['CCDL LOSS','ccdl','red'],['OVERSPEED','ovsp','red'],['OBM LOSS','obm','red'],['SYS NORMAL','ok','green']];
+
+function buildStatic(){
+  $('sm').innerHTML=S_STEPS.map(([i,t])=>`<div class="sm-step${i==='6'?' abn':''}" data-s="${i}"><span class="id">S${i}</span>${t}</div>`).join('');
+  $('pmode').innerHTML=P_MODES.map(([p,t],i)=>`<div class="pcell" data-p="${i}"><b>${p}</b>${t}</div>`).join('');
+  $('ecuRow').innerHTML=['A','B','C'].map(k=>`<div class="ecu" id="ecu${k}"><div class="hd">ECU-${k}<span class="role" id="role${k}">STBY</span></div>
+    <div class="r">N2 <b id="ecu${k}N2">0.0</b></div><div class="r">EGT <b id="ecu${k}EGT">15</b></div>
+    <div class="r">CPU <b id="ecu${k}H" style="color:var(--nominal)">OK</b> <span class="badge">SYNTH</span></div></div>`).join('');
+  $('sw1').innerHTML=SW1_BITS.map(([n,t],i)=>`<div class="bitcell ${t==='w'?'warnbit':t==='b'?'badbit':''}" id="sw1_${i}"><span>${n}</span><span class="b">${i}</span></div>`).join('');
+  $('sw2').innerHTML=SW2_BITS.map(([n,t],i)=>`<div class="bitcell" id="sw2_${i}"><span>${n}</span><span class="b">${i}</span></div>`).join('');
+  $('ladder').innerHTML=LADDER.map(([t,c],i)=>`${i?'<span class="arr">→</span>':''}<div class="rung ${c}" data-l="${3-i}">${t}</div>`).join('');
+  $('annun').innerHTML=ANNUN.map(([n,k,c])=>`<div class="led ${c}" id="led_${k}">${n}</div>`).join('');
+  // dials
+  $('dialN1').innerHTML=dialSVG('N1'); $('dialN2').innerHTML=dialSVG('N2');
+  // route lines
+  $('routeSvg').innerHTML=`
+    <line id="rlA" x1="72"  y1="2" x2="215" y2="40" stroke="var(--grid)" stroke-width="2"/>
+    <line id="rlB" x1="215" y1="2" x2="215" y2="40" stroke="var(--grid)" stroke-width="2"/>
+    <line id="rlC" x1="358" y1="2" x2="215" y2="40" stroke="var(--grid)" stroke-width="2"/>
+    <circle cx="215" cy="44" r="4" fill="var(--nominal)"/>
+    <line id="rlD" x1="215" y1="48" x2="215" y2="54" stroke="var(--nominal)" stroke-width="3"/>`;
+}
+function dialSVG(lbl){
+  const R=64,C=2*Math.PI*R,arc=0.72*C;
+  return `<svg width="150" height="132" viewBox="0 0 150 132">
+    <g transform="rotate(129.6 75 70)">
+      <circle cx="75" cy="70" r="${R}" fill="none" stroke="var(--edge)" stroke-width="9" stroke-dasharray="${arc} ${C}" stroke-linecap="round"/>
+      <circle id="${lbl}arc" cx="75" cy="70" r="${R}" fill="none" stroke="var(--nominal)" stroke-width="9" stroke-dasharray="0 ${C}" stroke-linecap="round"/>
+      <line id="${lbl}red" x1="75" y1="6" x2="75" y2="14" stroke="var(--warning)" stroke-width="3" transform="rotate(0 75 70)"/>
+    </g>
+    <text x="75" y="118" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--ink-faint)">% RPM</text>
+  </svg><div class="val" id="${lbl}val">0.0</div><div class="lbl">${lbl}</div>`;
+}
+function setDial(lbl,val,max,redAt){
+  const R=64,C=2*Math.PI*R,arc=0.72*C, frac=Math.max(0,Math.min(1,val/max));
+  const a=$(lbl+'arc'); a.setAttribute('stroke-dasharray',`${frac*arc} ${C}`);
+  a.setAttribute('stroke', val>=redAt?'var(--warning)':val>=redAt*0.9?'var(--caution)':'var(--nominal)');
+  const ang=129.6+(redAt/max)*259.2; $(lbl+'red').setAttribute('transform',`rotate(${ang} 75 70)`);
+  $(lbl+'val').textContent=val.toFixed(1);
+}
+
+function render(){
+  const s=FADECState;
+  // topbar
+  $('chCycle').innerHTML='CYC <b>'+s.cycle+'</b>';
+  const modeName=(BK.START.phase==='HUNG'||BK.START.phase==='HOT')?'START ABORT'
+               :['STANDBY','START','START','START','RUN','SHUTDOWN','RELIGHT'][s.S];
+  $('chMode').innerHTML=`<span class="dot ${s.S===4?'good':s.S===0?'':'warn'}"></span>MODE <b>${modeName}</b>`;
+  $('syncTxt').textContent=s.sync?'LOCKED':'PENDING'; $('syncDot').className='dot '+(s.sync?'good':'warn');
+  $('chSync').className='chip '+(s.sync?'good':'warn');
+  $('voteTxt').textContent=FW.VOTER[s.voter]; $('chVote').className='chip '+(s.voter===0?'good':s.voter>=2?'bad':'warn');
+  $('degTxt').textContent=s.degrade+'oo3'; $('chDeg').className='chip '+(s.degrade===3?'good':s.degrade===1?'bad':'warn');
+  // master lamps
+  const warning=s.overspeed||s.degrade<=1||s.openLoop, caution=!warning&&(s.degrade===2||s.obm.n2Out||s.faults.length>0||s.obm.n2Synth);
+  $('mWarning').className='lamp warning'+(warning?' on':''); $('mCaution').className='lamp caution'+(caution?' on':'');
+  // TLA + start
+  $('tlaVal').textContent=s.tla; $('tlaFill').style.height=s.tla+'%';
+  $('startBtn').textContent=s.engineOn?'ENGINE STOP':'ENGINE START';
+  $('startBtn').className='btn'+(s.engineOn?' stop':'');
+  // state machine
+  document.querySelectorAll('.sm-step').forEach(el=>{const i=+el.dataset.s;
+    el.className='sm-step'+(i===6?' abn':'')+(i<s.S?' done':'')+(i===s.S?' active':'');});
+  $('smTag').textContent='S'+s.S;
+  // thrust
+  document.querySelectorAll('.pcell').forEach(el=>el.className='pcell'+(+el.dataset.p===s.P?' on':''));
+  $('pTag').textContent='P'+s.P;
+  // gauges
+  setDial('N1',s.n1,100,100); setDial('N2',s.n2,120,Driver.OVSP_TRIP);
+  // egt tape
+  const eP=Math.max(0,Math.min(100,(s.egt/1200)*100));
+  $('egtFill').style.height=eP+'%';
+  $('egtFill').style.background=s.egt>=Driver.REDLINE_EGT?'linear-gradient(180deg,var(--warning),#7a1717)':s.egt>=Driver.AMBER_EGT?'linear-gradient(180deg,var(--caution),#7a5510)':'linear-gradient(180deg,var(--nominal),#177a52)';
+  $('egtRed').style.bottom=(Driver.REDLINE_EGT/1200*100)+'%'; $('egtAmb').style.bottom=(Driver.AMBER_EGT/1200*100)+'%';
+  $('egtVal').textContent=Math.round(s.egt); $('egtVal').style.color=s.egt>=Driver.REDLINE_EGT?'var(--warning)':'var(--active)';
+  // wf
+  $('wfAct').style.width=Math.min(100,(s.wf/3000)*100)+'%';
+  $('wfBug').style.left=Math.min(100,(s.wfTarget/3000)*100)+'%';
+  $('wfVal').textContent=Math.round(s.wf);
+  // TMR boxes
+  for(const k of ['A','B','C']){
+    const c=s.ch[k], box=$('ecu'+k);
+    box.className='ecu'+(c.iso?' iso':'')+(c.leader?' leader':'')+((s.obm.n2Synth&&c.leader)?' synth':'');
+    $('role'+k).textContent=c.iso?'ISO':c.leader?'LEADER':'STBY';
+    $('ecu'+k+'N2').textContent=c.iso?'---':c.n2.toFixed(1);
+    $('ecu'+k+'EGT').textContent=c.iso?'---':Math.round(c.egt);
+    $('ecu'+k+'H').textContent=c.iso?'FAIL':'OK'; $('ecu'+k+'H').style.color=c.iso?'var(--warning)':'var(--nominal)';
+  }
+  // ccdl
+  $('ccdlAB').className=s.ccdl.AB?'ok':'down'; $('ccdlAC').className=s.ccdl.AC?'ok':'down'; $('ccdlBC').className=s.ccdl.BC?'ok':'down';
+  // route active line = leader
+  ['A','B','C'].forEach(k=>{const l=$('rl'+k); if(l) l.setAttribute('stroke',s.leader===k&&!s.openLoop?'var(--ref)':'var(--grid)');});
+  $('rlD').setAttribute('stroke',s.openLoop?'var(--caution)':'var(--nominal)');
+  // interlock / yks / openloop
+  $('ilk').className='ilk'+(!s.interlock?' tripped':''); $('ilk').textContent=!s.interlock?'PRIORITY INTERLOCK · TRIPPED':'PRIORITY INTERLOCK · ARMED';
+  $('openloop').className='openloop'+(s.openLoop?' on':'');
+  // fault word decode
+  renderFaultWord(s.lastFW||0);
+  // OBM
+  obmRow('N2',s.n2,s.obm.n2Exp,120,s.obm.n2Synth,s.obm.n2Out);
+  obmRow('EGT',s.egt,s.obm.egtExp,1200,s.obm.egtSynth,s.obm.egtOut);
+  // overspeed
+  $('ospN2').innerHTML=s.n2.toFixed(1)+'<small style="font-size:11px;color:var(--ink-dim)">% N2</small>';
+  $('ospN2').className='osp-num'+(s.overspeed?' trip':'');
+  $('ospState').textContent=s.overspeed?'TRIP · FUEL CUT':'ARMED'; $('ospState').className='osp-state'+(s.overspeed?' trip':'');
+  // ladder
+  document.querySelectorAll('.rung').forEach(el=>{el.className='rung '+LADDER[3-(+el.dataset.l)][1]+(+el.dataset.l===s.degrade?' cur':'');});
+  // status words
+  for(let i=0;i<8;i++){ $('sw1_'+i).classList.toggle('on',!!(s.sw1&(1<<i))); $('sw2_'+i).classList.toggle('on',!!(s.sw2&(1<<i))); }
+  // annunciator
+  const A={sensA:s.obm.n2Synth,iso:(s.ch.B.iso||s.ch.C.iso),k07:s.obm.n2Out,
+    k10:s.degrade===2,ccdl:!(s.ccdl.AB&&s.ccdl.AC&&s.ccdl.BC),ovsp:s.overspeed,obm:s.obm.crashed,ok:(s.degrade===3&&!s.overspeed&&!s.faults.length)};
+  for(const [n,k] of ANNUN) $('led_'+k).classList.toggle('on',!!A[k]);
+}
+function renderFaultWord(fw){
+  const hexEl=$('fwHex'), bitsEl=$('fwBits');
+  if(!fw){ hexEl.innerHTML='<span class="none">0x0000 · CLEAN</span>';
+    bitsEl.innerHTML=''; ['Alan','Kod','Ch','Voter','Comp'].forEach(()=>{});
+    $('dAlan').textContent='—';$('dKod').textContent='—';$('dCh').textContent='—';$('dVoter').textContent='—';$('dComp').textContent='—';
+    // boş bit şeridi
+    bitsEl.innerHTML=bitTemplate(0); return; }
+  hexEl.innerHTML=FW.hex(fw); bitsEl.innerHTML=bitTemplate(fw);
+  const d=FW.decode(fw);
+  $('dAlan').textContent=FW.ALAN[d.alan]; $('dKod').textContent=FW.kodName(d.alan,d.kod).split(' ')[0];
+  $('dCh').textContent=FW.CH[d.ch]; $('dVoter').textContent=FW.VOTER[d.voter]; $('dComp').textContent=d.comp;
+}
+function bitTemplate(fw){
+  // 16 bit gruplu: ALAN(3) KOD(4) CH(2) VOTER(2) COMP(5)
+  const groups=[['fw-alan','ALAN',13,3],['fw-kod','KOD',9,4],['fw-ch','CH',7,2],['fw-voter','VOTER',5,2],['fw-comp','COMP',0,5]];
+  let html='';
+  for(const [cls,name,shift,len] of groups){
+    const val=(fw>>shift)&((1<<len)-1);
+    html+=`<div class="fw-bit ${fw?cls:'off'}" style="flex:${len}">${val.toString(2).padStart(len,'0')}<small>${name}</small></div>`;
+  }
+  return html;
+}
+function obmRow(key,act,exp,max,synth,out){
+  const band=$('obmBand'+key), ae=$('obmAct'+key), ee=$('obmExp'+key), nm=$('obmNum'+key);
+  const p=v=>Math.max(0,Math.min(100,(v/max)*100));
+  const m = key==='N2'?6:60; // margin
+  band.style.left=p(exp-m)+'%'; band.style.width=(p(exp+m)-p(exp-m))+'%';
+  ee.style.left=p(exp)+'%';
+  ae.style.width=p(act)+'%'; ae.className='obm-act'+(synth?' synth':'')+(out?' out':'');
+  nm.innerHTML=`exp <b>${key==='N2'?exp.toFixed(1):Math.round(exp)}</b><br>act <b style="color:${synth?'var(--caution)':out?'var(--warning)':'var(--active)'}">${key==='N2'?act.toFixed(1):Math.round(act)}${synth?' Ⓢ':''}</b>`;
+}
+function renderPFR(rec){
+  const term=$('pfrTerm');
+  const ln=document.createElement('div'); ln.className='ln'+(rec.warn?' warn':'');
+  ln.innerHTML=`<span class="cy">[CYC ${rec.cycle}]</span><span class="hx">${rec.hex}</span><span class="ds">${rec.decoded}</span>`;
+  term.appendChild(ln); term.scrollTop=term.scrollHeight;
+  $('pfrCount').textContent=FADECState.pfr.length+' latched fault';
+}
+
+/* ===================================================================
+   5.5) GERÇEK BACKEND  ✅  (Driver placeholder'ın yerini alır)
+        plant + kontrol yasası(min-max limit) + 2oo3 vote/health + OBM
+        Adım 1–7 konsolide · deterministik · render() DEĞİŞMEZ
+   =================================================================== */
+const BK = (()=>{
+  const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+  const median3=(a,b,c)=>Math.max(Math.min(a,b),Math.min(Math.max(a,b),c));
+  function makeRng(seed){let s=seed>>>0;return()=>{s=(s+0x6D2B79F5)>>>0;let t=Math.imul(s^(s>>>15),1|s);
+    t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}
+
+  // sabitler (TUNABLE)
+  const WF_MAX=2600,N2_MAX=112,N2_IDLE=60,N2_TO=100;
+  const TAU_FMV=0.25,TAU_N2=1.3,TAU_N1=3.5,TAU_EGT_FAST=1.5,TAU_EGT_SLOW=60,EGT_FAST_FRAC=0.85;
+  const EGT_IDLE=400,EGT_TO=850,KLEAD=0.12,EGT_REDLINE=950;
+  const KP=22,KI=9,WF_MIN=120,OVSP_TRIP=115,NOISE=0.18;
+  const WF_IDLE=N2_IDLE/N2_MAX*WF_MAX;   // ≈1393 — rölanti denge yakıtı (start ACCEL hedefi)
+  const CRIT=[{id:'N2',eps:2.5},{id:'EGT',eps:18},{id:'N1',eps:2.5}];
+  const HARD=new Set(['S01','S02','S06']);
+  // kanal kalibrasyon offset'i — küçük SABİT sapma (eps'in çok altında → yanlış-izolasyon yok, ama kanallar tutarlı-farklı okur)
+  const CAL={A:{N2:0.35,EGT:4,N1:0.30}, B:{N2:-0.30,EGT:-3,N1:-0.25}, C:{N2:0.12,EGT:1.5,N1:0.08}};
+  const OBM_N2_BAND=6,OBM_EGT_BAND=60,SWITCH_HOLD=0.3,ORDER=['A','B','C'];
+
+  // ortam θ/δ
+  const env={alt:0,theta:1,delta:1,ait:15};
+  function setEnv(alt){env.alt=alt;env.theta=1-2.2558e-5*alt;env.delta=Math.pow(env.theta,5.2559);
+    env.ait=Math.max(-56.5,15-0.0065*alt);}
+  const Wf_eq=n2=>clamp(env.delta*(n2/N2_MAX*WF_MAX),0,WF_MAX);
+  const n1_ss=n2=>clamp((n2-18)*1.15,0,105);   // N1 = aerodinamik f(N2): idle'da düşük, mekanik bağ YOK
+  const n2_ss=wf=>clamp((wf/env.delta)/WF_MAX*N2_MAX,0,N2_MAX);
+
+  // durum
+  const plant={Wf:0,N2:0,N1:0,egtFast:15,egtSlow:15,EGT:15,N2voted:0,WfCmd_applied:0,starter:0,startMode:false};
+  const ctrl={A:{i:0},B:{i:0},C:{i:0}};
+  const arb={leader:'A',prev:'A',interlock:true,switchT:0,lastSwitch:-999};
+  const fadec={cycle:0,voted:{},health:{A:true,B:true,C:true},degrade:3,leader:'A',
+    overspeed:false,openLoop:false,commonMode:false,N2voted:0,N2_tgt:N2_IDLE,
+    iso:{A:false,B:false,C:false},laneN2:{},laneEGT:{},laneN1:{},raw:{},sensorValid:{},voterP:{},ccdl:{AB:true,AC:true,BC:true},reducedMode:0};
+  const OBM={n2:0,egtFast:15,egtSlow:15,EGT:15,crashed:false,n2Exp:0,egtExp:0,
+    n2Resid:0,egtResid:0,n2Out:false,egtOut:false,n2Synth:false,egtSynth:false};
+  const inj={};
+
+  function stepPlant(WfCmd,dt){
+    plant.Wf+=(WfCmd-plant.Wf)*(dt/TAU_FMV);
+    const n2tgt = plant.starter ? Math.max(n2_ss(plant.Wf), STARTER_N2) : n2_ss(plant.Wf); // starter crank tavanına çevirir
+    plant.N2+=(n2tgt-plant.N2)*(dt/TAU_N2);
+    plant.N1+=(n1_ss(plant.N2)-plant.N1)*(dt/TAU_N1);          // bağımsız LP spool: N2'yi ataletle izler (N1/N2 split)
+    let demand;
+    if(plant.startMode){                                       // START: düşük hava akışı, yakıt-tahrikli EGT (light-off)
+      demand=env.ait+plant.Wf*0.45 + (inj._hot?600:0);         // _hot: zengin karışım → over-temp
+    } else {
+      let egt_ss=EGT_IDLE+(EGT_TO-EGT_IDLE)*(plant.N2-N2_IDLE)/(N2_TO-N2_IDLE)+(env.ait-15);
+      egt_ss=Math.max(15,egt_ss);
+      demand=egt_ss+KLEAD*(plant.Wf-Wf_eq(plant.N2));
+    }
+    plant.egtFast+=(demand-plant.egtFast)*(dt/TAU_EGT_FAST);
+    plant.egtSlow+=(demand-plant.egtSlow)*(dt/TAU_EGT_SLOW);
+    plant.EGT=EGT_FAST_FRAC*plant.egtFast+(1-EGT_FAST_FRAC)*plant.egtSlow;
+  }
+  function controlLaw(N2_tgt,c,dt){
+    const rm=fadec.reducedMode||0;
+    const RM_CEIL=[999,92,85], RM_ACC=[1.5,1.30,1.15];        // indirgenmiş mod: otorite tavanı + yumuşak accel
+    N2_tgt=Math.min(N2_tgt, RM_CEIL[rm]);
+    const n2=plant.N2voted??plant.N2, err=N2_tgt-n2;
+    const wfRaw=Wf_eq(N2_tgt)+KP*err+c.i;          // feedforward (denge yakıtı) + PI trim
+    const accelMax=Wf_eq(n2)*RM_ACC[rm]+200;
+    const n2Lim=WF_MAX*(1-clamp((n2-108)/(N2_MAX-108),0,1));
+    const egtLim=WF_MAX*(1-clamp((plant.EGT-900)/(EGT_REDLINE-900),0,1));
+    const wfHi=Math.max(WF_MIN, Math.min(accelMax,n2Lim,egtLim,WF_MAX)); // koruma WF_MIN altına inmez → flameout yok (Emre #2)
+    const wfLo=Math.min(Math.max(Wf_eq(n2)*0.55,WF_MIN),wfHi); // limit > decel tabanı (koruma kazanır)
+    const wfCmd=clamp(wfRaw,wfLo,wfHi);
+    if(wfCmd===wfRaw) c.i+=KI*err*dt;
+    c.i=clamp(c.i,-WF_MAX,WF_MAX);                  // trim integral (feedforward'la negatif olabilir)
+    return wfCmd;
+  }
+  function voteHealth(rng,dt){
+    fadec.cycle++;
+    const lane={A:{},B:{},C:{}},loss={A:{},B:{},C:{}},iso={A:0,B:0,C:0};
+    for(const p of CRIT){const truth=plant[p.id];
+      for(const ch of ORDER){const reads=[];
+        for(const inst of [1,2]){
+          let v=truth + CAL[ch][p.id] + (rng()-0.5)*p.eps*NOISE;   // kanal offset + bağımsız instance gürültüsü
+          const fdef=inj[`${p.id}:${ch}:${inst}`];let hard=false;
+          if(fdef){const f=fdef.code;hard=HARD.has(f);const dir=fdef.dir??1,mag=fdef.mag??4;
+            if(f==='S06')v=0; else if(f==='S01')v=truth*10+1e4; else if(f==='S02')v=-9999;
+            else if(f==='S03'){if(fdef.stuck==null)fdef.stuck=truth+dir*mag*p.eps;v=fdef.stuck;}
+            else if(f==='S05')v=truth+dir*mag*p.eps+(rng()-0.5)*p.eps;
+            else v=truth+dir*mag*p.eps;}
+          reads.push({v,hard});
+          fadec.sensorValid[`${p.id}:${ch}:${inst}`]=!hard;       // pill geçerliliği (HARD → kırmızı)
+        }
+        fadec.raw[`${p.id}:${ch}`]=[reads[0].v,reads[1].v];        // matris için instance çiftleri
+        const ok=reads.filter(r=>!r.hard);
+        if(ok.length===0){lane[ch][p.id]=null;loss[ch][p.id]=1;}
+        else lane[ch][p.id]=ok.reduce((s,r)=>s+r.v,0)/ok.length;
+      }}
+    for(const p of CRIT){
+      const av=ORDER.filter(ch=>lane[ch][p.id]!=null);
+      let devN=0;
+      if(av.length>=3){const med=median3(lane.A[p.id],lane.B[p.id],lane.C[p.id]);
+        fadec.voted[p.id]=med;
+        for(const ch of av) if(Math.abs(lane[ch][p.id]-med)>p.eps){ iso[ch]=1; devN++; }
+      } else if(av.length===2) fadec.voted[p.id]=(lane[av[0]][p.id]+lane[av[1]][p.id])/2;
+      else if(av.length===1) fadec.voted[p.id]=lane[av[0]][p.id];
+      else fadec.voted[p.id]=fadec.voted[p.id]??plant[p.id];
+      const lostN=3-av.length;                                  // parametre-başına voter durumu
+      fadec.voterP[p.id] = av.length<=1?3 : (lostN>=2||devN>=2)?2 : (devN===1||lostN===1)?1 : 0;
+    }
+    for(const ch of ORDER)
+      fadec.health[ch]=!(inj[`CPU:${ch}`]||iso[ch]||CRIT.some(p=>loss[ch][p.id]));
+    fadec.iso={A:!!iso.A,B:!!iso.B,C:!!iso.C};
+    fadec.laneN2={A:lane.A.N2,B:lane.B.N2,C:lane.C.N2};
+    fadec.laneEGT={A:lane.A.EGT,B:lane.B.EGT,C:lane.C.EGT};
+    fadec.laneN1={A:lane.A.N1,B:lane.B.N1,C:lane.C.N1};
+    fadec.degrade=ORDER.filter(ch=>fadec.health[ch]).length;
+    fadec.N2voted=plant.N2voted=fadec.voted.N2;
+    const rawMaxN2=Math.max(lane.A.N2??0,lane.B.N2??0,lane.C.N2??0);
+    if(rawMaxN2>OVSP_TRIP) fadec.overspeed=true;   // LATCH: bir kez tripleyince reset'e kadar tutar (havacılık)
+  }
+  function stepOBM(Wf,dt){
+    if(OBM.crashed){OBM.n2Out=OBM.egtOut=OBM.n2Synth=OBM.egtSynth=false;return;}
+    OBM.n2+=(n2_ss(Wf)-OBM.n2)*(dt/TAU_N2);
+    let egt_ss=EGT_IDLE+(EGT_TO-EGT_IDLE)*(OBM.n2-N2_IDLE)/(N2_TO-N2_IDLE)+(env.ait-15);
+    const demand=Math.max(15,egt_ss)+KLEAD*(Wf-Wf_eq(OBM.n2));
+    OBM.egtFast+=(demand-OBM.egtFast)*(dt/TAU_EGT_FAST);
+    OBM.egtSlow+=(demand-OBM.egtSlow)*(dt/TAU_EGT_SLOW);
+    OBM.EGT=EGT_FAST_FRAC*OBM.egtFast+(1-EGT_FAST_FRAC)*OBM.egtSlow;
+    OBM.n2Exp=OBM.n2;OBM.egtExp=OBM.EGT;
+    OBM.n2Resid=fadec.voted.N2!=null?Math.abs(fadec.voted.N2-OBM.n2Exp):0;
+    OBM.egtResid=fadec.voted.EGT!=null?Math.abs(fadec.voted.EGT-OBM.egtExp):0;
+    OBM.n2Out=OBM.n2Resid>OBM_N2_BAND;OBM.egtOut=OBM.egtResid>OBM_EGT_BAND;
+  }
+  function analyticDecisions(){
+    fadec.commonMode=(fadec.degrade===3&&OBM.n2Out&&!OBM.crashed);
+    OBM.n2Synth=(fadec.degrade<=1&&!OBM.crashed);
+    if(OBM.n2Synth){fadec.voted.N2=OBM.n2Exp;fadec.N2voted=plant.N2voted=fadec.voted.N2;}
+    OBM.egtSynth=(fadec.degrade<=1&&!OBM.crashed);      // EGT de Wf+N2'den sentezlenir (analitik redundans)
+    if(OBM.egtSynth){fadec.voted.EGT=OBM.egtExp;}
+    fadec.openLoop=(fadec.degrade===0&&OBM.crashed);
+    fadec.reducedMode = (fadec.degrade<=1||OBM.n2Synth) ? 2 : (fadec.degrade===2||fadec.commonMode) ? 1 : 0; // indirgenmiş mod seviyesi
+  }
+  function runAllLanes(dt){
+    const wf={}, cpuOk=ch=>!inj[`CPU:${ch}`];
+    // kontrol SENSÖR sağlığıyla DEĞİL, CPU canlılığıyla kapılı:
+    // sensörleri gitse bile CPU'su çalışan lane, OBM-sentez N2 üzerinden yakıt komutlar (model-tabanlı reversiyoner kontrol)
+    for(const ch of ORDER) wf[ch]=cpuOk(ch)?controlLaw(fadec.N2_tgt,ctrl[ch],dt):null;
+    const Wf_actual=plant.WfCmd_applied;
+    for(const ch of ORDER){if(wf[ch]===null||ch===arb.leader)continue;
+      const err=fadec.N2_tgt-(fadec.voted.N2??0);
+      ctrl[ch].i=clamp(Wf_actual-Wf_eq(fadec.N2_tgt)-KP*err,-WF_MAX,WF_MAX);}
+    return wf;
+  }
+  function arbitrate(wfLane,dt){
+    const cpuOk=ch=>!inj[`CPU:${ch}`];
+    // lider: önce tam-sağlıklı; yoksa CPU'su canlı herhangi bir lane (sentez ile sürer)
+    const want=ORDER.filter(ch=>fadec.health[ch])[0] ?? ORDER.filter(cpuOk)[0] ?? arb.leader;
+    if(!fadec.health[arb.leader])arb.switchT+=dt;else arb.switchT=0;
+    if(arb.leader!==want&&(arb.switchT>=SWITCH_HOLD||!ORDER.includes(arb.leader))){
+      arb.interlock=false;arb.prev=arb.leader;arb.leader=want;arb.switchT=0;arb.lastSwitch=fadec.cycle;
+    } else if(fadec.cycle-arb.lastSwitch>2){arb.interlock=true;}
+    fadec.leader=arb.leader;
+    // lider yoksa (hiç CPU canlı değil): açık-çevrimde programlı rölanti, değilse flameout tabanı
+    return wfLane[arb.leader] ?? (fadec.openLoop ? Wf_eq(fadec.N2_tgt) : WF_MIN);
+  }
+  // ---- FAB (Ana Uçuş Bilgisayarı) — FADEC DIŞI. Sağlık OKUR, hedef N2 ÜRETİR ----
+  const LEGS=[
+    {id:'TAXI',P:0,n2:60,hold:4,alt:0},
+    {id:'TAKEOFF',P:1,n2:100,hold:6,alt:0},
+    {id:'CLIMB',P:3,n2:96,hold:12,alt:8000},
+    {id:'CRUISE',P:4,n2:88,hold:15,alt:11000},
+    {id:'LOITER',P:4,n2:80,hold:20,alt:9000},
+    {id:'DASH',P:1,n2:100,hold:8,alt:11000},   // tam itki — derate burayı kısar
+    {id:'RTB',P:4,n2:88,hold:15,alt:10000},
+    {id:'APPROACH',P:6,n2:70,hold:10,alt:1500},
+    {id:'LANDING',P:0,n2:60,hold:6,alt:0},
+    {id:'SHUTDOWN',P:0,n2:0,end:true,alt:0},
+  ];
+  const RTB_IX=LEGS.findIndex(l=>l.id==='RTB');
+  const fab={engaged:false,leg:0,legT:0,derate:false,rtb:false,emergency:false,log:[]};
+  function fabLog(reason){ fab.log.push({cyc:fadec.cycle,leg:LEGS[fab.leg].id,reason}); if(fab.log.length>80)fab.log.shift(); }
+  function supervise(){                                   // sağlık → kısıt (ACİL>RTB>DERATE>SCRIPT)
+    const out={derateCeiling:null,idleSafe:false};
+    if(fadec.overspeed||fadec.openLoop){
+      if(!fab.emergency){fab.emergency=true;fabLog(LANG==='tr'?'overspeed/open-loop → ACİL idle/safe':'overspeed/open-loop → EMERGENCY idle/safe');}
+      out.idleSafe=true; return out;
+    }
+    if(fab.emergency){fab.emergency=false;fabLog(LANG==='tr'?'acil temizlendi → misyona dön':'emergency cleared → resume mission');}
+    if(fadec.degrade<=1 && !fab.rtb){fab.rtb=true;fabLog(LANG==='tr'?'degrade=1-kanal → RTB latch':'degrade=1-channel → RTB latch');}
+    if(fadec.degrade===2){
+      if(!fab.derate){fab.derate=true;fabLog('degrade=2oo3 → DASH inhibit (derate 88%)');}
+      out.derateCeiling=88;
+    } else if(fab.derate && fadec.degrade===3){fab.derate=false;fabLog(LANG==='tr'?'degrade=3oo3 → derate kalktı':'degrade=3oo3 → derate lifted');}
+    return out;
+  }
+  function stepFAB(dt){
+    if(!fab.engaged) return null;                         // MANUEL → kol kullanıcıda
+    const sup=supervise();                                // sağlık HER ZAMAN script'ten önce
+    if(fab.rtb && fab.leg<RTB_IX){fab.leg=RTB_IX;fab.legT=0;fabLog(LANG==='tr'?'SÜPERVİZÖR: RTB bacağına atlandı':'SUPERVISOR: jumped to RTB leg');}
+    const leg=LEGS[fab.leg];
+    if(!leg.end){ fab.legT+=dt;
+      if(fab.legT>=leg.hold){ fab.leg=Math.min(fab.leg+1,LEGS.length-1); fab.legT=0;
+        fabLog('script: '+leg.id+' → '+LEGS[fab.leg].id); } }
+    setEnv(LEGS[fab.leg].alt);                            // irtifa → θ/δ
+    let N2_tgt=LEGS[fab.leg].n2;
+    if(sup.derateCeiling!=null) N2_tgt=Math.min(N2_tgt,sup.derateCeiling);  // derate AŞAĞI çeker
+    if(sup.idleSafe) N2_tgt=60;                           // acil her şeyi ezer
+    return {leg:LEGS[fab.leg].id,P:LEGS[fab.leg].P,N2_tgt};
+  }
+  function fabEngage(){ fab.engaged=true; fab.leg=0; fab.legT=0; fab.derate=fab.rtb=fab.emergency=false;
+    fab.log.length=0; fabLog(LANG==='tr'?'FAB devrede — misyon başladı (TAXI)':'FAB engaged — mission started (TAXI)'); }
+  function fabDisengage(){ if(fab.engaged){ fab.engaged=false; fabLog(LANG==='tr'?'FAB devre dışı — kontrol pilota':'FAB disengaged — control to pilot'); } }
+
+  // ---- START SEKANSI (gerçek FSM: light-off / starter cutout / hung / hot start) ----
+  const ST_LIGHT=18, ST_CUTOUT=50, ST_IDLE=58, ST_EGT_LIM=720, STARTER_N2=24, ST_WF=620;
+  const START={phase:'OFF',t:0,stallT:0,lastN2:0};
+  function startReset(){ START.phase='OFF';START.t=0;START.stallT=0;START.lastN2=0;plant.starter=0;plant.startMode=false; }
+  function stepStart(dt){
+    const p=plant;
+    switch(START.phase){
+      case 'OFF':       START.phase='CRANK'; START.t=0; p.startMode=true; return {wf:0,done:false};
+      case 'CRANK':     p.starter=1; START.t+=dt;                          // kuru çevirme, yakıt yok
+                        if(p.N2>=ST_LIGHT){START.phase='LIGHTOFF';START.t=0;}
+                        return {wf:0,done:false};
+      case 'LIGHTOFF':  p.starter=1; START.t+=dt;                          // ateşleme + start yakıtı
+                        { const wf = ST_WF;
+                          if(p.EGT>ST_EGT_LIM){START.phase='HOT';return {wf:0,done:false};}  // hot start
+                          if(START.t>0.8) START.phase='ACCEL';
+                          return {wf,done:false}; }
+      case 'ACCEL':     { p.starter = p.N2<ST_CUTOUT?1:0;                  // starter cutout @50%
+                          if(p.EGT>ST_EGT_LIM){START.phase='HOT';return {wf:0,done:false};}
+                          const wf = inj._hung ? ST_WF*0.55 : WF_IDLE;   // _hot artık N2'yi hızlandırmaz (EGT cezası ayrı)
+                          const rate=(p.N2-START.lastN2)/dt; START.lastN2=p.N2;
+                          if(p.N2<ST_IDLE && rate<1.0){ START.stallT+=dt;       // hung: idle altında tırmanamıyor
+                            if(START.stallT>2.0){START.phase='HUNG';return {wf:0,done:false};} } else START.stallT=0;
+                          if(p.N2>=ST_IDLE){START.phase='RUN';p.startMode=false;}
+                          return {wf,done:false}; }
+      case 'RUN':       p.starter=0; return {done:true};                  // start tamam → normal kontrol
+      case 'HUNG': case 'HOT': p.starter=0; return {wf:0,done:false,abort:START.phase};
+    }
+  }
+
+  const rng=makeRng(1337);
+  return {C:{N2_IDLE,N2_MAX,N2_TO,EGT_REDLINE,OVSP_TRIP,Wf_eq,ORDER},
+    plant,fadec,OBM,arb,inj,env,setEnv,fab,LEGS,RTB_IX,stepFAB,fabEngage,fabDisengage,
+    START,stepStart,startReset,
+    stepPlant,controlLaw,voteHealth,stepOBM,analyticDecisions,runAllLanes,arbitrate,rng};
+})();
+
+/* render'ın okuduğu GÖRSEL limit eşikleri — tek kaynak BK (kontrol redline'ı ile hizalı) */
+const Driver={ OVSP_TRIP:BK.C.OVSP_TRIP, REDLINE_EGT:BK.C.EGT_REDLINE, AMBER_EGT:900 };
+
+/* ---- SEAM: backend → FADECState (Egemen lehçesi). render() bunu okur, değişmez. ---- */
+function writeFADECState(){
+  const s=FADECState, f=BK.fadec, p=BK.plant, o=BK.OBM, a=BK.arb, C=BK.C;
+  s.cycle=f.cycle;
+  // S — artık GERÇEK start FSM fazından (eşik-uydurma değil)
+  const SPH={OFF:0,CRANK:1,LIGHTOFF:2,ACCEL:3,RUN:4,HUNG:6,HOT:6}; // GM#2: abort → anormal S6 (.abn), SHUTDOWN değil
+  s.S = s.engineOn ? (SPH[BK.START.phase]??4) : 0;
+  s.startPhase=BK.START.phase; s.starter=!!p.starter; s.reducedMode=f.reducedMode;
+  s.n2=f.voted.N2??0; s.egt=f.voted.EGT??15; s.n1=f.voted.N1??p.N1; s.wf=p.Wf;
+  s.wfTarget=C.Wf_eq(f.N2_tgt);
+  const tla=s.tla;
+  s.P=s.S<4?0:tla<5?0:tla<25?1:tla<60?2:tla<78?3:tla<88?4:tla<98?5:6; // detent hizası: CRZ 75→P3 CRUISE
+  const isoN=C.ORDER.filter(k=>!f.health[k]).length;
+  for(const k of C.ORDER){const c=s.ch[k];
+    c.iso=!f.health[k]; c.leader=(k===a.leader); c.healthy=f.health[k];
+    c.n2=(f.laneN2[k]!=null)?f.laneN2[k]:s.n2;
+    c.egt=(f.laneEGT[k]!=null)?f.laneEGT[k]:s.egt;}
+  s.leader=a.leader;
+  const devIso=C.ORDER.filter(k=>f.iso[k]).length;          // ε-sapmayla izole edilen kanal sayısı
+  s.voter = Math.max(f.voterP.N2||0, f.voterP.EGT||0, f.voterP.N1||0); // genel rozet = en kötü parametre voter'ı (matrisle tutarlı)
+  s.degrade=f.degrade;
+  s.obm.n2Exp=o.n2Exp; s.obm.egtExp=o.egtExp; s.obm.n2Synth=o.n2Synth; s.obm.egtSynth=o.egtSynth;
+  s.obm.crashed=o.crashed; s.obm.n2Out=o.n2Out; s.obm.egtOut=o.egtOut;
+  s.ccdl=f.ccdl; s.interlock=a.interlock; s.openLoop=f.openLoop; s.overspeed=f.overspeed;
+  s.sync=s.cycle>3 && s.degrade>=2 && f.ccdl.AB && f.ccdl.AC && f.ccdl.BC; // #2: CCDL kaybı sync'i düşürür
+  // status words — EGEMEN bit düzeniyle (render bu konumları okur)
+  let sw1=0;
+  if(s.S===4)sw1|=1<<7; if(a.leader!=='—')sw1|=1<<6; if(s.pfr.length||isoN)sw1|=1<<5;
+  if(s.egt>Driver.AMBER_EGT)sw1|=1<<4; if(isoN>=2)sw1|=1<<3; if(o.n2Synth)sw1|=1<<2;
+  if(s.S>=1&&s.S<=3)sw1|=1<<1; if(isoN===0&&!f.overspeed)sw1|=1<<0; s.sw1=sw1;
+  let sw2=0;
+  if(s.sync)sw2|=1<<7; if(a.interlock)sw2|=1<<6;
+  if(f.health.A)sw2|=1<<5; if(f.health.B)sw2|=1<<4; if(f.health.C)sw2|=1<<3;
+  if(s.voter===0)sw2|=1<<2; if(f.degrade>=2)sw2|=1<<1;
+  if(f.ccdl.AB&&f.ccdl.AC&&f.ccdl.BC)sw2|=1<<0; s.sw2=sw2;
+}
+
+/* ---- SEAM: gerçek bir tick. Ana döngü (setInterval) bunu çağırır. ---- */
+function realStep(dt){
+  const f=BK.fadec;
+  if(!FADECState.engineOn){
+    BK.fab.engaged=false; BK.startReset();               // motor kapalı → FAB + start sıfırla
+    f.N2_tgt=0; BK.plant.WfCmd_applied=0; BK.stepPlant(0,dt);
+  } else {
+    const st=BK.stepStart(dt);                           // START FSM (CRANK→LIGHTOFF→ACCEL→RUN)
+    if(!st.done){
+      f.N2_tgt=0;
+      BK.plant.WfCmd_applied=st.wf; BK.stepPlant(st.wf,dt); // start çizelgesi — kontrol yasası DEVRE DIŞI
+    } else {
+      const autoCmd=BK.stepFAB(dt);                       // RUN → normal: AUTO/MANUEL
+      if(autoCmd){ f.N2_tgt=autoCmd.N2_tgt;
+        FADECState.tla=Math.max(0,Math.min(100,Math.round((autoCmd.N2_tgt-BK.C.N2_IDLE)/0.40)));
+      } else f.N2_tgt=BK.C.N2_IDLE+FADECState.tla*0.40;
+      const wfLane=BK.runAllLanes(dt);
+      let WfCmd=BK.arbitrate(wfLane,dt);
+      if(f.overspeed) WfCmd=Math.min(WfCmd,120);          // bağımsız overspeed yakıt kesme
+      BK.plant.WfCmd_applied=WfCmd; BK.stepPlant(WfCmd,dt);
+      if(BK.inj._ovsp) BK.plant.N2=Math.max(BK.plant.N2,118); // fiziksel aşırı dönüş
+    }
+  }
+  BK.voteHealth(BK.rng,dt);
+  BK.stepOBM(BK.plant.Wf,dt);
+  BK.analyticDecisions();
+  writeFADECState();
+  telemetryToPFR();
+  renderFAB();
+  renderRedundancy();
+}
+
+/* ===================================================================
+   6) WIRING + MAIN LOOP
+   =================================================================== */
+/* ---- oylama matrisi + sensör panosu (A: offset görünür, B: matris, C: pill'ler) ---- */
+const VM_ROWS=[['N2','%'],['EGT','°C'],['N1','%']];
+const sensRefs={}, sensHdr={};
+function initSensorPanel(){
+  let sg='';
+  for(const ch of ['A','B','C']){const cls=ch.toLowerCase();
+    sg+=`<div class="senscol"><div class="sh ${cls} ok" id="sh_${ch}" data-ietm="chanhealth">ECU-${ch} <span class="st">HEALTHY</span></div><div class="pills">`;
+    for(const p of ['N2','EGT','N1']) for(const inst of [1,2])
+      sg+=`<div class="pill" id="pl_${p}_${ch}_${inst}" data-ietm="senspill"><span class="led"></span>${p}·${inst}</div>`;
+    sg+='</div></div>';
+  }
+  $('sensorPanel').innerHTML=sg;
+  for(const ch of ['A','B','C']){ sensHdr[ch]=$('sh_'+ch);
+    for(const p of ['N2','EGT','N1']) for(const inst of [1,2]) sensRefs[`${p}_${ch}_${inst}`]=$(`pl_${p}_${ch}_${inst}`); }
+}
+function renderRedundancy(){
+  const f=BK.fadec, s=FADECState;
+  const VN=['NORMAL','SPLIT','DUAL-LOSS','ISOLATED'], VC=['nom','split','iso','iso'];
+  let h='<tr><th class="par">PARAM</th><th class="a">ECU-A</th><th class="b">ECU-B</th><th class="c">ECU-C</th><th>OYLANAN</th><th>VOTER</th></tr>';
+  for(const [p,unit] of VM_ROWS){
+    const lo = p==='N2'?f.laneN2 : p==='EGT'?f.laneEGT : f.laneN1;
+    const vp = f.voterP[p]||0;                              // parametre-başına voter (CD#4)
+    h+=`<tr><td class="par">${p}<small>${unit}</small></td>`;
+    for(const ch of ['A','B','C']){
+      const v=lo?lo[ch]:null, pr=f.raw[`${p}:${ch}`];
+      const txt=(v==null||isNaN(v))?'—':v.toFixed(2);
+      const prTxt=pr?`<div class="pair">${pr[0].toFixed(2)} · ${pr[1].toFixed(2)}</div>`:'';
+      h+=`<td class="lane${f.health[ch]?'':' iso'}">${txt}${prTxt}</td>`;
+    }
+    const vd=f.voted[p];
+    h+=`<td class="voted">${(vd!=null&&!isNaN(vd))?vd.toFixed(2):'—'}</td><td><span class="vchip ${VC[vp]}">${VN[vp]}</span></td></tr>`;
+  }
+  $('voteMatrix').innerHTML=h;
+  for(const ch of ['A','B','C']){
+    const hd=sensHdr[ch]; if(hd){ hd.className='sh '+ch.toLowerCase()+(f.health[ch]?' ok':' bad');
+      hd.querySelector('.st').textContent=f.health[ch]?'HEALTHY':(f.iso[ch]?'ISOLATED':'LOST'); }
+    for(const p of ['N2','EGT','N1']) for(const inst of [1,2]){
+      const el=sensRefs[`${p}_${ch}_${inst}`]; if(el) el.className='pill'+(f.sensorValid[`${p}:${ch}:${inst}`]===false?' bad':''); }
+  }
+}
+buildStatic();
+initSensorPanel();
+$('tla').addEventListener('input',e=>{ FADECState.tla=+e.target.value; BK.fabDisengage(); }); // slider'a dokun → FAB disengage (autothrottle)
+$('startBtn').addEventListener('click',()=>{ FADECState.engineOn=!FADECState.engineOn; if(FADECState.engineOn&&FADECState.S===0)FADECState.S=1; });
+
+/* ---- pre-flight briefing ---- */
+function closeBrief(){ $('briefing').classList.add('hidden'); }
+$('brfStart').addEventListener('click',()=>{ closeBrief(); if(!FADECState.engineOn){FADECState.engineOn=true; FADECState.S=1;} });
+$('brfSkip').addEventListener('click',closeBrief);
+$('brfOpen').addEventListener('click',()=>$('briefing').classList.remove('hidden'));
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeBrief(); });
+$('modeManual').addEventListener('click',()=>BK.fabDisengage());
+$('modeAuto').addEventListener('click',()=>{ if(!FADECState.engineOn){FADECState.engineOn=true;} BK.fabEngage(); });
+
+/* ---- FAB misyon + karar logu render ---- */
+function renderFAB(){
+  const fab=BK.fab, LEGS=BK.LEGS, leg=LEGS[fab.leg];
+  $('fabTag').textContent=fab.engaged?(LANG==='tr'?'OTO · FAB':'AUTO · FAB'):(LANG==='tr'?'MANUEL':'MANUAL');
+  $('modeAuto').classList.toggle('on',fab.engaged);
+  $('modeManual').classList.toggle('on',!fab.engaged);
+  if(fab.engaged) $('tla').value=FADECState.tla;
+  $('fabLeg').innerHTML=`<b>${leg.id}</b><small>P${leg.P} · ${leg.alt} m · ${LANG==='tr'?'hedef':'target'} N2 ${leg.n2}%</small>`;
+  $('fabTimeline').innerHTML=LEGS.map((l,i)=>`<span class="fl ${i<fab.leg?'done':i===fab.leg&&fab.engaged?'cur':''}">${l.id.slice(0,4)}</span>`).join('');
+  const sup=[];
+  if(fab.emergency)sup.push(LANG==='tr'?'<b style="color:var(--warning)">⚠ ACİL · IDLE/SAFE</b>':'<b style="color:var(--warning)">⚠ EMERGENCY · IDLE/SAFE</b>');
+  if(fab.rtb)sup.push('<b style="color:var(--caution)">RTB</b>');
+  if(fab.derate)sup.push('<b style="color:var(--caution)">DERATE 88</b>');
+  $('fabSup').innerHTML=sup.length?sup.join(' · '):(fab.engaged?'<span style="color:var(--nominal)">NOMINAL</span>':(LANG==='tr'?'<span style="color:var(--ink-faint)">manuel kontrol</span>':'<span style="color:var(--ink-faint)">manual control</span>'));
+  $('fabLog').innerHTML=fab.log.slice(-14).reverse().map(e=>`<div class="fll"><span class="cy">[${e.cyc}]</span> ${e.reason}</div>`).join('');
+  // indirgenmiş mod chip
+  const rm=FADECState.reducedMode||0, chRM=$('chRM');
+  if(rm>0){ chRM.style.display=''; chRM.querySelector('b').textContent=(LANG==='tr'?'SEVİYE ':'LEVEL ')+rm+(rm===2?' · REVERSION':' · DERATE'); }
+  else chRM.style.display='none';
+  // start abort (hung/hot) — FAB tag'ında göster
+  const ph=BK.START.phase;
+  if(ph==='HUNG'||ph==='HOT'){ $('fabTag').textContent='START ABORT'; $('fabLeg').innerHTML=`<b style="color:var(--warning)">${ph} START</b><small>${LANG==='tr'?'başlatma başarısız — RESET gerekli':'start failed — RESET required'}</small>`; }
+}
+/* ---- ARIZA PANELİ → backend inj{} (gerçek FDIA'yı sürer) ---- */
+function injSet(key,code,dir,mag){ BK.inj[key]={code,dir:dir??1,mag:mag??4}; }
+function resetInj(){
+  for(const k in BK.inj) delete BK.inj[k];
+  BK.OBM.crashed=false; BK.fadec.overspeed=false; BK.fadec.ccdl={AB:true,AC:true,BC:true}; // overspeed latch'i temizle
+  BK.OBM.n2=BK.fadec.voted.N2??0; BK.OBM.egtFast=BK.OBM.egtSlow=BK.fadec.voted.EGT??15; // GM#4: OBM'i plant'e snap'le (toparlanma spike'ı yok)
+  BK.arb.leader='A'; BK.arb.prev='A'; BK.arb.interlock=true; BK.arb.switchT=0; BK.arb.lastSwitch=-999; // lider sıfırla
+  if(BK.START.phase==='HUNG'||BK.START.phase==='HOT'){ BK.startReset(); FADECState.engineOn=false; } // GM#1: abort'tan sonra motoru kapat (hayalet yeniden başlatma yok)
+  const s=FADECState; s.faults=[]; s.pfr=[]; s.lastFW=0;
+  $('pfrTerm').innerHTML='<div class="ln"><span class="cy">[CYC '+s.cycle+']</span><span class="ds">'+(LANG==='tr'?'--- RESET · TÜM ENJEKTE + LATCH TEMİZLENDİ ---':'--- RESET · ALL INJECTED + LATCH CLEARED ---')+'</span></div>';
+  $('pfrCount').textContent='0 latched fault';
+}
+const SCEN={
+  nominal(){resetInj();},
+  halfblind(){resetInj(); injSet('EGT:C:1','S07',1,5); injSet('EGT:C:2','S07',1,5);},      // C izole → degrade 2
+  twoIso(){resetInj(); injSet('N2:A:1','S04',1,7);injSet('N2:A:2','S04',1,7);
+    injSet('N2:B:1','S04',-1,7);injSet('N2:B:2','S04',-1,7);},                              // median C tutar, A&B izole → 1, RTB
+  leader(){resetInj(); injSet('N1:A:1','S07',1,6);injSet('N1:A:2','S07',1,6);
+    injSet('EGT:A:1','S07',1,6);injSet('EGT:A:2','S07',1,6);},                              // A kritikte izole → A→B devretme
+  totalLoss(){resetInj(); for(const ch of BK.C.ORDER){injSet('N2:'+ch+':1','S06');injSet('N2:'+ch+':2','S06');}}, // degrade 0 → OBM sentez (SAFE)
+  openLoop(){resetInj(); BK.OBM.crashed=true; for(const ch of BK.C.ORDER){injSet('N2:'+ch+':1','S06');injSet('N2:'+ch+':2','S06');}}, // N2 kayıp + OBM çökük → GERÇEK açık-çevrim
+  single(){resetInj(); BK.inj['CPU:A']={code:'K09'}; BK.inj['CPU:B']={code:'K09'};},        // sadece C → K11
+  commonMode(){resetInj(); for(const ch of BK.C.ORDER){injSet('N2:'+ch+':1','S07',1,6);injSet('N2:'+ch+':2','S07',1,6);}}, // izolasyon YOK, OBM yakalar
+  obmCrash(){resetInj(); BK.OBM.crashed=true;},
+  ccdl(){resetInj(); BK.fadec.ccdl={AB:false,AC:true,BC:true};},
+};
+const scenList=[
+  ['nominal',{tr:'Nominal',en:'Nominal'},{tr:'3oo3 tam',en:'3oo3 full'},'#34e29b'],
+  ['halfblind',{tr:'Yarı-kör',en:'Half-blind'},{tr:'EGT-C izole → 2',en:'EGT-C isolated → 2'},'#f0a830'],
+  ['twoIso',{tr:'Çift izolasyon',en:'Dual isolation'},{tr:'N2 A&B zıt → 1 · RTB',en:'N2 A&B opposite → 1 · RTB'},'#cf3535'],
+  ['leader',{tr:'Lider devretme',en:'Leader handover'},{tr:'A→B · K03',en:'A→B · K03'},'#45d6ff'],
+  ['totalLoss',{tr:'Tam kayıp',en:'Total loss'},{tr:'N2 üç kanal → OBM sentez · SAFE',en:'N2 three channels → OBM synth · SAFE'},'#f0a830'],
+  ['openLoop',{tr:'Açık-çevrim',en:'Open-loop'},{tr:'N2 kayıp + OBM çöküşü',en:'N2 loss + OBM crash'},'#cf3535'],
+  ['single',{tr:'Tek-kanal',en:'Single-channel'},{tr:'A&B CPU → C · K11',en:'A&B CPU → C · K11'},'#f0a830'],
+  ['commonMode',{tr:'Common-mode',en:'Common-mode'},{tr:'3 kanal → OBM yakalar',en:'3 channels → OBM catches'},'#b57bff'],
+  ['obmCrash',{tr:'OBM çöküşü',en:'OBM crash'},{tr:'analitik redundans kaybı',en:'analytical redundancy loss'},'#cf3535'],
+  ['ccdl',{tr:'CCDL kes',en:'CCDL cut'},{tr:'A↔B hattı · K05',en:'A↔B link · K05'},'#b57bff'],
+];
+const scenGrid=$('scenGrid');
+function buildScenGrid(){ scenGrid.innerHTML=''; scenList.forEach(([id,lbl,desc,col])=>{const b=document.createElement('button');b.className='sim';
+  b.innerHTML=`<span class="dot" style="background:${col};box-shadow:0 0 6px ${col}"></span><span><b style="font-size:10px">${L(lbl)}</b><small style="display:block;color:var(--ink-faint);font-size:8px">${L(desc)}</small></span>`;
+  b.onclick=()=>SCEN[id](); scenGrid.appendChild(b);}); }
+$('fiGo').onclick=()=>{
+  const p=$('fiParam').value, ch=$('fiCh').value, inst=$('fiInst').value, code=$('fiCode').value;
+  const dir=+$('fiDir').value, mag=+$('fiMag').value;
+  if(code==='CPU') BK.inj['CPU:'+ch]={code:'K09'};
+  else BK.inj[`${p}:${ch}:${inst}`]={code,dir,mag};
+};
+$('fiObm').onclick=()=>{ BK.OBM.crashed=true; };
+$('fiOvsp').onclick=()=>{ BK.inj._ovsp=true; };
+$('fiHung').onclick=()=>{ BK.inj._hung=true; armStartFault($('fiHung'),'Start: Hung'); };
+$('fiHot').onclick=()=>{ BK.inj._hot=true; armStartFault($('fiHot'),'Start: Hot'); };
+function armStartFault(btn,label){
+  const run=BK.START.phase==='RUN';                       // RUN'da start fazı bitti → sonraki başlatmada geçerli
+  btn.textContent = run ? (LANG==='tr'?'↻ SONRAKİ START\'TA':'↻ AT NEXT START') : '✓ ARMED';
+  setTimeout(()=>{ btn.textContent=label; }, 1300);
+}
+$('fiReset').onclick=resetInj;
+
+/* ---- pushFault: PFR'a latch + dedup + decoder besle (entegrasyon temizliğinde yanlışlıkla silinmişti) ---- */
+function pushFault(fw, warn){
+  const s=FADECState;
+  s.lastFW=fw;                                          // decoder en son word'ü gösterir
+  if(s.pfr.some(r=>r.fw===fw)) return;                  // dedup: aynı word zaten latch'li
+  const d=FW.decode(fw);
+  const decoded=`${FW.ALAN[d.alan]} · ${FW.kodName(d.alan,d.kod)} · CH=${FW.CH[d.ch]} · ${FW.VOTER[d.voter]} · COMP=${d.comp}`;
+  const rec={cycle:s.cycle,fw,hex:FW.hex(fw),decoded,warn:!!warn};
+  s.pfr.push(rec); if(!s.faults.includes(fw)) s.faults.push(fw); renderPFR(rec);
+}
+
+/* ---- backend state → GERÇEK fault word (Egemen codec) → PFR. pushFault dedup'lar. ---- */
+const chIdx={A:0,B:1,C:2}, compOf={N2:2,EGT:4,N1:6};
+function telemetryToPFR(){
+  const f=BK.fadec, o=BK.OBM;
+  for(const key in BK.inj){
+    if(key[0]==='C'||key[0]==='_') continue;                 // CPU: / _ovsp atla
+    const c=BK.inj[key].code, parts=key.split(':'), p=parts[0], ch=parts[1];
+    if(c==='S06') pushFault(FW.encode(0,1,chIdx[ch],0,compOf[p]||0),false);      // SENSOR · S-SINYAL
+    else if(c==='S01'||c==='S02') pushFault(FW.encode(0,2,chIdx[ch],0,compOf[p]||0),false); // SENSOR · S-ARALIK
+  }
+  for(const ch of BK.C.ORDER) if(!f.health[ch]){
+    if(BK.inj[`CPU:${ch}`]) pushFault(FW.encode(3,9,chIdx[ch],3,0),true);   // KANAL · K09 CPU (kök-neden ayrı)
+    else pushFault(FW.encode(3,2,chIdx[ch],3,2),true);                      // KANAL · K02 IZOLE
+  }
+  if(f.degrade<=1)            pushFault(FW.encode(3,11,3,2,0),true);             // KANAL · K11 TEK-KANAL
+  if(f.commonMode)            pushFault(FW.encode(3,7,3,0,2),true);              // KANAL · K07 (golden sapma)
+  if(o.crashed)               pushFault(FW.encode(4,8,3,2,0),true);             // KONTROL · K08
+  if(f.overspeed)             pushFault(FW.encode(2,1,3,0,2),true);             // LIMIT · L-OVERSPEED
+  if(f.voted.EGT>Driver.REDLINE_EGT) pushFault(FW.encode(2,2,3,0,4),true);      // LIMIT · L-EGT
+  if(!f.ccdl.AB)              pushFault(FW.encode(3,5,3,1,0),false);            // KANAL · K05 CCDL
+}
+
+// 50ms UI tick — GERÇEK backend 1 cycle ilerletir → render (render değişmedi)
+/* ===================================================================
+   IETM — Interactive Electronic Technical Manual (Learning katmanı)
+   tier-1: tıkla → tanım · tier-2 (DAHA FAZLA): canlı nedensel — FADECState okur
+   Salt-toplama (additive): backend ve render() değişmez. Tek gerçek kaynak FADECState.
+   Sabitler koddan doğrulandı; güvenlik-kritik eşikler Driver/BK.C'den canlı okunur.
+   =================================================================== */
+const IETM = (()=>{
+  const R_EGT=()=>Driver.REDLINE_EGT, A_EGT=()=>Driver.AMBER_EGT;   // 950 / 900
+  const OVSP=()=>BK.C.OVSP_TRIP, N2I=()=>BK.C.N2_IDLE, N2M=()=>BK.C.N2_MAX, N2T=()=>BK.C.N2_TO; // 115/60/112/100
+  const VN=['NORMAL','SPLIT','DUAL-LOSS','ISOLATED'];
+  const isoList=s=>['A','B','C'].filter(k=>s.ch[k].iso);
+  return {
+
+  /* ---------- D · BİRİNCİL GÖSTERGELER ---------- */
+  egt:{ domain:{tr:'Birincil Göstergeler · Termal',en:'Primary Indications · Thermal'}, term:{tr:'EGT — Egzoz Gazı Sıcaklığı',en:'EGT — Exhaust Gas Temperature'},
+    define:{tr:'Türbin çıkışı gaz sıcaklığı; motorun termal sağlığının birincil göstergesi. Aşırı sıcaklık türbin kanatçıklarını kalıcı bozar. Burada iki zaman sabitiyle modellenir: hızlı yanma (~1.5 sn) + yavaş metal ısınması (~60 sn), %85 hızlı / %15 yavaş harman — bu yüzden sabit gazda bile hafif sürüklenir.',
+            en:'Turbine-exit gas temperature; the primary indicator of the engine\'s thermal health. Overtemperature permanently damages turbine blades. Modeled here with two time constants: fast combustion (~1.5 s) + slow metal heat-soak (~60 s), an 85% fast / 15% slow blend — which is why it drifts slightly even at steady throttle.'},
+    bands:{tr:'Yeşil &lt; 900 · Amber 900–950 (caution) · Kırmızı ≥ 950 (redline). Skala 0–1200 °C.',
+           en:'Green &lt; 900 · Amber 900–950 (caution) · Red ≥ 950 (redline). Scale 0–1200 °C.'},
+    why(s){ const e=Math.round(s.egt),R=R_EGT(),A=A_EGT();
+      if(e>=R) return {key:'egt.redline',vars:{e,R,A,hex:FW.hex(FW.encode(2,2,3,0,4))}};
+      if(e>=A) return {key:'egt.amber',vars:{e,R,A,margin:R-e}};
+      return {key:'egt.nominal',vars:{e,R,A,margin:R-e,eq:EGT_TXT()}}; },
+    related:{ n2:{tr:'N2 spool',en:'N2 spool'}, wf:{tr:'Wf yakıt akışı',en:'Wf fuel flow'}, obm:{tr:'OBM beklenen EGT',en:'OBM expected EGT'}, sw1:{tr:'SW1 · LIMIT biti',en:'SW1 · LIMIT bit'} } },
+
+  n2:{ domain:{tr:'Birincil Göstergeler · Spool',en:'Primary Indications · Spool'}, term:{tr:'N2 — Yüksek Basınç Spool Devri (%)',en:'N2 — High-Pressure Spool Speed (%)'},
+    define:{tr:'Yüksek basınç kompresör+türbin milinin devri (% nominal). FADEC kontrol yasasının birincil kontrol değişkenidir: hedef N2 yakıt akışıyla (Wf) tutturulur. Idle ≈ %60, kalkış ≈ %100, mekanik tavan %112.',
+            en:'Speed of the high-pressure compressor+turbine shaft (% nominal). It is the primary controlled variable of the FADEC control law: target N2 is held via fuel flow (Wf). Idle ≈ 60%, takeoff ≈ 100%, mechanical ceiling 112%.'},
+    bands:{tr:`Idle 60 · TO 100 · MAX 112 · Overspeed TRIP ${'>'}115. Limit koruması %108'de devreye girer.`,
+           en:`Idle 60 · TO 100 · MAX 112 · Overspeed TRIP ${'>'}115. Limit protection engages at 108%.`},
+    why(s){ const n=s.n2.toFixed(1),O=OVSP();
+      if(s.overspeed) return LANG==='tr' ? `Şu an <b>${n}%</b> ve overspeed LATCH aktif — bağımsız koruma ${O}%'i geçince yakıtı kesti (≤120 kg/h). Reset'e kadar kalır.` : `Now <b>${n}%</b> and the overspeed LATCH is active — independent protection cut fuel once it passed ${O}% (≤120 kg/h). It stays until reset.`;
+      if(s.n2>=108) return LANG==='tr' ? `Şu an <b>${n}%</b> → N2 limit bölgesi. Wf, 108→${N2M()}% arasında lineer kısılıyor (kontrol yasasındaki n2Lim terimi); spool mekanik tavanı (${N2M()}%) korunuyor. ${O}%'te bağımsız overspeed devreye girer.` : `Now <b>${n}%</b> → N2 limit region. Wf is throttled linearly between 108→${N2M()}% (the n2Lim term in the control law); the spool's mechanical ceiling (${N2M()}%) is protected. Independent overspeed engages at ${O}%.`;
+      return LANG==='tr' ? `Şu an <b>${n}%</b> → nominal. Hedef N2 ${s.P>=0?'P'+s.P+' modundan':'misyondan'} geliyor; kontrol yasası Wf = denge-yakıtı(feedforward) + PI-trim ile bunu tutuyor. Spool zaman sabiti ~1.3 sn.` : `Now <b>${n}%</b> → nominal. Target N2 comes ${s.P>=0?'from P'+s.P+' mode':'from the mission'}; the control law holds it with Wf = equilibrium-fuel(feedforward) + PI-trim. Spool time constant ~1.3 s.`; },
+    related:{ wf:{tr:'Wf (yakıtla sürülür)',en:'Wf (driven by fuel)'}, n1:{tr:'N1 (N2 izler)',en:'N1 (follows N2)'}, overspeed:{tr:'Overspeed koruması',en:'Overspeed protection'}, degrade:{tr:'Voted N2 kaynağı',en:'Voted N2 source'} } },
+
+  n1:{ domain:{tr:'Birincil Göstergeler · Spool',en:'Primary Indications · Spool'}, term:{tr:'N1 — Düşük Basınç Spool / Fan Devri (%)',en:'N1 — Low-Pressure Spool / Fan Speed (%)'},
+    define:{tr:'Düşük basınç spool (fan) devri. N2 ile MEKANİK bağı yoktur — aerodinamik olarak N2\'yi izler (N1 ≈ (N2−18)×1.15). En ağır spool olduğu için en yavaş tepki verir (zaman sabiti ~3.5 sn). İtkinin büyük kısmını fan üretir.',
+            en:'Low-pressure spool (fan) speed. It has NO mechanical link to N2 — it follows N2 aerodynamically (N1 ≈ (N2−18)×1.15). Being the heaviest spool, it responds slowest (time constant ~3.5 s). The fan produces most of the thrust.'},
+    why(s){ return {key:'n1.main',vars:{n1:s.n1.toFixed(1),n2:s.n2.toFixed(1)}}; },
+    related:{ n2:{tr:'N2 (sürücü spool)',en:'N2 (driving spool)'}, wf:{tr:'Wf',en:'Wf'}, statemachine:{tr:'Spool-up sekansı',en:'Spool-up sequence'} } },
+
+  wf:{ domain:{tr:'Birincil Göstergeler · Yakıt',en:'Primary Indications · Fuel'}, term:{tr:'Wf — Yakıt Akışı (kg/h)',en:'Wf — Fuel Flow (kg/h)'},
+    define:{tr:'Yakıt ölçüm valfine (FMV) komut edilen yakıt debisi — kontrol yasasının tek çıkışı. Hedef (▏) ile gerçek (▎) ayrı gösterilir. Taban %55 decel ile WF_MIN=120 kg/h arasında; koruma asla WF_MIN altına inmez (flameout-emniyeti).',
+            en:'Fuel mass flow commanded to the fuel metering valve (FMV) — the sole output of the control law. Target (▏) and actual (▎) are shown separately. The floor sits between 55% decel and WF_MIN=120 kg/h; protection never drops below WF_MIN (flameout safety).'},
+    bands:{tr:'WF_MIN 120 (flameout tabanı) · WF_MAX 2600 (üst sınır). Rölanti denge ≈ 1393 kg/h.',
+           en:'WF_MIN 120 (flameout floor) · WF_MAX 2600 (upper limit). Idle equilibrium ≈ 1393 kg/h.'},
+    why(s){ const w=Math.round(s.wf),t=Math.round(s.wfTarget),d=w-t;
+      return LANG==='tr' ? `Şu an Wf <b>${w} kg/h</b>, hedef ${t} kg/h (Δ ${d>=0?'+':''}${d}). Komut = feedforward(denge yakıtı, Wf_eq) + KP·hata + KI·∫hata. Üstte accel/N2/EGT limitleri, altta decel tabanı var — min-max limit seçici hangisi bağlıyorsa o kazanır. Taban WF_MIN=120 → motor sönmez.` : `Now Wf <b>${w} kg/h</b>, target ${t} kg/h (Δ ${d>=0?'+':''}${d}). Command = feedforward(equilibrium fuel, Wf_eq) + KP·error + KI·∫error. Accel/N2/EGT limits sit above, the decel floor below — the min-max limit selector lets whichever binds win. Floor WF_MIN=120 → the engine won't flame out.`; },
+    related:{ n2:{tr:'N2 (Wf ile sürülür)',en:'N2 (driven by Wf)'}, egt:{tr:'EGT limiti',en:'EGT limit'}, obm:{tr:'OBM girişi',en:'OBM input'}, yks:{tr:'FMV / yakıt valfi',en:'FMV / fuel valve'} } },
+
+  /* ---------- A · PİLOT GİRDİSİ & MOD ---------- */
+  tla:{ domain:{tr:'Pilot Konsolu · Girdi',en:'Pilot Console · Input'}, term:{tr:'TLA — Gaz Kolu Açısı (Thrust Lever Angle, %)',en:'TLA — Thrust Lever Angle (%)'},
+    define:{tr:'Pilotun itki talebi. Detentler: CUT 0 · IDLE 20 · CRZ 75 · MAX 100. FADEC ham kolu doğrudan yakıta çevirmez — önce hedef N2\'ye, sonra korumalı yakıt komutuna dönüştürür. OTO·FAB modunda kolu otonom misyon sürer.',
+            en:'The pilot\'s thrust demand. Detents: CUT 0 · IDLE 20 · CRZ 75 · MAX 100. FADEC does not turn the raw lever directly into fuel — it converts it first to a target N2, then to a protected fuel command. In AUTO·FAB mode the autonomous mission drives the lever.'},
+    why(s){ const p=s.P;
+      if(s.S<4) return LANG==='tr' ? `Şu an TLA <b>${s.tla}%</b> ama motor henüz RUN değil (S${s.S}) — start tamamlanana kadar kontrol yasası devre dışı, kol etkisiz.` : `Now TLA <b>${s.tla}%</b> but the engine isn't RUN yet (S${s.S}) — until start completes the control law is inactive and the lever has no effect.`;
+      return LANG==='tr' ? `Şu an TLA <b>${s.tla}%</b> → itki modu <b>P${p}</b> (${PMODE_TXT(p)}). Hedef N2 ≈ ${(N2I()+s.tla*0.40).toFixed(0)}%. OTO·FAB devredeyse bu değeri misyon yazıyor, sen değil.` : `Now TLA <b>${s.tla}%</b> → thrust mode <b>P${p}</b> (${PMODE_TXT(p)}). Target N2 ≈ ${(N2I()+s.tla*0.40).toFixed(0)}%. If AUTO·FAB is engaged the mission writes this value, not you.`; },
+    related:{ thrustmode:{tr:'P-modu eşlemesi',en:'P-mode mapping'}, n2:{tr:'Hedef N2',en:'Target N2'}, mode:{tr:'MANUEL / OTO',en:'MANUAL / AUTO'} } },
+
+  start:{ domain:{tr:'Pilot Konsolu · Sekans',en:'Pilot Console · Sequence'}, term:{tr:'ENGINE START / STOP',en:'ENGINE START / STOP'},
+    define:{tr:'Start sekansını tetikler. Gerçek bir FSM çalışır: CRANK (kuru çevirme, yakıt yok) → LIGHT-OFF (ateşleme + start yakıtı) → ACCEL (starter %50\'de kesilir) → RUN (idle %58, kontrol yasası devralır). İki abort yolu: HUNG (idle altında tırmanamıyor) ve HOT (start EGT > 720 °C).',
+            en:'Triggers the start sequence. A real FSM runs: CRANK (dry motoring, no fuel) → LIGHT-OFF (ignition + start fuel) → ACCEL (starter cut at 50%) → RUN (idle 58%, control law takes over). Two abort paths: HUNG (can\'t climb past sub-idle) and HOT (start EGT > 720 °C).'},
+    why(s){ const ph=s.startPhase;
+      const m=(LANG==='tr'?{OFF:'Motor kapalı.',CRANK:'CRANK — starter kuru çeviriyor, yakıt YOK; N2 %18\'e ulaşınca ateşleme.',LIGHTOFF:'LIGHT-OFF — start yakıtı verildi, ateşleme bekleniyor; EGT>720 olursa HOT abort.',ACCEL:'ACCEL — light-off oldu, idle\'a tırmanıyor; starter %50\'de kesilir, %58\'de RUN.',RUN:'RUN — start tamam, kontrol yasası aktif.',HUNG:'HUNG ABORT — idle altında takıldı (>2 sn tırmanış yok). RESET gerekir.',HOT:'HOT ABORT — start EGT limiti aşıldı. RESET gerekir.'}:{OFF:'Engine off.',CRANK:'CRANK — the starter is dry-motoring, NO fuel; ignition once N2 reaches 18%.',LIGHTOFF:'LIGHT-OFF — start fuel introduced, awaiting ignition; if EGT>720 → HOT abort.',ACCEL:'ACCEL — light-off achieved, climbing to idle; starter cut at 50%, RUN at 58%.',RUN:'RUN — start complete, control law active.',HUNG:'HUNG ABORT — stuck below idle (>2 s with no climb). RESET required.',HOT:'HOT ABORT — start EGT limit exceeded. RESET required.'})[ph]||ph;
+      return LANG==='tr' ? `Şu an: <b>${ph}</b>. ${m}` : `Now: <b>${ph}</b>. ${m}`; },
+    related:{ statemachine:{tr:'Durum makinesi S0–S6',en:'State machine S0–S6'}, faultinjector:{tr:'Hung/Hot enjekte',en:'Inject Hung/Hot'}, egt:{tr:'Start EGT limiti',en:'Start EGT limit'} } },
+
+  mode:{ domain:{tr:'Pilot Konsolu · Otorite',en:'Pilot Console · Authority'}, term:{tr:'MANUEL · OTO·FAB',en:'MANUAL · AUTO·FAB'},
+    define:{tr:'Kontrol otoritesi anahtarı. MANUEL: gaz kolu pilotta. OTO·FAB: Ana Uçuş Bilgisayarı (FAB) hedef N2 üretir — otomatik gaz (autothrottle). Kola dokunmak FAB\'ı anında devre dışı bırakır (autothrottle disengage).',
+            en:'The control-authority switch. MANUAL: the thrust lever is the pilot\'s. AUTO·FAB: the Main Flight Computer (FAB) produces target N2 — autothrottle. Touching the lever instantly disengages FAB (autothrottle disengage).'},
+    why(s){ return s.engineOn
+      ? (LANG==='tr' ? `Şu an mod: kola dokunursan MANUEL\'e düşer. OTO·FAB\'da misyon bacakları hedef N2\'yi sürüyor ve sağlık-tetikli kısıtlar (derate/RTB/acil) script\'i eziyor.` : `Current mode: touch the lever and it drops to MANUAL. In AUTO·FAB the mission legs drive target N2 and health-triggered constraints (derate/RTB/emergency) override the script.`)
+      : (LANG==='tr' ? `Motor kapalı — mod seçimi başlatınca anlam kazanır.` : `Engine off — the mode choice only matters once you start.`); },
+    related:{ fableg:{tr:'FAB misyon',en:'FAB mission'}, fabsup:{tr:'FAB süpervizör',en:'FAB supervisor'}, tla:{tr:'Gaz kolu',en:'Thrust lever'} } },
+
+  /* ---------- B · OTONOM MİSYON (FAB) ---------- */
+  fableg:{ domain:{tr:'FAB · Otonom Misyon',en:'FAB · Autonomous Mission'}, term:{tr:'Misyon Bacağı + Zaman Çizelgesi',en:'Mission Leg + Timeline'},
+    define:{tr:'FAB önceden tanımlı bacakları sırayla uçar: TAXI→TAKEOFF→CLIMB→CRUISE→LOITER→DASH→RTB→APPROACH→LANDING→SHUTDOWN. Her bacağın bir itki modu (P), irtifası ve hedef N2\'si var. İrtifa θ/δ üzerinden yakıt denklemini etkiler.',
+            en:'FAB flies predefined legs in order: TAXI→TAKEOFF→CLIMB→CRUISE→LOITER→DASH→RTB→APPROACH→LANDING→SHUTDOWN. Each leg has a thrust mode (P), an altitude and a target N2. Altitude affects the fuel equation through θ/δ.'},
+    why(s){ if(!s.engineOn) return LANG==='tr' ? 'Motor kapalı — misyon başlamadı.' : 'Engine off — the mission hasn\'t started.';
+      return LANG==='tr' ? `Bacak bilgisi üst kartta. FAB devredeyse hedef N2 bu bacaktan; irtifa arttıkça δ düşer, aynı N2 için gereken Wf azalır (yükseklik düzeltmesi gerçek).` : `Leg info is on the card above. If FAB is engaged, target N2 comes from this leg; as altitude rises δ falls, so the Wf needed for the same N2 drops (the altitude correction is real).`; },
+    related:{ fabsup:{tr:'Süpervizör kısıtları',en:'Supervisor constraints'}, fablog:{tr:'Karar logu',en:'Decision log'}, thrustmode:{tr:'Bacak P-modu',en:'Leg P-mode'} } },
+
+  fabsup:{ domain:{tr:'FAB · Süpervizör',en:'FAB · Supervisor'}, term:{tr:'Sağlık-Tetikli Kısıt (ACİL · RTB · DERATE)',en:'Health-Triggered Constraint (EMERGENCY · RTB · DERATE)'},
+    define:{tr:'FAB\'ın güvenlik katmanı; öncelik ACİL > RTB > DERATE > script. Sağlığı OKUR, misyonu kısıtlar: degrade=2\'de DASH inhibit + %88 derate; degrade≤1\'de RTB latch (eve dön); overspeed/açık-çevrimde acil idle/safe — her şeyi ezer.',
+            en:'FAB\'s safety layer; priority EMERGENCY > RTB > DERATE > script. It READS health and constrains the mission: at degrade=2, DASH inhibit + 88% derate; at degrade≤1, RTB latch (return home); on overspeed/open-loop, emergency idle/safe — overrides everything.'},
+    why(s){ if(s.overspeed||s.openLoop) return LANG==='tr' ? `<b>ACİL</b> aktif (overspeed/açık-çevrim) → hedef N2 %60\'a zorlanıyor, misyon ezildi.` : `<b>EMERGENCY</b> active (overspeed/open-loop) → target N2 forced to 60%, mission overridden.`;
+      if(s.degrade<=1) return LANG==='tr' ? `<b>RTB latch</b> — degrade=${s.degrade} kanal; FAB RTB bacağına atladı.` : `<b>RTB latch</b> — degrade=${s.degrade} channel; FAB jumped to the RTB leg.`;
+      if(s.degrade===2) return LANG==='tr' ? `<b>DERATE %88</b> — degrade=2oo3; DASH inhibit, hedef N2 88\'e kısıldı.` : `<b>DERATE 88%</b> — degrade=2oo3; DASH inhibit, target N2 capped at 88.`;
+      return LANG==='tr' ? `NOMINAL — degrade=3oo3, kısıt yok, script normal akıyor.` : `NOMINAL — degrade=3oo3, no constraint, the script runs normally.`; },
+    related:{ degrade:{tr:'Degrade seviyesi',en:'Degrade level'}, fablog:{tr:'Karar logu',en:'Decision log'}, overspeed:{tr:'Acil tetik',en:'Emergency trigger'} } },
+
+  fablog:{ domain:{tr:'FAB · İz',en:'FAB · Trace'}, term:{tr:'Karar Logu (Script + Süpervizör)',en:'Decision Log (Script + Supervisor)'},
+    define:{tr:'FAB\'ın her kararının zaman damgalı, gerekçeli kaydı (bacak geçişi, derate, RTB, acil). Amaç denetlenebilirlik: otonom bir sistemin "neden bunu yaptı"sı sonradan okunabilir olmalı — bu, kara kutudan ayrı bir karar izidir.',
+            en:'A timestamped, reasoned record of every FAB decision (leg transition, derate, RTB, emergency). The goal is auditability: an autonomous system\'s "why did it do that" must be readable afterward — this is a decision trace separate from the black box.'},
+    why(s){ return LANG==='tr' ? `Log üst kartta akıyor (son ~14 satır). Her satır: [cycle] gerekçe. Süpervizör girişleri (derate/RTB/acil) script geçişlerinden ayırt edilebilir — otonomi savunulabilirliğinin temeli.` : `The log streams on the card above (last ~14 lines). Each line: [cycle] reason. Supervisor entries (derate/RTB/emergency) are distinguishable from script transitions — the basis of autonomy defensibility.`; },
+    related:{ fabsup:{tr:'Süpervizör',en:'Supervisor'}, fableg:{tr:'Misyon',en:'Mission'}, pfr:{tr:'Kara kutu (ayrı)',en:'Black box (separate)'} } },
+
+  /* ---------- C · DURUM MAKİNESİ ---------- */
+  statemachine:{ domain:{tr:'Motor Durumu · FSM',en:'Engine State · FSM'}, term:{tr:'Durum Makinesi S0–S6',en:'State Machine S0–S6'},
+    define:{tr:'Motorun çalışma fazı, eşik-uydurma değil gerçek start FSM\'inden gelir. S0 OFF · S1 CRANK · S2 LIGHT-OFF · S3 ACCEL · S4 RUN · S5 SHUTDOWN · S6 FLAMEOUT/RELIGHT (anormal). Kontrol yasası yalnız S4\'te aktiftir; S1–S3\'te start çizelgesi sürer.',
+            en:'The engine\'s operating phase comes from a real start FSM, not threshold-matching. S0 OFF · S1 CRANK · S2 LIGHT-OFF · S3 ACCEL · S4 RUN · S5 SHUTDOWN · S6 FLAMEOUT/RELIGHT (abnormal). The control law is active only in S4; in S1–S3 the start schedule runs.'},
+    why(s){ return LANG==='tr' ? `Şu an <b>S${s.S}</b> (${SMODE_TXT(s.S)}). ${s.S===4?'Kontrol yasası aktif, normal kapalı-çevrim.':'Kontrol yasası henüz devralmadı — start/abort fazı.'} Abort (hung/hot) S6\'ya düşer, SHUTDOWN değil — anormal sonlanma işaretlenir.` : `Now <b>S${s.S}</b> (${SMODE_TXT(s.S)}). ${s.S===4?'Control law active, normal closed-loop.':'Control law hasn\'t taken over yet — start/abort phase.'} An abort (hung/hot) drops to S6, not SHUTDOWN — an abnormal termination is flagged.`; },
+    related:{ start:{tr:'Start butonu',en:'Start button'}, enginemode:{tr:'Topbar MODE',en:'Topbar MODE'}, thrustmode:{tr:'P-modu (S4\'te)',en:'P-mode (in S4)'} } },
+
+  thrustmode:{ domain:{tr:'İtki Modu · Çizelge',en:'Thrust Mode · Schedule'}, term:{tr:'İtki Modu P0–P6',en:'Thrust Mode P0–P6'},
+    define:{tr:'Gaz koluna karşılık gelen itki rejimi. P0 GND-IDLE · P1 FLT-IDLE · P2 CLIMB · P3 CRUISE · P4 CONT · P5 MIL · P6 MAX. RUN (S4) öncesinde hep P0\'dır. Detent hizalı: CRZ 75 → P3.',
+            en:'The thrust regime corresponding to the lever. P0 GND-IDLE · P1 FLT-IDLE · P2 CLIMB · P3 CRUISE · P4 CONT · P5 MIL · P6 MAX. Always P0 before RUN (S4). Detent-aligned: CRZ 75 → P3.'},
+    why(s){ if(s.S<4) return LANG==='tr' ? `Motor RUN değil (S${s.S}) → P0 sabit.` : `Engine not RUN (S${s.S}) → P0 fixed.`;
+      return LANG==='tr' ? `Şu an <b>P${s.P}</b> (${PMODE_TXT(s.P)}), TLA ${s.tla}%\'ten türetildi. Her mod farklı hedef N2 / limit profili demektir — pilot niyetinin makineye çevrilmiş hali.` : `Now <b>P${s.P}</b> (${PMODE_TXT(s.P)}), derived from TLA ${s.tla}%. Each mode means a different target N2 / limit profile — the pilot's intent translated for the machine.`; },
+    related:{ tla:{tr:'Gaz kolu',en:'Thrust lever'}, n2:{tr:'Hedef N2',en:'Target N2'}, statemachine:{tr:'Durum makinesi',en:'State machine'} } },
+
+  /* ---------- E · TMR REDUNDANCY & VOTING ---------- */
+  ecu:{ domain:{tr:'TMR · Otorite Matrisi',en:'TMR · Authority Matrix'}, term:{tr:'ECU Kanalları A / B / C',en:'ECU Channels A / B / C'},
+    define:{tr:'Üç bağımsız motor kontrol ünitesi (TMR). Her kanal sensörleri kendi okur, kendi yakıt komutunu hesaplar. Master voter YOK — dağıtık 2oo3. Bir kanal LEADER (yakıtı sürer), diğerleri sıcak yedek; LEADER sağlıksız olunca bumpless devir olur.',
+            en:'Three independent engine control units (TMR). Each channel reads its own sensors and computes its own fuel command. There is NO master voter — distributed 2oo3. One channel is LEADER (drives fuel), the others are hot standby; when the LEADER goes unhealthy a bumpless handover occurs.'},
+    why(s){ const iso=isoList(s); const led=s.leader;
+      return LANG==='tr' ? `LEADER şu an <b>ECU-${led}</b>. ${iso.length?`İzole: ${iso.join(', ')} (oylamadan/otoriteden çıktı).`:'Üç kanal da sağlıklı.'} ${s.obm.n2Synth?'LEADER OBM-sentez N2 ile sürüyor (sensörler yetersiz).':''} Yedek kanallar trim integral\'lerini lider yakıtına eşitler → devir sıçramasız.` : `LEADER is now <b>ECU-${led}</b>. ${iso.length?`Isolated: ${iso.join(', ')} (dropped from voting/authority).`:'All three channels healthy.'} ${s.obm.n2Synth?'LEADER is driving on OBM-synthesized N2 (sensors insufficient).':''} Standby channels match their trim integrals to the leader's fuel → bumpless handover.`; },
+    related:{ votematrix:{tr:'2oo3 oylama',en:'2oo3 voting'}, ccdl:{tr:'Kanal-arası link',en:'Cross-channel link'}, interlock:{tr:'Devir kilidi',en:'Handover interlock'}, degrade:{tr:'Kanal sayısı',en:'Channel count'} } },
+
+  ccdl:{ domain:{tr:'TMR · Kanal-arası',en:'TMR · Cross-Channel'}, term:{tr:'CCDL — Cross-Channel Data Link (A↔B / A↔C / B↔C)',en:'CCDL — Cross-Channel Data Link (A↔B / A↔C / B↔C)'},
+    define:{tr:'Kanalların birbirini gördüğü çapraz veri yolları. Senkronizasyon ve bumpless devir bunlara bağlıdır. Bir link kopunca o çift kör kalır; sistem SYNC kilidini düşürür ve K05 CCDL arızası latch\'lenir.',
+            en:'The cross-data buses by which the channels see one another. Synchronization and bumpless handover depend on them. If a link drops, that pair goes blind; the system lowers the SYNC lock and a K05 CCDL fault latches.'},
+    why(s){ const down=Object.entries(s.ccdl).filter(([,v])=>!v).map(([k])=>k);
+      if(!down.length) return LANG==='tr' ? `Üç link de sağlam (A↔B, A↔C, B↔C). SYNC-LOCK mümkün, devir koordineli.` : `All three links intact (A↔B, A↔C, B↔C). SYNC-LOCK possible, handover coordinated.`;
+      const hex=FW.hex(FW.encode(3,5,3,1,0));
+      return LANG==='tr' ? `Kopuk link: <b>${down.join(', ')}</b>. K05 CCDL fault word <b>${hex}</b> latch'lendi; SYNC PENDING\'e düştü. Etkilenen çift artık çapraz-doğrulama yapamaz.` : `Link down: <b>${down.join(', ')}</b>. K05 CCDL fault word <b>${hex}</b> latched; SYNC dropped to PENDING. The affected pair can no longer cross-validate.`; },
+    related:{ sync:{tr:'SYNC kilidi',en:'SYNC lock'}, ecu:{tr:'Kanallar',en:'Channels'}, sw2:{tr:'SW2 · CCDL-FULL biti',en:'SW2 · CCDL-FULL bit'} } },
+
+  route:{ domain:{tr:'TMR · Yönlendirme',en:'TMR · Routing'}, term:{tr:'Veri Yolu Şeması (Lider → YKS)',en:'Data Path Diagram (Leader → YKS)'},
+    define:{tr:'Hangi kanalın yakıt valfini fiilen sürdüğünü gösterir. Cyan çizgi = aktif LEADER yolu. Lider değişince çizgi kayar. Açık-çevrim durumunda taban hat amber döner (kapalı-çevrim koruması yok).',
+            en:'Shows which channel actually drives the fuel valve. Cyan line = the active LEADER path. When the leader changes the line shifts. In open-loop the trunk line turns amber (no closed-loop protection).'},
+    why(s){ return s.openLoop
+      ? (LANG==='tr' ? `<b>AÇIK-ÇEVRİM</b> — geri besleme yok, doğrudan tahrik (amber). Hiçbir kanalın güvenilir sensörü/OBM\'i kalmadı.` : `<b>OPEN-LOOP</b> — no feedback, direct drive (amber). No channel has a trustworthy sensor/OBM left.`)
+      : (LANG==='tr' ? `Aktif yol: <b>ECU-${s.leader}</b> → YKS (cyan). Kapalı-çevrim normal; lider devrederse bu çizgi yeni kanala kayar.` : `Active path: <b>ECU-${s.leader}</b> → YKS (cyan). Closed-loop normal; if the leader hands over, this line shifts to the new channel.`); },
+    related:{ ecu:{tr:'Lider kanal',en:'Leader channel'}, yks:{tr:'Yakıt valfi',en:'Fuel valve'}, openloop:{tr:'Açık-çevrim',en:'Open-loop'} } },
+
+  interlock:{ domain:{tr:'TMR · Devir Güvenliği',en:'TMR · Handover Safety'}, term:{tr:'Priority Interlock',en:'Priority Interlock'},
+    define:{tr:'İki kanalın aynı anda valfi sürmesini engelleyen öncelik kilidi. Lider devri anında kısa süre TRIPPED olur (çakışma penceresi), devir oturunca (~2 cycle) yeniden ARMED\'e döner. Çift-tahrik / valf çekişmesini önler.',
+            en:'The priority lock that stops two channels from driving the valve at once. At the instant of leader handover it briefly goes TRIPPED (the overlap window), and once the handover settles (~2 cycles) it returns to ARMED. Prevents dual-drive / valve contention.'},
+    why(s){ return s.interlock
+      ? (LANG==='tr' ? `<b>ARMED</b> — tek lider valfi sürüyor, çakışma yok.` : `<b>ARMED</b> — a single leader drives the valve, no contention.`)
+      : (LANG==='tr' ? `<b>TRIPPED</b> — lider az önce değişti; kilit, eski ve yeni liderin aynı anda valfi sürmesini engelliyor. Birkaç cycle sonra ARMED\'e döner.` : `<b>TRIPPED</b> — the leader just changed; the lock stops the old and new leaders from driving the valve simultaneously. Returns to ARMED after a few cycles.`); },
+    related:{ ecu:{tr:'Lider devri',en:'Leader handover'}, route:{tr:'Aktif yol',en:'Active path'}, sw2:{tr:'SW2 · INTERLOCK biti',en:'SW2 · INTERLOCK bit'} } },
+
+  yks:{ domain:{tr:'TMR · Aktüatör',en:'TMR · Actuator'}, term:{tr:'YKS / FMV — Yakıt Ölçüm Valfi',en:'YKS / FMV — Fuel Metering Valve'},
+    define:{tr:'Yakıt Kontrol Sistemi / Fuel Metering Valve — kontrol yasasının çıkışını fiziksel yakıt debisine çeviren aktüatör. Simülasyonda görünmez kalır, yalnız lider kanaldan komut alır. Açık-çevrimde komut korumasız doğrudan geçer.',
+            en:'Fuel Control System (YKS) / Fuel Metering Valve — the actuator that turns the control law\'s output into physical fuel flow. It stays invisible in the sim and takes commands only from the leader channel. In open-loop the command passes through directly, unprotected.'},
+    why(s){ return s.openLoop
+      ? (LANG==='tr' ? `Valf şu an <b>doğrudan tahrik</b> (açık-çevrim) — kapalı-çevrim koruması bypass edildi, programlı rölanti yakıtı uygulanıyor.` : `The valve is now <b>direct-drive</b> (open-loop) — closed-loop protection bypassed, a scheduled idle fuel is applied.`)
+      : (LANG==='tr' ? `Valf, LEADER ECU-${s.leader}\'dan korumalı Wf komutunu alıyor (~0.25 sn valf zaman sabiti). Normal kapalı-çevrim.` : `The valve receives the protected Wf command from LEADER ECU-${s.leader} (~0.25 s valve time constant). Normal closed-loop.`); },
+    related:{ wf:{tr:'Wf komutu',en:'Wf command'}, route:{tr:'Lider yolu',en:'Leader path'}, openloop:{tr:'Açık-çevrim',en:'Open-loop'} } },
+
+  openloop:{ domain:{tr:'TMR · Bozunma',en:'TMR · Degradation'}, term:{tr:'OPEN-LOOP · Direct Drive',en:'OPEN-LOOP · Direct Drive'},
+    define:{tr:'En kötü durum: tüm kanal sensörleri kayıp (degrade=0) VE OBM çökük. Geri besleme yok; FADEC programlı bir rölanti yakıtını körlemesine uygular. Master WARNING + FAB acil idle/safe tetiklenir. İndirgenmiş mod seviye 2.',
+            en:'The worst case: all channel sensors lost (degrade=0) AND OBM crashed. No feedback; FADEC blindly applies a scheduled idle fuel. Master WARNING + FAB emergency idle/safe are triggered. Reduced mode level 2.'},
+    why(s){ return s.openLoop
+      ? (LANG==='tr' ? `<b>AKTİF</b> — degrade=0 ve OBM çökük. Kapalı-çevrim imkânsız; sistem en güvenli sabit yakıta çekildi, FAB acil moda geçti.` : `<b>ACTIVE</b> — degrade=0 and OBM crashed. Closed-loop impossible; the system pulled to its safest fixed fuel and FAB went to emergency mode.`)
+      : (LANG==='tr' ? `Şu an pasif. Bu uyarı yalnız "üç kanal sensör kaybı + OBM çöküşü" birlikte olunca yanar — analitik redundansın da bittiği nokta.` : `Currently passive. This warning only lights when "all-three-channel sensor loss + OBM crash" occur together — the point where analytical redundancy is also gone.`); },
+    related:{ obm:{tr:'OBM (son hat)',en:'OBM (last line)'}, degrade:{tr:'degrade=0',en:'degrade=0'}, yks:{tr:'Direct drive',en:'Direct drive'} } },
+
+  votematrix:{ domain:{tr:'TMR · Oylama',en:'TMR · Voting'}, term:{tr:'2oo3 Medyan Oylama Matrisi',en:'2oo3 Median Voting Matrix'},
+    define:{tr:'Her parametre (N2/EGT/N1) için üç kanalın okuması medyan ile oylanır; medyandan ε-eşiğinden fazla sapan lane izole edilir. Parametre-başına voter durumu üretilir: NORMAL / SPLIT (1 sapma) / DUAL-LOSS / ISOLATED. ε: N2/N1 = 2.5, EGT = 18.',
+            en:'For each parameter (N2/EGT/N1) the three channels\' readings are voted by median; a lane deviating from the median by more than the ε-threshold is isolated. A per-parameter voter state is produced: NORMAL / SPLIT (1 deviation) / DUAL-LOSS / ISOLATED. ε: N2/N1 = 2.5, EGT = 18.'},
+    why(s){ const v=s.voter;
+      return LANG==='tr' ? `Genel voter rozeti = en kötü parametre: <b>${VN[v]}</b>. ${v===0?'Üç lane uyumlu, medyan temiz.':v===1?'Bir lane aykırı/eksik — oylandı, medyan hâlâ iki sağlam laneden.':v>=2?'İki+ lane kayıp/aykırı — oylama güvenilirliği düştü, OBM sentezi devreye girebilir.':''} Matriste her satır kanal okumalarını ve oylanan değeri gösterir.` : `Overall voter badge = worst parameter: <b>${VN[v]}</b>. ${v===0?'All three lanes agree, median clean.':v===1?'One lane outlier/missing — voted out, the median still comes from two good lanes.':v>=2?'Two+ lanes lost/outlier — voting reliability dropped, OBM synthesis may step in.':''} Each row in the matrix shows the channel readings and the voted value.`; },
+    related:{ voterstate:{tr:'Voter durumları',en:'Voter states'}, senspill:{tr:'Sensör girişleri',en:'Sensor inputs'}, degrade:{tr:'Kanal sağlığı',en:'Channel health'}, faultcodes:{tr:'Sapma kaynakları',en:'Deviation sources'} } },
+
+  senspill:{ domain:{tr:'Sensörler · Pano',en:'Sensors · Board'}, term:{tr:'Sensör Pill — Çift Örnek (Dual Instance)',en:'Sensor Pill — Dual Instance'},
+    define:{tr:'Her kanalda her parametre İKİ bağımsız sensör örneğiyle okunur (N2·1/N2·2 gibi) — toplam 3 param × 3 kanal × 2 örnek = 18 pill. Yeşil = geçerli, kırmızı = HARD arıza (BIT geçersiz kıldı). İki örnek, tek-örnek spike\'ını ortalamayla bastırır.',
+            en:'In each channel every parameter is read by TWO independent sensor instances (e.g. N2·1/N2·2) — 3 params × 3 channels × 2 instances = 18 pills total. Green = valid, red = HARD fault (invalidated by BIT). Two instances suppress a single-instance spike by averaging.'},
+    why(s){ const iso=isoList(s);
+      return LANG==='tr' ? `Pill\'ler canlı. HARD arıza (S01/S02/S06) bir örneği anında kırmızıya çevirir ve oylamadan düşürür; her iki örnek de düşerse o kanal-parametre lane\'i kaybolur. ${iso.length?`Şu an kanal kaybı: ${iso.join(', ')}.`:'Şu an tüm pill\'ler geçerli.'} Arıza tipini öğrenmek için "sapma kaynakları"na bak.` : `The pills are live. A HARD fault (S01/S02/S06) turns an instance red instantly and drops it from voting; if both instances drop, that channel-parameter lane is lost. ${iso.length?`Channel loss now: ${iso.join(', ')}.`:'All pills currently valid.'} Check "deviation sources" to learn the fault type.`; },
+    related:{ chanhealth:{tr:'Kanal sağlığı',en:'Channel health'}, faultcodes:{tr:'Arıza tipleri',en:'Fault types'}, votematrix:{tr:'Oylama',en:'Voting'}, faultinjector:{tr:'Enjekte et',en:'Inject'} } },
+
+  chanhealth:{ domain:{tr:'Sensörler · Kanal',en:'Sensors · Channel'}, term:{tr:'Kanal Sağlık Başlığı (HEALTHY / ISOLATED / LOST)',en:'Channel Health Header (HEALTHY / ISOLATED / LOST)'},
+    define:{tr:'Kanalın bütün olarak durumu: HEALTHY = oylamada · ISOLATED = ε-sapma ile dışlandı · LOST = sensör/CPU kaybı. Sağlam kanal sayısı doğrudan degrade seviyesini (3oo3→0) belirler.',
+            en:'The channel\'s status as a whole: HEALTHY = in voting · ISOLATED = excluded by ε-deviation · LOST = sensor/CPU loss. The number of healthy channels directly sets the degrade level (3oo3→0).'},
+    why(s){ return LANG==='tr' ? `Sağlam kanal sayısı: <b>${s.degrade}</b> → ${s.degrade}oo3. ${s.degrade===3?'Tam üçlü yedeklilik.':s.degrade===2?'Bir kanal düştü — 2oo3 hâlâ medyan oyluyor.':s.degrade===1?'Tek kanal — OBM sentezine ve RTB\'ye geçiş eşiği.':'Sıfır kanal — analitik redundans son hat.'} CPU şüphesi de kanalı sensörlerinden bağımsız sağlıksız sayar.` : `Healthy channel count: <b>${s.degrade}</b> → ${s.degrade}oo3. ${s.degrade===3?'Full triple redundancy.':s.degrade===2?'One channel dropped — 2oo3 still votes by median.':s.degrade===1?'Single channel — the threshold for OBM synthesis and RTB.':'Zero channels — analytical redundancy is the last line.'} A CPU suspicion also counts the channel unhealthy independently of its sensors.`; },
+    related:{ degrade:{tr:'Degrade ladder',en:'Degrade ladder'}, votematrix:{tr:'Oylama',en:'Voting'}, ecu:{tr:'Kanal hücreleri',en:'Channel cells'} } },
+
+  /* ---------- G · FAULT WORD CODEC ---------- */
+  faultword:{ domain:{tr:'Kara Kutu · Codec',en:'Black Box · Codec'}, term:{tr:'16-bit Fault Word',en:'16-bit Fault Word'},
+    define:{tr:'Her arıza tek bir 16-bit kelimeye kodlanır: [ALAN:3 | KOD:4 | CH:2 | VOTER:2 | COMP:5]. MIL-STD-1553 hizalı; insan-okur ad değil, sıkı bit alanı — gerçek aviyonik bakım kelimesi mantığı. PFR\'a latch\'lenen ve burada canlı çözülen şey budur.',
+            en:'Every fault is encoded into a single 16-bit word: [ALAN:3 | KOD:4 | CH:2 | VOTER:2 | COMP:5]. MIL-STD-1553 aligned; not a human-readable name but a tight bit field — real avionics maintenance-word logic. This is what latches into the PFR and is decoded live here.'},
+    why(s){ const fw=s.lastFW||0;
+      if(!fw) return LANG==='tr' ? `Şu an <b>0x0000 · CLEAN</b> — latch\'li aktif arıza yok. Bir arıza enjekte et, hex ve bit şeridinin canlı dolduğunu gör.` : `Now <b>0x0000 · CLEAN</b> — no latched active fault. Inject a fault and watch the hex and bit strip fill live.`;
+      const d=FW.decode(fw);
+      return LANG==='tr' ? `En son arıza: <b>${FW.hex(fw)}</b>. Çözüm → ALAN=${FW.ALAN[d.alan]}, KOD=${FW.kodName(d.alan,d.kod)}, CH=${FW.CH[d.ch]}, VOTER=${VN[d.voter]}, COMP=${d.comp}. Aynı kelime PFR\'da kayıtlı — gösterge ile kara kutu birebir.` : `Latest fault: <b>${FW.hex(fw)}</b>. Decode → ALAN=${FW.ALAN[d.alan]}, KOD=${FW.kodName(d.alan,d.kod)}, CH=${FW.CH[d.ch]}, VOTER=${VN[d.voter]}, COMP=${d.comp}. The same word is recorded in the PFR — indicator and black box match exactly.`; },
+    related:{ decodefields:{tr:'Alan yapısı',en:'Field structure'}, pfr:{tr:'Kara kutu logu',en:'Black box log'}, faultcodes:{tr:'KOD anlamları',en:'KOD meanings'} } },
+
+  decodefields:{ domain:{tr:'Kara Kutu · Alanlar',en:'Black Box · Fields'}, term:{tr:'Decode Alanları (ALAN / KOD / CH / VOTER / COMP)',en:'Decode Fields (ALAN / KOD / CH / VOTER / COMP)'},
+    define:{tr:'Fault word\'ün beş alanı: ALAN = arıza sınıfı (SENSOR/START/LIMIT/CHANNEL/CONTROL/MECHANICAL) · KOD = sınıf-içi kod · CH = kanal (A/B/C/SYS) · VOTER = oylama durumu · COMP = bileşen indeksi. Aynı KOD numarası farklı ALAN\'da farklı anlama gelir (bağlam-duyarlı çözüm).',
+            en:'The five fields of the fault word: ALAN = fault class (SENSOR/START/LIMIT/CHANNEL/CONTROL/MECHANICAL) · KOD = in-class code · CH = channel (A/B/C/SYS) · VOTER = voting state · COMP = component index. The same KOD number means different things in different ALAN values (context-sensitive decode).'},
+    why(s){ const fw=s.lastFW||0; if(!fw) return LANG==='tr' ? `Alanlar boş (CLEAN). Bir arıza olunca her alan bağımsız dolar; örn. CHANNEL alanında K-kodları (K02 izole, K07 degraded…), SENSOR alanında S-kodları görünür.` : `Fields empty (CLEAN). On a fault each field fills independently; e.g. K-codes appear in the CHANNEL field (K02 isolated, K07 degraded…), S-codes in the SENSOR field.`;
+      const d=FW.decode(fw);
+      return LANG==='tr' ? `Aktif çözüm: ALAN bitleri ${d.alan.toString(2).padStart(3,'0')} → ${FW.ALAN[d.alan]}; bu bağlamda KOD ${d.kod} = ${FW.kodName(d.alan,d.kod)}. CH=${FW.CH[d.ch]} arızanın hangi kanaldan geldiğini, VOTER=${VN[d.voter]} o anki oylama rejimini söyler.` : `Active decode: ALAN bits ${d.alan.toString(2).padStart(3,'0')} → ${FW.ALAN[d.alan]}; in this context KOD ${d.kod} = ${FW.kodName(d.alan,d.kod)}. CH=${FW.CH[d.ch]} says which channel the fault came from, VOTER=${VN[d.voter]} the current voting regime.`; },
+    related:{ faultword:{tr:'Tam kelime',en:'Full word'}, faultcodes:{tr:'KOD tablosu',en:'KOD table'}, votematrix:{tr:'VOTER alanı',en:'VOTER field'} } },
+
+  /* ---------- H · OBM ANALİTİK REDUNDANS ---------- */
+  obm:{ domain:{tr:'OBM · Analitik Redundans',en:'OBM · Analytical Redundancy'}, term:{tr:'OBM — Beklenen vs Gerçek (Sanal Sensör)',en:'OBM — Expected vs Actual (Virtual Sensor)'},
+    define:{tr:'On-Board Model: yakıt akışından (Wf) motorun beklenen N2/EGT\'sini bağımsız hesaplayan "golden" model. Oylamanın göremediği COMMON-MODE arızayı yakalar (üç kanal aynı yöne yanılırsa medyan kanmaz, OBM kanar). Tolerans bandı: N2 ±6, EGT ±60.',
+            en:'On-Board Model: a "golden" model that independently computes the engine\'s expected N2/EGT from fuel flow (Wf). It catches the COMMON-MODE fault voting can\'t see (if all three channels err the same way the median isn\'t fooled, but OBM is). Tolerance band: N2 ±6, EGT ±60.'},
+    why(s){ const dn=Math.abs(s.n2-s.obm.n2Exp).toFixed(1);
+      if(s.obm.crashed) return LANG==='tr' ? `OBM <b>ÇÖKÜK</b> — analitik redundans yok. Common-mode artık yakalanamaz; degrade=0 ile birleşirse açık-çevrim olur.` : `OBM <b>CRASHED</b> — no analytical redundancy. Common-mode can no longer be caught; combined with degrade=0 it becomes open-loop.`;
+      if(s.obm.n2Synth) return LANG==='tr' ? `OBM <b>SENTEZ</b> modunda — kanal sensörleri yetersiz (degrade≤1), oylanan N2/EGT yerine OBM\'in beklediği değer kullanılıyor. Sanal sensör fiilen motoru sürüyor.` : `OBM in <b>SYNTHESIS</b> mode — channel sensors insufficient (degrade≤1), the OBM\'s expected value is used instead of voted N2/EGT. The virtual sensor is effectively driving the engine.`;
+      if(s.obm.n2Out) return LANG==='tr' ? `OBM <b>SAPMA</b> (residual ${dn} > 6) — gerçek, golden\'dan band dışı. degrade=3 iken bu common-mode demektir (K07): üç kanal birlikte yanılıyor.` : `OBM <b>DEVIATION</b> (residual ${dn} > 6) — actual is out of band from golden. At degrade=3 this means common-mode (K07): all three channels erring together.`;
+      return LANG==='tr' ? `Nominal — gerçek N2, beklenen N2\'ye yakın (Δ ${dn}, band ±6). Golden model sessizce karşılaştırıyor; band aşılırsa common-mode bayrağı kalkar.` : `Nominal — actual N2 close to expected N2 (Δ ${dn}, band ±6). The golden model compares quietly; if the band is exceeded the common-mode flag raises.`; },
+    related:{ votematrix:{tr:'Oylama (tamamlayıcı)',en:'Voting (complementary)'}, annunciator:{tr:'OBM LOSS / K07',en:'OBM LOSS / K07'}, degrade:{tr:'Sentez eşiği',en:'Synthesis threshold'}, wf:{tr:'Model girişi',en:'Model input'} } },
+
+  /* ---------- I · OVERSPEED & DEGRADE ---------- */
+  overspeed:{ domain:{tr:'Koruma · Bağımsız',en:'Protection · Independent'}, term:{tr:'Bağımsız Overspeed Koruması',en:'Independent Overspeed Protection'},
+    define:{tr:`Ana kontrol döngüsünden AYRI (dissimilar) donanım: N2 ${'>'} ${'%'}115 olunca yakıtı keser. Ana yazılım hatasından etkilenmesin diye kasıtlı bağımsız. LATCH\'lidir — bir kez triplerse reset\'e kadar kapalı kalır (gerçek aviyonik davranış).`,
+            en:`Hardware SEPARATE (dissimilar) from the main control loop: it cuts fuel when N2 ${'>'} 115${'%'}. Deliberately independent so a main-software fault can\'t affect it. It is LATCHed — once it trips it stays closed until reset (real avionics behavior).`},
+    why(s){ const O=OVSP();
+      return s.overspeed
+        ? (LANG==='tr' ? `<b>TRIP · FUEL CUT</b> — N2 ${O}%\'i geçti, bağımsız koruma yakıtı kesti (≤120 kg/h) ve mandalladı. "TÜM ARIZALARI SİL" ile reset gerekir.` : `<b>TRIP · FUEL CUT</b> — N2 passed ${O}%, independent protection cut fuel (≤120 kg/h) and latched. Reset via "CLEAR ALL FAULTS".`)
+        : (LANG==='tr' ? `<b>ARMED</b> — N2 şu an ${s.n2.toFixed(1)}%, trip eşiği ${O}%. Ana döngüden ayrı izliyor; eşiği geçen ANLIK ham okuma bile (oylanmadan) tripler.` : `<b>ARMED</b> — N2 is now ${s.n2.toFixed(1)}%, trip threshold ${O}%. It watches separately from the main loop; even an INSTANTANEOUS raw reading past the threshold (unvoted) trips it.`); },
+    related:{ n2:{tr:'N2 devri',en:'N2 speed'}, degrade:{tr:'Ladder',en:'Ladder'}, annunciator:{tr:'OVERSPEED LED',en:'OVERSPEED LED'} } },
+
+  degrade:{ domain:{tr:'Koruma · Bozunma',en:'Protection · Degradation'}, term:{tr:'Redundancy Degrade Ladder (3oo3 → SAFE)',en:'Redundancy Degrade Ladder (3oo3 → SAFE)'},
+    define:{tr:'Sağlam kanal sayısına göre yedeklilik basamağı: 3oo3 (tam) → 2oo3 (bir kayıp) → 1·K11 (tek kanal) → SAFE (sıfır, OBM sentez). Her basamak indirgenmiş mod ve FAB kısıtını (derate/RTB/acil) tetikler.',
+            en:'The redundancy step set by the number of healthy channels: 3oo3 (full) → 2oo3 (one lost) → 1·K11 (single channel) → SAFE (zero, OBM synthesis). Each step triggers a reduced mode and a FAB constraint (derate/RTB/emergency).'},
+    why(s){ return LANG==='tr' ? `Şu an <b>${s.degrade}oo3</b>. ${s.degrade===3?'Tam yedeklilik, kısıt yok.':s.degrade===2?'2oo3: medyan sürüyor, FAB %88 derate uyguluyor (indirgenmiş seviye 1).':s.degrade===1?'Tek kanal (K11), RTB latch + indirgenmiş seviye 2.':'SAFE: kanal yok, OBM sentezi son hat.'} İndirgenmiş mod algoritmasının detayı ayrı kartta.` : `Now <b>${s.degrade}oo3</b>. ${s.degrade===3?'Full redundancy, no constraint.':s.degrade===2?'2oo3: median still drives, FAB applies 88% derate (reduced level 1).':s.degrade===1?'Single channel (K11), RTB latch + reduced level 2.':'SAFE: no channels, OBM synthesis is the last line.'} The reduced-mode algorithm detail is on a separate card.`; },
+    related:{ reducedmode:{tr:'İndirgenmiş mod',en:'Reduced mode'}, overspeed:{tr:'Overspeed',en:'Overspeed'}, chanhealth:{tr:'Kanal sağlığı',en:'Channel health'}, fabsup:{tr:'FAB kısıtı',en:'FAB constraint'} } },
+
+  /* ---------- J · STATUS WORDS ---------- */
+  sw1:{ domain:{tr:'BIT · Status Word',en:'BIT · Status Word'}, term:{tr:'SW1 — Lane (Lider) Durum Kelimesi',en:'SW1 — Lane (Leader) Status Word'},
+    define:{tr:'Lider kanalın bit-seviye sağlık özeti. Bit 7→0: ENG-RUN · LEADER · FAULT · LIMIT · BIT-FAIL · SENS-INV · START · HEALTHY. Tek 8-bitlik kelimede "kanal şu an ne durumda" sorusunun makine-okur cevabı.',
+            en:'A bit-level health summary of the leader channel. Bit 7→0: ENG-RUN · LEADER · FAULT · LIMIT · BIT-FAIL · SENS-INV · START · HEALTHY. The machine-readable answer to "what state is the channel in now" in a single 8-bit word.'},
+    why(s){ const set=SWbits(s.sw1,['HEALTHY','START','SENS-INV','BIT-FAIL','LIMIT','FAULT','LEADER','ENG-RUN']);
+      return LANG==='tr' ? `SW1 = ${FW.hex(s.sw1).slice(0,2)+FW.hex(s.sw1).slice(-2)} → set bitler: <b>${set||'(yok)'}</b>. Örn. ENG-RUN motorun RUN\'da, LIMIT EGT\'nin amber üstünde, SENS-INV OBM-sentezin devrede olduğunu söyler.` : `SW1 = ${FW.hex(s.sw1).slice(0,2)+FW.hex(s.sw1).slice(-2)} → set bits: <b>${set||'(none)'}</b>. E.g. ENG-RUN says the engine is in RUN, LIMIT that EGT is above amber, SENS-INV that OBM-synthesis is engaged.`; },
+    related:{ sw2:{tr:'SW2 sistem kelimesi',en:'SW2 system word'}, ecu:{tr:'Lider kanal',en:'Leader channel'}, faultword:{tr:'Fault word',en:'Fault word'} } },
+
+  sw2:{ domain:{tr:'BIT · Status Word',en:'BIT · Status Word'}, term:{tr:'SW2 — Sistem Durum Kelimesi',en:'SW2 — System Status Word'},
+    define:{tr:'Sistem-geneli bit özeti. Bit 7→0: SYNC-LOCK · INTERLOCK · CH-A · CH-B · CH-C · VOTE-NOM · DEG-OK · CCDL-FULL. Tek kanal değil, TMR bütününün sağlığını taşır.',
+            en:'A system-wide bit summary. Bit 7→0: SYNC-LOCK · INTERLOCK · CH-A · CH-B · CH-C · VOTE-NOM · DEG-OK · CCDL-FULL. It carries the health of the whole TMR, not a single channel.'},
+    why(s){ const set=SWbits(s.sw2,['CCDL-FULL','DEG-OK','VOTE-NOM','CH-C','CH-B','CH-A','INTERLOCK','SYNC-LOCK']);
+      return LANG==='tr' ? `SW2 set bitler: <b>${set||'(yok)'}</b>. CH-A/B/C kanal sağlığını, SYNC-LOCK senkronu, CCDL-FULL üç linkin de açık olduğunu gösterir — biri düşerse ilgili bit sıfırlanır.` : `SW2 set bits: <b>${set||'(none)'}</b>. CH-A/B/C show channel health, SYNC-LOCK the sync, CCDL-FULL that all three links are up — if one drops, the corresponding bit clears.`; },
+    related:{ sw1:{tr:'SW1 lane kelimesi',en:'SW1 lane word'}, ccdl:{tr:'CCDL bitleri',en:'CCDL bits'}, sync:{tr:'SYNC biti',en:'SYNC bit'} } },
+
+  /* ---------- K · EICAS ANNUNCIATION ---------- */
+  annunciator:{ domain:{tr:'EICAS · Annunciator',en:'EICAS · Annunciator'}, term:{tr:'Master Caution Annunciator (LED Izgarası)',en:'Master Caution Annunciator (LED Grid)'},
+    define:{tr:'Pilota arıza özetini renkle veren EICAS göstergesi: SENSOR FAULT (amber) · ECU ISOLATED (red) · DEGRADED K07 (amber) · TIE-BREAK K10 (amber) · CCDL LOSS (red) · OVERSPEED (red) · OBM LOSS (red) · SYS NORMAL (green). Renk doğrudan aciliyet seviyesidir.',
+            en:'The EICAS display that gives the pilot a colored fault summary: SENSOR FAULT (amber) · ECU ISOLATED (red) · DEGRADED K07 (amber) · TIE-BREAK K10 (amber) · CCDL LOSS (red) · OVERSPEED (red) · OBM LOSS (red) · SYS NORMAL (green). Color is the urgency level directly.'},
+    why(s){ const on=[]; if(s.obm.n2Synth)on.push('SENSOR FAULT'); if(s.ch.B.iso||s.ch.C.iso)on.push('ECU ISOLATED'); if(s.obm.n2Out)on.push('DEGRADED K07'); if(s.degrade===2)on.push('TIE-BREAK K10'); if(!(s.ccdl.AB&&s.ccdl.AC&&s.ccdl.BC))on.push('CCDL LOSS'); if(s.overspeed)on.push('OVERSPEED'); if(s.obm.crashed)on.push('OBM LOSS'); if(s.degrade===3&&!s.overspeed&&!s.faults.length)on.push('SYS NORMAL');
+      return LANG==='tr' ? `Aktif: <b>${on.join(' · ')||'(yok)'}</b>. Kırmızı = warning (acil eylem), amber = caution. Her LED yukarıdaki bir sistem koşulunun doğrudan yansıması.` : `Active: <b>${on.join(' · ')||'(none)'}</b>. Red = warning (immediate action), amber = caution. Each LED is a direct reflection of one of the system conditions above.`; },
+    related:{ mastercaution:{tr:'Master lambalar',en:'Master lamps'}, degrade:{tr:'Kaynak koşullar',en:'Source conditions'}, obm:{tr:'OBM LED\'leri',en:'OBM LEDs'} } },
+
+  mastercaution:{ domain:{tr:'EICAS · Master',en:'EICAS · Master'}, term:{tr:'Master Caution / Master Warning Lambaları',en:'Master Caution / Master Warning Lamps'},
+    define:{tr:'En üst seviye iki uyarı: WARNING (kırmızı) = anında eylem gerektiren durum (overspeed, tek-kanal, açık-çevrim); CAUTION (amber) = farkındalık gerektiren ama acil olmayan (degrade=2, OBM sapma, latch\'li arıza). EICAS hiyerarşisinin tepesi.',
+            en:'The top two alerts: WARNING (red) = a condition needing immediate action (overspeed, single-channel, open-loop); CAUTION (amber) = needs awareness but not urgent (degrade=2, OBM deviation, latched fault). The top of the EICAS hierarchy.'},
+    why(s){ const w=s.overspeed||s.degrade<=1||s.openLoop; const c=!w&&(s.degrade===2||s.obm.n2Out||s.faults.length>0||s.obm.n2Synth);
+      return LANG==='tr' ? (w?`<b>MASTER WARNING</b> yanıyor — ${s.overspeed?'overspeed':s.openLoop?'açık-çevrim':'tek kanal'}. Anında eylem.`:c?`<b>MASTER CAUTION</b> yanıyor — ${s.degrade===2?'degrade 2oo3':s.obm.n2Out?'OBM sapma':'latch\'li arıza'}. Farkındalık.`:`İkisi de sönük — sistem nominal.`)
+        : (w?`<b>MASTER WARNING</b> is lit — ${s.overspeed?'overspeed':s.openLoop?'open-loop':'single channel'}. Immediate action.`:c?`<b>MASTER CAUTION</b> is lit — ${s.degrade===2?'degrade 2oo3':s.obm.n2Out?'OBM deviation':'latched fault'}. Awareness.`:`Both dark — system nominal.`); },
+    related:{ annunciator:{tr:'LED detayı',en:'LED detail'}, overspeed:{tr:'Warning tetik',en:'Warning trigger'}, degrade:{tr:'Caution tetik',en:'Caution trigger'} } },
+
+  /* ---------- L · ARIZA ENJEKTÖRÜ ---------- */
+  faultcodes:{ domain:{tr:'FDIA · Arıza Tipleri',en:'FDIA · Fault Types'}, term:{tr:'Sensör Arıza Kodları — Fiziksel Kaynak',en:'Sensor Fault Codes — Physical Source'},
+    define:{tr:'Her kod gerçek bir arıza fiziğini temsil eder. HARD (anında geçersiz): S01 aralık-üstü (kablo kopması/açık-devre → maksimuma takılır), S02 aralık-altı (kısa-devre/topraklama → minimuma), S06 sinyal-yok (besleme kaybı → 0). SOFT (sinyalde bozulma): S04 spike (EMI/gevşek konnektör → anlık sıçrama), S05 gürültü (yaşlanma/titreşim → artmış varyans), S07 sapma (kalibrasyon kayması → yavaş bias). CPU şüphesi: lane işlemci/BIT hatası → kanal sağlıksız.',
+            en:'Each code represents a real fault physics. HARD (instantly invalid): S01 over-range (wire break/open-circuit → stuck at maximum), S02 under-range (short/ground → at minimum), S06 no-signal (supply loss → 0). SOFT (signal degradation): S04 spike (EMI/loose connector → instantaneous jump), S05 noise (aging/vibration → increased variance), S07 drift (calibration shift → slow bias). CPU suspect: lane processor/BIT error → channel unhealthy.'},
+    why(s){ return LANG==='tr' ? `Bunlar "sensör arızası neden çıkar"ın cevabı. HARD\'lar BIT ile anında kırmızı → oylamadan düşer; SOFT\'lar daha sinsi: S07 sapma yavaş olduğu için tek tek oylamayı kandırabilir ama OBM golden-model onu yakalar. CPU şüphesi sensörden bağımsız: kanalı komple dışlar. Enjektörden tipini seçip kanalda canlı dene.` : `These answer "why does a sensor fault arise". HARDs go red instantly via BIT → dropped from voting; SOFTs are sneakier: S07 drift is slow enough to fool voting on its own, but the OBM golden-model catches it. CPU suspect is independent of sensors: it excludes the whole channel. Pick a type in the injector and try it live on a channel.`; },
+    related:{ faultinjector:{tr:'Enjekte paneli',en:'Inject panel'}, senspill:{tr:'Sensör pill',en:'Sensor pill'}, obm:{tr:'SOFT sapma yakalama',en:'SOFT deviation catch'}, votematrix:{tr:'HARD izolasyon',en:'HARD isolation'} } },
+
+  faultinjector:{ domain:{tr:'FDIA · Test Tezgâhı',en:'FDIA · Test Bench'}, term:{tr:'Arıza Enjektörü',en:'Fault Injector'},
+    define:{tr:'Fault Detection/Isolation/Accommodation test tezgâhı. Sahte sayı üretmez — gerçek backend\'in inj{} kanalına yazar, böylece enjekte edilen arıza tüm oylama/izolasyon/kara-kutu zincirinden fiilen geçer. Param/kanal/örnek/tip/yön/şiddet seçilir.',
+            en:'A Fault Detection/Isolation/Accommodation test bench. It produces no fake numbers — it writes to the real backend\'s inj{} channel, so an injected fault actually passes through the whole voting/isolation/black-box chain. Param/channel/instance/type/direction/magnitude are selectable.'},
+    why(s){ return LANG==='tr' ? `Seçtiğin arıza doğrudan plant okumalarına enjekte edilir → 2oo3 oylama onu görür, ε-eşiğini aşarsa izole eder, fault word\'ü kodlar ve PFR\'a latch\'ler. "Çökert: OBM" analitik redundansı, "Zorla: Overspeed" bağımsız korumayı test eder. Hiçbir adım mock değil — bu yüzden savunulabilir.` : `The fault you pick is injected straight into the plant readings → 2oo3 voting sees it, isolates it if it crosses the ε-threshold, encodes the fault word and latches it into the PFR. "Crash: OBM" tests analytical redundancy, "Force: Overspeed" the independent protection. No step is mocked — that\'s why it\'s defensible.`; },
+    related:{ faultcodes:{tr:'Arıza tipleri',en:'Fault types'}, scenarios:{tr:'Hazır senaryolar',en:'Preset scenarios'}, faultword:{tr:'Kodlanan kelime',en:'Encoded word'} } },
+
+  scenarios:{ domain:{tr:'FDIA · Senaryolar',en:'FDIA · Scenarios'}, term:{tr:'Tek-Tık Senaryolar',en:'One-Click Scenarios'},
+    define:{tr:'Önceden kurulmuş arıza kombinasyonları — her biri belirli bir davranışı kanıtlar: Yarı-kör (EGT-C izole→2), Çift izolasyon (N2 A&B zıt→1·RTB), Lider devretme (A→B), Tam kayıp (üç kanal→OBM sentez), Açık-çevrim (kayıp+OBM çöküşü), Tek-kanal (A&B CPU→C·K11), Common-mode (3 kanal→OBM yakalar), CCDL kes (K05).',
+            en:'Preset fault combinations — each proves a specific behavior: Half-blind (EGT-C isolated→2), Dual isolation (N2 A&B opposite→1·RTB), Leader handover (A→B), Total loss (three channels→OBM synthesis), Open-loop (loss+OBM crash), Single-channel (A&B CPU→C·K11), Common-mode (3 channels→OBM catches), CCDL cut (K05).'},
+    why(s){ return LANG==='tr' ? `En öğretici ikisi: "Common-mode" oylamanın yetmediği, OBM\'in tek savunma olduğu durumu gösterir; "Açık-çevrim" hem kanalların hem OBM\'in bittiği en kötü hali. Her senaryo enjektörü resetleyip kombinasyonu kurar — degrade ladder\'ın ve kara kutunun gerçek tepkisini canlı izle.` : `The two most instructive: "Common-mode" shows the case where voting isn\'t enough and OBM is the only defense; "Open-loop" the worst case where both the channels and OBM are gone. Each scenario resets the injector and sets up the combination — watch the degrade ladder and black box respond live.`; },
+    related:{ faultinjector:{tr:'Manuel enjekte',en:'Manual inject'}, obm:{tr:'Common-mode',en:'Common-mode'}, degrade:{tr:'Ladder tepkisi',en:'Ladder response'} } },
+
+  /* ---------- M · PFR / CMC ---------- */
+  pfr:{ domain:{tr:'Bakım · Kara Kutu',en:'Maintenance · Black Box'}, term:{tr:'PFR / CMC — Post-Flight Report (Bakım Logu)',en:'PFR / CMC — Post-Flight Report (Maintenance Log)'},
+    define:{tr:'Central Maintenance Computer\'ın uçuş-sonrası raporu. Her arıza fault word olarak LATCH\'lenir (kalıcı) ve DEDUP edilir (aynı arıza tekrar tekrar yazılmaz). Format: 0xHHHH = [ALAN|KOD|CH|VOTER|COMP]. Gösterge anlıkken, bu kalıcı iz — bakımın okuduğu şey.',
+            en:'The Central Maintenance Computer\'s post-flight report. Every fault LATCHes as a fault word (persistent) and is DEDUP\'d (the same fault isn\'t written over and over). Format: 0xHHHH = [ALAN|KOD|CH|VOTER|COMP]. While the indicator is instantaneous, this is the persistent trace — what maintenance reads.'},
+    why(s){ const n=s.pfr?s.pfr.length:0;
+      return LANG==='tr' ? `Şu an <b>${n} latched fault</b>. Anlık göstergeler temizlense bile buradaki kayıt kalır (reset\'e kadar). Dedup sayesinde titreşen bir arıza logu boğmaz — gerçek CMC mantığı. Her satır cycle damgalı ve çözülmüş.` : `Now <b>${n} latched fault</b>. Even if the live indicators clear, the record here stays (until reset). Thanks to dedup a flickering fault won\'t drown the log — real CMC logic. Each line is cycle-stamped and decoded.`; },
+    related:{ faultword:{tr:'Kelime formatı',en:'Word format'}, faultinjector:{tr:'Latch kaynağı',en:'Latch source'}, annunciator:{tr:'Anlık uyarı (zıt)',en:'Live alert (contrast)'} } },
+
+  /* ---------- N + topbar çipleri ---------- */
+  reducedmode:{ domain:{tr:'İndirgenmiş Mod · ⚠ taslak',en:'Reduced Mode · ⚠ draft'}, term:{tr:'İndirgenmiş Mod (Reduced Mode) — chip',en:'Reduced Mode — chip'},
+    define:{tr:'Yedeklilik düştükçe kontrol yasasının kendini kıstığı reversiyoner mod. Seviye degrade/sentez/common-mode\'dan hesaplanır. Seviye 1 (DERATE): N2 tavanı %92 + yumuşak accel. Seviye 2 (REVERSION): N2 tavanı %85 + daha yumuşak accel. İki kaldıraç (otorite tavanı + accel hızı) yakıt komutuna fiilen bağlıdır.',
+            en:'The reversionary mode where the control law throttles itself as redundancy drops. The level is computed from degrade/synthesis/common-mode. Level 1 (DERATE): N2 ceiling 92% + softer accel. Level 2 (REVERSION): N2 ceiling 85% + even softer accel. Both levers (authority ceiling + accel rate) genuinely tie into the fuel command.'},
+    bands:{tr:'⚠ Bu kartın anlattığı v8 MEVCUT davranıştır; indirgenmiş mod algoritması ayrı bir tartışmada gözden geçirilecek (histerezis, türetilmiş eşikler, traceability).',
+           en:'⚠ This card describes the v8 CURRENT behavior; the reduced-mode algorithm will be reviewed in a separate discussion (hysteresis, derived thresholds, traceability).'},
+    why(s){ const rm=s.reducedMode||0;
+      if(rm===0) return LANG==='tr' ? `Şu an <b>seviye 0</b> — tam yetki, kısıt yok. Çip degrade≥2/sentez/common-mode olunca belirir.` : `Now <b>level 0</b> — full authority, no constraint. The chip appears at degrade≥2/synthesis/common-mode.`;
+      if(rm===1) return LANG==='tr' ? `<b>SEVİYE 1 · DERATE</b> — N2 tavanı %92\'ye, accel çarpanı 1.30\'a kısıldı. (degrade=2 veya common-mode.)` : `<b>LEVEL 1 · DERATE</b> — N2 ceiling cut to 92%, accel factor to 1.30. (degrade=2 or common-mode.)`;
+      return LANG==='tr' ? `<b>SEVİYE 2 · REVERSION</b> — N2 tavanı %85, accel 1.15. (degrade≤1 veya OBM-sentez.) Not: seviye geçişlerinde henüz histerezis yok — ayrı tartışma konusu.` : `<b>LEVEL 2 · REVERSION</b> — N2 ceiling 85%, accel 1.15. (degrade≤1 or OBM-synthesis.) Note: no hysteresis on level transitions yet — a separate discussion.`; },
+    related:{ degrade:{tr:'Tetikleyen seviye',en:'Triggering level'}, obm:{tr:'Sentez tetiği',en:'Synthesis trigger'}, wf:{tr:'Kısıtlanan komut',en:'Constrained command'} } },
+
+  voterstate:{ domain:{tr:'Topbar · Voter',en:'Topbar · Voter'}, term:{tr:'Voter Durumu (NORMAL / SPLIT / DUAL-LOSS / ISOLATED)',en:'Voter State (NORMAL / SPLIT / DUAL-LOSS / ISOLATED)'},
+    define:{tr:'O anki oylama rejiminin tek-kelime rozeti, en kötü parametreden alınır. NORMAL: üç lane uyumlu. SPLIT: bir lane aykırı/eksik (medyan hâlâ iki sağlamdan). DUAL-LOSS: iki+ lane kayıp/aykırı. ISOLATED: oylanacak lane kalmadı.',
+            en:'A one-word badge of the current voting regime, taken from the worst parameter. NORMAL: all three lanes agree. SPLIT: one lane outlier/missing (median still from two good ones). DUAL-LOSS: two+ lanes lost/outlier. ISOLATED: no lane left to vote.'},
+    why(s){ return LANG==='tr' ? `Şu an <b>${VN[s.voter]}</b>. Bu rozet, N2/EGT/N1 voter\'larının en kötüsü — yani "en zayıf halka" mantığı. Detaylı dağılım oylama matrisinde.` : `Now <b>${VN[s.voter]}</b>. This badge is the worst of the N2/EGT/N1 voters — i.e. "weakest link" logic. The detailed breakdown is in the voting matrix.`; },
+    related:{ votematrix:{tr:'Parametre dağılımı',en:'Parameter breakdown'}, degrade:{tr:'Kanal sağlığı',en:'Channel health'}, faultword:{tr:'VOTER alanı',en:'VOTER field'} } },
+
+  sync:{ domain:{tr:'Topbar · Senkron',en:'Topbar · Sync'}, term:{tr:'SYNC — Kanal Senkronizasyonu (LOCKED / PENDING)',en:'SYNC — Channel Synchronization (LOCKED / PENDING)'},
+    define:{tr:'Üç kanalın çapraz-senkron kilidi. LOCKED için gerekenler: cycle>3, degrade≥2 ve üç CCDL linki de açık. CCDL kaybı veya aşırı degrade kilidi PENDING\'e düşürür — bumpless devir ve koordineli oylama buna bağlıdır.',
+            en:'The cross-sync lock of the three channels. LOCKED requires: cycle>3, degrade≥2 and all three CCDL links up. A CCDL loss or excessive degrade drops the lock to PENDING — bumpless handover and coordinated voting depend on it.'},
+    why(s){ return s.sync
+      ? (LANG==='tr' ? `<b>LOCKED</b> — üç link açık, degrade≥2, kanallar senkron. Devirler koordineli olabilir.` : `<b>LOCKED</b> — all three links up, degrade≥2, channels in sync. Handovers can be coordinated.`)
+      : (LANG==='tr' ? `<b>PENDING</b> — kilit yok. Sebep: ${!(s.ccdl.AB&&s.ccdl.AC&&s.ccdl.BC)?'bir CCDL linki kopuk':s.degrade<2?'degrade çok düşük':'henüz başlangıç cycle\'ları'}.` : `<b>PENDING</b> — no lock. Reason: ${!(s.ccdl.AB&&s.ccdl.AC&&s.ccdl.BC)?'a CCDL link is down':s.degrade<2?'degrade too low':'still the initial cycles'}.`); },
+    related:{ ccdl:{tr:'CCDL linkleri',en:'CCDL links'}, sw2:{tr:'SYNC-LOCK biti',en:'SYNC-LOCK bit'}, interlock:{tr:'Devir kilidi',en:'Handover lock'} } },
+
+  enginemode:{ domain:{tr:'Topbar · Mod',en:'Topbar · Mode'}, term:{tr:'MODE — Üst Bar Motor Modu',en:'MODE — Top-Bar Engine Mode'},
+    define:{tr:'Motorun üst-seviye çalışma modu rozeti: STANDBY · START · RUN · SHUTDOWN · RELIGHT, abort durumunda START ABORT. Durum makinesi S0–S6\'nın insan-okur özeti.',
+            en:'The engine\'s high-level operating-mode badge: STANDBY · START · RUN · SHUTDOWN · RELIGHT, or START ABORT on abort. A human-readable summary of the state machine S0–S6.'},
+    why(s){ return LANG==='tr' ? `Şu an mod, S${s.S} fazından türetiliyor. ${s.S===4?'RUN — normal kapalı-çevrim.':s.startPhase==='HUNG'||s.startPhase==='HOT'?'START ABORT — başlatma başarısız, reset gerekir.':'Start/bekleme fazı.'}` : `The current mode is derived from the S${s.S} phase. ${s.S===4?'RUN — normal closed-loop.':s.startPhase==='HUNG'||s.startPhase==='HOT'?'START ABORT — start failed, reset required.':'Start/standby phase.'}`; },
+    related:{ statemachine:{tr:'Durum makinesi',en:'State machine'}, start:{tr:'Start butonu',en:'Start button'}, cycle:{tr:'Cycle sayacı',en:'Cycle counter'} } },
+
+  cycle:{ domain:{tr:'Topbar · Zaman',en:'Topbar · Time'}, term:{tr:'CYC — Cycle Sayacı',en:'CYC — Cycle Counter'},
+    define:{tr:'Deterministik simülasyon adımı sayacı. Sistem 20 Hz çalışır (her 50 ms bir cycle); her şey bu sabit adımda hesaplanır — gerçek zamanlı değil, tekrarlanabilir. Fault word\'lerin ve loglardaki zaman damgaları bu sayaçtan.',
+            en:'A deterministic simulation-step counter. The system runs at 20 Hz (one cycle every 50 ms); everything is computed on this fixed step — not real-time, but repeatable. The timestamps on fault words and in logs come from this counter.'},
+    why(s){ return LANG==='tr' ? `Şu an cycle <b>${s.cycle}</b>. Determinizm kasıtlı: aynı girdi → aynı çıktı, bu yüzden bir arıza senaryosu birebir tekrar üretilebilir (test edilebilirliğin temeli). 20 Hz = saniyede 20 cycle.` : `Now cycle <b>${s.cycle}</b>. Determinism is deliberate: same input → same output, so a fault scenario is exactly reproducible (the basis of testability). 20 Hz = 20 cycles per second.`; },
+    related:{ statemachine:{tr:'Faz ilerlemesi',en:'Phase progress'}, pfr:{tr:'Cycle damgası',en:'Cycle stamp'} } } };
+})();
+
+/* küçük metin yardımcıları (why içinde kullanılır) */
+function EGT_TXT(){ return '400→850 °C, idle→TO'; }
+function PMODE_TXT(p){ return ['GND-IDLE','FLT-IDLE','CLIMB','CRUISE','CONT','MIL','MAX'][p]||'—'; }
+function SMODE_TXT(S){ return ['OFF','CRANK','LIGHT-OFF','ACCEL','RUN','SHUTDOWN','FLAMEOUT/RELIGHT'][S]||'—'; }
+function SWbits(word,labels){ const out=[]; for(let i=0;i<labels.length;i++) if(word&(1<<i)) out.push(labels[i]); return out.join(' · '); }
+
+/* ===================================================================
+   i18n ÇEKİRDEĞİ — Adım 1 (salt-toplama; backend ve render() değişmez)
+   - Tek gerçek kaynak hâlâ FADECState; DİL yalnızca render katmanı.
+   - Nedensel why() artık {key,vars} döndürür (MANTIK); WHY[] dil şablonu (GRAMER).
+   - L(): {tr,en} alanını yereller, DÜZ string'i aynen geçirir → dönüştürülmemiş
+     ~36 kart bozulmaz (geri-uyum).
+   - EICAS/annunciasyon registerları (MODE/SYNC/VOTER/MASTER…) çevrilmez; render()
+     onları İngilizce yazar, bu blok onlara DOKUNMAZ.
+   =================================================================== */
+let LANG = (navigator.language||'en').toLowerCase().startsWith('tr') ? 'tr' : 'en';
+
+const I18N = {
+  tr:{
+    'btn.brfStart':'MOTORU ÇALIŞTIR →', 'btn.brfSkip':'brifingi atla',
+    'btn.brief':'ℹ <b style="color:var(--ref)">BRİFİNG</b>',
+    'seg.manual':'MANUEL', 'seg.auto':'OTO · FAB',
+    'hdr.pilot':'Pilot Konsolu', 'hdr.fdia':'[ ARIZA ENJEKTÖRÜ · FDIA ]',
+    'btn.inject':'⚠ ENJEKTE ET', 'btn.crashObm':'Çökert: OBM', 'btn.forceOvsp':'Zorla: Overspeed',
+    'hdr.authMatrix':'TMR ECU Otorite Matrisi', 'hdr.voteMatrix':'2oo3 Oylama Matrisi',
+    'tag.voteMatrix':'HER KANAL BAĞIMSIZ OKUR · MEDIAN · AYKIRI LANE OYLANIR',
+    'lbl.yksValve':'YKS / FMV (YAKIT VALFİ)', 'lbl.ovspSep':'TRIP > 115.0% · ANA DÖNGÜDEN AYRI',
+    'arch.body':'<b>MİMARİ:</b> Arayüz tek bir <b>FADECState</b> veri sözleşmesini okur; render katmanı backend\'den tamamen bağımsızdır. Backend her 50 ms\'de bir cycle ilerletir, sonucu FADECState\'e yazar — arayüz yalnızca onu çizer.<br>Backend = <b>plant modeli (Wf→spool, bağımsız N1/N2, EGT 2-zaman termal) + min-max limit seçici kontrol yasası + 2oo3 oylama/sağlık + OBM analitik redundans + FDIA</b>. Tüm arıza tespiti, oylama ve sentez gerçek; PFR kara kutusu backend\'in ürettiği 16-bit fault word\'leri latch\'ler.',
+    'eqp.crew':'◢ EKİP KÜNYESİ · BUILD CREW', 'eqp.rights':'© 2026 Demir Akın & Emre Karausta · Tüm hakları saklıdır',
+    'eqp.focus':'ODAK', 'eqp.field':'ALAN', 'eqp.intern':'STAJ', 'eqp.contrib':'KATKI', 'eqp.email':'✉&nbsp;&nbsp;E-posta', 'eqp.portfolio':'⬡&nbsp;&nbsp;Portfolyo',
+    'eqp.roleD':'Elektrik-Elektronik Mühendisliği · 3. sınıf', 'eqp.uniKoc':'Koç Üniversitesi',
+    'eqp.focusDemir':'<em>FADEC</em> · kontrol yasası · 2oo3 redundans', 'eqp.fieldDemir':'Jet motoru kontrol sistemleri · gömülü',
+    'eqp.roleE':'Elektrik-Elektronik Mühendisliği · 2. sınıf', 'eqp.focusEmre':'Plant fiziği · sensör verisi modelleme',
+    'eqp.contribEmre':'<em>2oo3</em> edge-case testi · UX optimizasyonu',
+    'btn.startHung':'Start: Hung', 'btn.startHot':'Start: Hot', 'btn.clearAll':'◼ TÜM ARIZALARI SİL',
+    'ietm.more':'▾ DAHA FAZLA · canlı analiz', 'ietm.less':'▴ canlı analizi gizle', 'ietm.related':'İlgili',
+    'ietm.phaseDom':'genişleme fazı',
+    'ietm.phaseBody':'Bu kart için ayrı içerik tanımlı değil; navigasyon/canlı-bağ altyapısı çalışıyor.',
+    'hdr.fabMission':'FAB · Otonom Misyon', 'hdr.fabLog':'FAB Karar Logu', 'hdr.engState':'Motor Durumu',
+    'hdr.thrustMode':'İtki Modu', 'hdr.primary':'Birincil Motor Göstergeleri', 'hdr.faultWord':'16-bit Fault Word · Canlı Decode',
+    'hdr.obm':'OBM · Beklenen vs Gerçek', 'hdr.sensor':'Sensör Durum Panosu', 'hdr.overspeed':'Bağımsız Overspeed Koruması',
+    'hdr.pfr':'PFR / CMC · Bakım Logu (Kara Kutu)', 'hdr.scenarios':'[ SENARYOLAR · tek tık ]',
+    'tag.latestFault':'EN SON ARIZA', 'tag.scriptSup':'SCRIPT + SÜPERVİZÖR', 'tag.sw1':'SW1 — LANE (LİDER)', 'tag.sw2':'SW2 — SİSTEM',
+    'tag.sensorLegend':'YEŞİL=GEÇERLİ · KIRMIZI=HARD ARIZA (BIT)', 'tag.wfLegend':'▏ hedef &nbsp; ▎ gerçek', 'chip.reduced':'İNDİRGENMİŞ MOD',
+    'brf.eyebrow':'◢ UÇUŞ ÖNCESİ BRİFİNG', 'brf.engHdr':'GÖSTERDİĞİ MÜHENDİSLİK', 'brf.howHdr':'NASIL DENENİR',
+    'brf.meta':'TEK DOSYA · BUILD YOK<br>DETERMİNİSTİK · 20 Hz',
+    'brf.thesis':'Tek motorlu bir UCAV turbofanının üç-kanal (TMR) FADEC\'i — tarayıcıda canlı, deterministik tam-yetki dijital motor kontrolü. Plant fiziği, kontrol yasası, arıza tespiti ve otonom misyon arka planda gerçekten çalışır; arayüz yalnızca tek bir durum sözleşmesini (FADECState) okur.',
+    'brf.eng1':'<b>2oo3 medyan oylama</b> + HARD/SOFT arıza ayrımı, bumpless lider devretme',
+    'brf.eng2':'<b>OBM analitik redundans</b> — oylamanın göremediği common-mode arızayı yakalar',
+    'brf.eng3':'<b>Min-max limit seçici</b> kontrol yasası — accel/decel, N2/EGT, flameout-emniyetli',
+    'brf.eng4':'<b>FAB otonom misyon</b> — sağlık-tetikli derate / RTB / abort, denetlenebilir karar logu',
+    'brf.eng5':'<b>Gerçek start sekansı</b> (hung/hot), indirgenmiş mod, 16-bit fault word kara kutu',
+    'brf.eng6':'<b>IETM · interaktif teknik kılavuz</b> — arayüzdeki her göstergeye/sensöre tıkla; ne olduğunu ve o anki nedenini canlı gör (öğrenme modu)',
+    'brf.how1':'<b>Motoru çalıştır</b> — start sekansını izle: CRANK → LIGHT-OFF → RUN',
+    'brf.how2':'<b>Gaz kolunu kaydır</b> — N2/EGT tepkisi; sabit gazda EGT yavaşça ısınır',
+    'brf.how3':'<b>Arıza enjekte et</b> (sağ alt panel) — 2oo3 izolesini ve kara kutuyu izle',
+    'brf.how4':'<b>"Common-mode" senaryosu</b> — OBM\'in oylamadan farkını gör',
+    'brf.how5':'<b>OTO · FAB</b> — otonom misyon; ortada arıza ver, FAB\'ın kararını izle',
+    'brf.how6':'<b>IETM moduna geç</b> (üst bar) — tanımadığın bir göstergeye tıkla, "DAHA FAZLA" ile canlı analizini oku',
+    'lbl.sensor':'Sensör', 'lbl.channel':'Kanal', 'lbl.instance':'Instance', 'lbl.dir':'Yön', 'lbl.mag':'Şiddet ×ε', 'lbl.faultType':'Arıza tipi',
+    'fc.s01':'S01 aralık-üstü · HARD', 'fc.s02':'S02 aralık-altı · HARD', 'fc.s06':'S06 sinyal-yok · HARD',
+    'fc.s04':'S04 spike · SOFT', 'fc.s05':'S05 gürültü · SOFT', 'fc.s07':'S07 sapma · SOFT', 'fc.cpu':'CPU şüphesi · lane'
+  },
+  en:{
+    'btn.brfStart':'START ENGINE →', 'btn.brfSkip':'skip briefing',
+    'btn.brief':'ℹ <b style="color:var(--ref)">BRIEFING</b>',
+    'seg.manual':'MANUAL', 'seg.auto':'AUTO · FAB',
+    'hdr.pilot':'Pilot Console', 'hdr.fdia':'[ FAULT INJECTOR · FDIA ]',
+    'btn.inject':'⚠ INJECT', 'btn.crashObm':'Crash: OBM', 'btn.forceOvsp':'Force: Overspeed',
+    'hdr.authMatrix':'TMR ECU Authority Matrix', 'hdr.voteMatrix':'2oo3 Voting Matrix',
+    'tag.voteMatrix':'EACH CHANNEL READS INDEPENDENTLY · MEDIAN · OUTLIER LANE VOTED OUT',
+    'lbl.yksValve':'YKS / FMV (FUEL VALVE)', 'lbl.ovspSep':'TRIP > 115.0% · SEPARATE FROM MAIN LOOP',
+    'arch.body':'<b>ARCHITECTURE:</b> The UI reads a single <b>FADECState</b> data contract; the render layer is fully independent of the backend. The backend advances one cycle every 50 ms and writes the result to FADECState — the UI only draws it.<br>Backend = <b>plant model (Wf→spool, independent N1/N2, two-time-constant EGT thermal) + min-max limit-selector control law + 2oo3 voting/health + OBM analytical redundancy + FDIA</b>. All fault detection, voting and synthesis are real; the PFR black box latches the 16-bit fault words the backend produces.',
+    'eqp.crew':'◢ TEAM CREDITS · BUILD CREW', 'eqp.rights':'© 2026 Demir Akın & Emre Karausta · All rights reserved',
+    'eqp.focus':'FOCUS', 'eqp.field':'FIELD', 'eqp.intern':'INTERNSHIP', 'eqp.contrib':'CONTRIBUTION', 'eqp.email':'✉&nbsp;&nbsp;Email', 'eqp.portfolio':'⬡&nbsp;&nbsp;Portfolio',
+    'eqp.roleD':'Electrical & Electronic Engineering · 3rd year', 'eqp.uniKoc':'Koç University',
+    'eqp.focusDemir':'<em>FADEC</em> · control law · 2oo3 redundancy', 'eqp.fieldDemir':'Jet engine control systems · embedded',
+    'eqp.roleE':'Electrical & Electronic Engineering · 2nd year', 'eqp.focusEmre':'Plant physics · sensor data modeling',
+    'eqp.contribEmre':'<em>2oo3</em> edge-case testing · UX optimization',
+    'btn.startHung':'Start: Hung', 'btn.startHot':'Start: Hot', 'btn.clearAll':'◼ CLEAR ALL FAULTS',
+    'ietm.more':'▾ MORE · live analysis', 'ietm.less':'▴ hide live analysis', 'ietm.related':'Related',
+    'ietm.phaseDom':'expansion phase',
+    'ietm.phaseBody':'No dedicated content for this card yet; navigation / live-binding scaffolding is running.',
+    'hdr.fabMission':'FAB · Autonomous Mission', 'hdr.fabLog':'FAB Decision Log', 'hdr.engState':'Engine State',
+    'hdr.thrustMode':'Thrust Mode', 'hdr.primary':'Primary Engine Indications', 'hdr.faultWord':'16-bit Fault Word · Live Decode',
+    'hdr.obm':'OBM · Expected vs Actual', 'hdr.sensor':'Sensor Status Board', 'hdr.overspeed':'Independent Overspeed Protection',
+    'hdr.pfr':'PFR / CMC · Maintenance Log (Black Box)', 'hdr.scenarios':'[ SCENARIOS · one-click ]',
+    'tag.latestFault':'LATEST FAULT', 'tag.scriptSup':'SCRIPT + SUPERVISOR', 'tag.sw1':'SW1 — LANE (LEADER)', 'tag.sw2':'SW2 — SYSTEM',
+    'tag.sensorLegend':'GREEN=VALID · RED=HARD FAULT (BIT)', 'tag.wfLegend':'▏ target &nbsp; ▎ actual', 'chip.reduced':'REDUCED MODE',
+    'brf.eyebrow':'◢ PRE-FLIGHT BRIEFING', 'brf.engHdr':'ENGINEERING IT DEMONSTRATES', 'brf.howHdr':'HOW TO TRY IT',
+    'brf.meta':'SINGLE FILE · NO BUILD<br>DETERMINISTIC · 20 Hz',
+    'brf.thesis':'The three-channel (TMR) FADEC of a single-engine UCAV turbofan — live, deterministic full-authority digital engine control in the browser. The plant physics, control law, fault detection and autonomous mission genuinely run in the background; the UI only reads a single state contract (FADECState).',
+    'brf.eng1':'<b>2oo3 median voting</b> + HARD/SOFT fault distinction, bumpless leader handover',
+    'brf.eng2':'<b>OBM analytical redundancy</b> — catches the common-mode fault voting can\'t see',
+    'brf.eng3':'<b>Min-max limit selector</b> control law — accel/decel, N2/EGT, flameout-safe',
+    'brf.eng4':'<b>FAB autonomous mission</b> — health-triggered derate / RTB / abort, auditable decision log',
+    'brf.eng5':'<b>Real start sequence</b> (hung/hot), reduced mode, 16-bit fault word black box',
+    'brf.eng6':'<b>IETM · interactive technical manual</b> — click any indicator/sensor in the UI; see what it is and why it\'s doing that, live (learning mode)',
+    'brf.how1':'<b>Start the engine</b> — watch the start sequence: CRANK → LIGHT-OFF → RUN',
+    'brf.how2':'<b>Move the thrust lever</b> — N2/EGT response; at steady throttle EGT heats slowly',
+    'brf.how3':'<b>Inject a fault</b> (lower-right panel) — watch 2oo3 isolation and the black box',
+    'brf.how4':'<b>"Common-mode" scenario</b> — see how OBM differs from voting',
+    'brf.how5':'<b>AUTO · FAB</b> — autonomous mission; inject a fault mid-flight, watch FAB\'s decision',
+    'brf.how6':'<b>Switch to IETM mode</b> (top bar) — click an indicator you don\'t know, read its live analysis via "MORE"',
+    'lbl.sensor':'Sensor', 'lbl.channel':'Channel', 'lbl.instance':'Instance', 'lbl.dir':'Direction', 'lbl.mag':'Magnitude ×ε', 'lbl.faultType':'Fault type',
+    'fc.s01':'S01 over-range · HARD', 'fc.s02':'S02 under-range · HARD', 'fc.s06':'S06 no-signal · HARD',
+    'fc.s04':'S04 spike · SOFT', 'fc.s05':'S05 noise · SOFT', 'fc.s07':'S07 drift · SOFT', 'fc.cpu':'CPU suspect · lane'
+  }
+};
+function t(k){ const d=I18N[LANG]||I18N.en; return (k in d)?d[k]:(k in I18N.en?I18N.en[k]:k); }
+
+/* L(): {tr,en} → yerel ; düz string → aynen (geri-uyum kalkanı). */
+function L(v){ return (v&&typeof v==='object'&&('tr' in v||'en' in v)) ? (v[LANG]??v.tr??v.en) : v; }
+
+/* WHY: nedensel şablonlar — her anahtarda tr VE en BİTİŞİK (desync gözle görülür).
+   vars sayıları taşır, şablon grameri taşır; ikisi ayrı katman. */
+const WHY = {
+  'egt.redline':{
+    tr:v=>`Şu an <b>${v.e} °C</b> → REDLINE (${v.R}) aşıldı. Limit selector EGT korumasını seçti: yakıt komutu Wf, ${v.A}→${v.R} bandında lineer kısılıyor (accel artık EGT-sınırlı). LIMIT·L-EGT fault word <b>${v.hex}</b> PFR'a latch'lendi; SW1 LIMIT biti set.`,
+    en:v=>`Now <b>${v.e} °C</b> → REDLINE (${v.R}) exceeded. The limit selector picked EGT protection: fuel command Wf is throttled linearly across the ${v.A}→${v.R} band (accel is now EGT-limited). The LIMIT·L-EGT fault word <b>${v.hex}</b> is latched into the PFR; SW1 LIMIT bit set.`
+  },
+  'egt.amber':{
+    tr:v=>`Şu an <b>${v.e} °C</b> → AMBER bant (${v.A}–${v.R}). EGT koruması bu noktada devreye girmeye başladı; ${v.A} °C üstünde Wf kademeli kısılır. SW1 LIMIT biti set. Redline'a <b>${v.margin} °C</b> kaldı.`,
+    en:v=>`Now <b>${v.e} °C</b> → AMBER band (${v.A}–${v.R}). EGT protection begins to engage here; above ${v.A} °C, Wf is progressively throttled. SW1 LIMIT bit set. <b>${v.margin} °C</b> left to redline.`
+  },
+  'egt.nominal':{
+    tr:v=>`Şu an <b>${v.e} °C</b> → nominal. Amber ${v.A}, redline ${v.R}; marjin <b>${v.margin} °C</b>. EGT, N2 ile yükselir (denge ${v.eq}). Sabit gazda yavaş metal soak (~60 sn) nedeniyle az sürüklenir — kasıtlı.`,
+    en:v=>`Now <b>${v.e} °C</b> → nominal. Amber ${v.A}, redline ${v.R}; margin <b>${v.margin} °C</b>. EGT rises with N2 (balance ${v.eq}). At steady throttle it drifts slightly from slow metal soak (~60 s) — intentional.`
+  },
+  'n1.main':{
+    tr:v=>`Şu an N1 <b>${v.n1}%</b>, N2 ${v.n2}%. N1 mekanik değil aerodinamik bağlı; N2 değişince N1 ataletle (~3.5 sn) takip eder — gaz attığında N2 önce, N1 sonra oturur. Idle'da N1 düşük kalır (bağ kopuk değil, sadece aero-yük düşük).`,
+    en:v=>`Now N1 <b>${v.n1}%</b>, N2 ${v.n2}%. N1 is aerodynamically — not mechanically — coupled; when N2 changes, N1 follows with inertia (~3.5 s) — on a throttle push N2 settles first, N1 after. At idle N1 stays low (the coupling isn't broken, the aero load is just low).`
+  }
+};
+
+/* whyText(): yeni-stil {key,vars} → şablon ; eski-stil düz string → aynen (geri-uyum). */
+function whyText(e,s){
+  const r=e.why(s);
+  if(r&&typeof r==='object'&&'key' in r){
+    const tm=WHY[r.key];
+    if(tm&&tm[LANG]) return tm[LANG](r.vars||{});
+    return `[i18n eksik: ${r.key}.${LANG}]`;   // GÖRÜNÜR hata — sessiz desync yok
+  }
+  return r;
+}
+
+/* dev-check: her WHY anahtarı hem tr hem en içermeli (sahte tamlık'a karşı kalkan). */
+(function i18nSelfCheck(){
+  const miss=[];
+  for(const k in WHY){ if(typeof WHY[k].tr!=='function') miss.push(k+'.tr'); if(typeof WHY[k].en!=='function') miss.push(k+'.en'); }
+  if(miss.length) console.error('[i18n] EKSİK WHY çevirisi:',miss);
+  else console.log('[i18n] WHY self-check OK —',Object.keys(WHY).length,'anahtar × {tr,en}');
+})();
+
+function applyI18n(){
+  document.documentElement.lang=LANG;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const k=el.getAttribute('data-i18n'), v=t(k);
+    if(el.hasAttribute('data-i18n-html')) el.innerHTML=v; else el.textContent=v;
+  });
+  const en=document.getElementById('langEn'), tr=document.getElementById('langTr');
+  if(en&&tr){ en.classList.toggle('on',LANG==='en'); tr.classList.toggle('on',LANG==='tr'); }
+  if(typeof ietmCur!=='undefined' && ietmCur) ietmRender();   // açık kartı yeniden yerelle (tier-1 + tier-2)
+  if(typeof render==='function') render();
+  if(typeof renderFAB==='function') renderFAB();   // JS-driven chrome'u (fabTag/fabLeg/reduced-mode/abort) anında tazele
+  if(typeof buildScenGrid==='function') buildScenGrid();   // senaryo gridini yeniden kur (çift dilli etiket/açıklama)
+}
+function setLang(l){ if(l!==LANG){ LANG=l; applyI18n(); } }
+
+/* ---- IETM runtime (toggle · tıkla · tier-1/tier-2 · canlı tazele · navigasyon) ---- */
+let ietmOn=false, ietmCur=null, ietmLabel='', ietmExp=false;
+const ietmCardEl=()=>document.getElementById('ietmCard');
+
+function ietmToggle(){ ietmOn=!ietmOn; document.body.classList.toggle('ietm-on',ietmOn); document.getElementById('ietmBtn').classList.toggle('on',ietmOn); if(!ietmOn) ietmClose(); }
+function ietmOpen(id,label){ ietmCur=id; ietmLabel=label||''; ietmExp=false; ietmCardEl().classList.add('show'); ietmRender(); }
+function ietmClose(){ ietmCur=null; ietmCardEl().classList.remove('show'); }
+function ietmRender(){
+  const e=IETM[ietmCur];
+  if(!e){ ietmCardEl().innerHTML=
+      `<div class="ietm-hd"><span class="ietm-dom">${t('ietm.phaseDom')}</span><button class="ietm-x" data-ietm-close>✕</button></div>
+       <div class="ietm-term">${ietmLabel||ietmCur}</div>
+       <div class="ietm-def" style="color:var(--ink-dim)">${t('ietm.phaseBody')}</div>`; return; }
+  const rel=Object.entries(e.related||{}).map(([id,lbl])=>{const rl=L(lbl);return `<button class="ietm-rel" data-jump="${id}" data-label="${rl}">${rl}</button>`;}).join('');
+  ietmCardEl().innerHTML=
+    `<div class="ietm-hd"><span class="ietm-dom">${L(e.domain)}</span><button class="ietm-x" data-ietm-close>✕</button></div>
+     <div class="ietm-term">${L(e.term)}</div>
+     <div class="ietm-def">${L(e.define)}</div>
+     ${e.bands?`<div class="ietm-bands">${L(e.bands)}</div>`:''}
+     <button class="ietm-more" data-ietm-more>${ietmExp?t('ietm.less'):t('ietm.more')}</button>
+     ${ietmExp?`<div class="ietm-why">${whyText(e,FADECState)}</div>${rel?`<div class="ietm-rel-row"><span class="ietm-rel-lbl">${t('ietm.related')}</span>${rel}</div>`:''}`:''}`;
+}
+function ietmRefresh(){
+  // SADECE canli why-metnini guncelle; X/DAHA-FAZLA/related dugumlerini YOK ETME.
+  // (Tum innerHTML'i 50ms'de yeniden kurmak, gercek tarayicida mousedown/mouseup'i
+  //  farkli dugumlere dusurup click'i olduruyordu -> X kapanmiyordu.)
+  if(!(ietmOn&&ietmCur&&ietmExp&&IETM[ietmCur])) return;
+  const w=document.querySelector('#ietmCard .ietm-why');
+  if(w) w.innerHTML=whyText(IETM[ietmCur],FADECState);
+}
+
+document.addEventListener('click',ev=>{
+  const t=ev.target;
+  if(t.closest('[data-ietm-close]')){ ietmClose(); return; }
+  if(t.closest('[data-ietm-more]')){ ietmExp=!ietmExp; ietmRender(); return; }
+  const j=t.closest('[data-jump]'); if(j){ ietmOpen(j.dataset.jump,j.dataset.label); return; }
+  if(!ietmOn) return;
+  const hot=t.closest('[data-ietm]'); if(hot) ietmOpen(hot.dataset.ietm,'');
+});
+document.getElementById('ietmBtn').addEventListener('click',ietmToggle);
+
+setInterval(()=>{ realStep(0.05); render(); ietmRefresh(); },50);
+render();
+
+/* ---- dil toggle wiring + açılışta locale uygulaması ---- */
+document.getElementById('langEn').addEventListener('click',()=>setLang('en'));
+document.getElementById('langTr').addEventListener('click',()=>setLang('tr'));
+applyI18n();
+</script>
+</body>
+</html>

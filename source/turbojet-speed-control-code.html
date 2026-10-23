@@ -1,0 +1,263 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Turbojet speed control · Code</title><style>*{box-sizing:border-box}html{color-scheme:light}body{margin:0;background:#f5f3ed;color:#20261f;font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1120px;margin:auto;padding:40px 28px 80px}a{color:#2756dc;text-underline-offset:4px}a:hover{color:#173b9e}a:focus-visible{outline:3px solid #2756dc;outline-offset:5px}nav{display:flex;gap:24px;flex-wrap:wrap;font-size:14px}h1{font-size:clamp(32px,5vw,64px);line-height:1.08;letter-spacing:-.045em;margin:36px 0 18px;max-width:900px}h2{font-size:25px;letter-spacing:-.025em;margin-top:44px}p{max-width:850px}.eyebrow{text-transform:uppercase;font-size:12px;font-weight:700;letter-spacing:.14em;color:#52604c}.status{display:inline-block;border:1px solid #cbd1c4;border-radius:3px;padding:8px 12px;background:#eaf0e3;font-size:14px}.rights{border-left:3px solid #2756dc;padding:6px 22px;margin:28px 0;background:#efeee7}.actions{display:flex;gap:20px;flex-wrap:wrap;margin:24px 0}.button{display:inline-block;background:#2756dc;color:white;padding:11px 18px;text-decoration:none;border-radius:3px}.button:hover{background:#173b9e;color:white}table{border-collapse:collapse;width:100%;font:14px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}th{text-align:left;background:#e7e7de}td,th{padding:11px 14px;border-bottom:1px solid #d9dcd1}td:first-child{overflow-wrap:anywhere}td:nth-child(2),th:nth-child(2){text-align:right;white-space:nowrap}.table-wrap{overflow:auto}pre{padding:24px;border:1px solid #d9dcd1;border-radius:4px;background:#faf9f5;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace}footer{margin-top:48px;font-size:13px;color:#52604c}@media(max-width:540px){main{padding:25px 18px 50px}pre{padding:16px;font-size:13px}td,th{padding:9px 7px}}section{scroll-margin-top:25px}h2{overflow-wrap:anywhere}@media(max-width:540px){nav{gap:8px 16px}a{min-height:44px;display:inline-flex;align-items:center}td a{font-size:14px;overflow-wrap:anywhere}pre{font-size:14px;line-height:1.65}h1{overflow-wrap:anywhere}.actions{gap:8px 16px}.table-wrap{border:1px solid #d9dcd1}.rights{padding:8px 14px}}</style></head><body><main><nav><a href="turbojet-speed-control.html">← Source package</a><a href="../index.html#library">Portfolio projects</a></nav><p class="eyebrow">READABLE SOURCE / ORIGINAL NOTICES RETAINED</p><h1>Turbojet speed control</h1><section id="file-.gitignore"><h2>.gitignore</h2><p><a href="turbojet-speed-control/.gitignore" download>Download raw file ↓</a> · <a href="turbojet-speed-control.html#file-.gitignore">Back to file index</a></p><pre>results/
+slprj/
+*.slxc
+*.autosave
+*.asv
+*.slx.r20*
+.DS_Store
+__pycache__/
+</pre></section><section id="file-ATTRIBUTION.md"><h2>ATTRIBUTION.md</h2><p><a href="turbojet-speed-control/ATTRIBUTION.md" download>Download raw file ↓</a> · <a href="turbojet-speed-control.html#file-ATTRIBUTION.md">Back to file index</a></p><pre># Attribution and publication rights
+
+Educational modelling work by Emre Karausta, described in the master CV as independently built during the Kale Jet Engines internship. The selected files contained no explicit public licence. The generated lookup values are presented as illustrative; their availability does not establish employer permission to distribute internship-related work.
+
+No MIT or other blanket licence is assigned. Review the internship agreement and confirm ownership and publication clearance before posting these files publicly. MathWorks products and library blocks remain subject to their own licences. This local preparation does not publish the model or claim endorsement by an employer.
+</pre></section><section id="file-README.md"><h2>README.md</h2><p><a href="turbojet-speed-control/README.md" download>Download raw file ↓</a> · <a href="turbojet-speed-control.html#file-README.md">Back to file index</a></p><pre># Turbojet speed-control simulation
+
+An educational MATLAB/Simulink model by Emre Karausta, developed independently during an internship learning exercise. Two illustrative plants share a throttle/altitude speed schedule, steady-state fuel feedforward, a PI correction, acceleration/deceleration fuel schedules, a fuel rate limiter and transport delay. One plant uses a first-order speed response; the other uses a nonlinear normalized-spool equation.
+
+The lookup tables and spool coefficients are illustrative generated inputs. They are not validated engine maps. Fuel units were ambiguous in the original comments, so numerical fuel values are reported in model units. RPM is a percentage of nominal speed.
+
+## Run
+
+Requires MATLAB R2024b and Simulink.
+
+```sh
+python3 verify.py
+```
+
+`MATLAB_BIN` can select MATLAB. Close already-open target models before running; preflight refuses them without changing or closing them. Unrelated models are left intact. The wrapper isolates preferences, working directory and temporary files, enforces a 600-second process timeout, and writes generated traces/cache to ignored `results/`. `run_all.m` initializes every required variable through `Simulink.SimulationInput`; no manual `datas` run or base-workspace setup is needed.
+
+For each plant, the runner tests the saved throttle step, constant zero throttle, and a full-throttle-to-idle command. It checks finite nonnegative RPM, fuel target bounds, PI clamping configuration and final tracking within one RPM percentage point. Logging and scenario overrides exist only in memory. No original model tuning was changed.
+
+Anti-windup is the PI block&#x27;s own output clamping. External acceleration, deceleration and rate limits do not feed an explicit tracking anti-windup loop. The tests demonstrate simulated behavior under the documented scenarios, not engine-operating limits or production FADEC performance.
+
+See [VERIFICATION.md](VERIFICATION.md), compact `evidence/` and [ATTRIBUTION.md](ATTRIBUTION.md). No hardware was connected or actuated, and nothing was published.
+</pre></section><section id="file-VERIFICATION.md"><h2>VERIFICATION.md</h2><p><a href="turbojet-speed-control/VERIFICATION.md" download>Download raw file ↓</a> · <a href="turbojet-speed-control.html#file-VERIFICATION.md">Back to file index</a></p><pre># Verification — 22 October 2026
+
+`python3 verify.py` completed with exit 0 using MATLAB 24.2.0.2923080 (R2024b) Update 6 and Simulink 24.2 on macOS 15.7.3, Apple Silicon. MATLAB ran in a temporary cwd with isolated preferences/TMPDIR and a 600-second process timeout. Only copies were opened. See `evidence/results.json` and `evidence/verification.log`.
+
+The final wrapper also passes a regression confirming already-loaded targets are refused intact and unrelated unsaved models remain open. All six 90-second scenarios passed: the saved throttle step, constant zero throttle, and full throttle until 45 s followed by zero throttle, for each saved plant. Tests assert finite nonnegative RPM, the 180-unit deceleration fuel floor, acceleration-fuel schedule bounds, PI internal clamping configuration, and final absolute tracking error below one RPM percentage point. The existing rate-limiter blocks remain ±3000 model fuel units/s; a separate numerical slew-rate assertion was not added.
+
+| Plant/scenario | Final RPM % | Target RPM % | Absolute error |
+|---|---:|---:|---:|
+| First-order, saved 25→30% throttle step | 75.0485098674 | 75 | 0.0485098674 |
+| First-order, zero throttle | 40 | 40 | 0 |
+| First-order, 100→0% throttle | 40.0000210089 | 40 | 0.0000210089 |
+| Nonlinear, saved 50→55% throttle step | 87.5000000000 | 87.5 | 1.9e−11 |
+| Nonlinear, zero throttle | 40 | 40 | 0 |
+| Nonlinear, 100→0% throttle | 40.0000000066 | 40 | 6.6e−9 |
+
+Maximum fuel-schedule excess was 4.55e−13 (round-off). The full-to-idle target fuel ranged from 180 to 1770.1577 for the first-order plant and 180 to 2629.2714 for the nonlinear plant. Tables and full numerical output are recorded in JSON.
+
+The master CV&#x27;s simulated throttle regulation and idle-at-zero-throttle claims are supported by these runs. The models contain PI controllers with `AntiWindupMode=clamping` and output limiting enabled. This is local PI clamping; no explicit tracking feedback from the external fuel/rate limiters is present. The report therefore does not claim robust anti-windup under every external saturation combination.
+
+The release fixes clean-start initialization and logging only: all lookup/spool variables are passed explicitly through `Simulink.SimulationInput`, and scenario overrides/logging are in memory. The original `.slx` models and `datas.m` coefficients are unchanged. Red check before the new harness failed because a clean-start runner was absent; final runs need no manual base-workspace setup. During harness development, duplicate named signal branches and an incorrect multi-parameter `setBlockParameter` call were exposed by actual MATLAB runs and corrected before the passing full run.
+
+Initial engine speed is inherited from the saved models, not a physical crank/start sequence. No altitude sweep, validated fuel units, calibrated engine data, real-engine test, physical safety qualification or full operating-envelope proof was performed. Suggested CV wording can remain “illustrative Simulink turbojet speed-control model with PI clamping, fuel schedules and rate limiting; demonstrated simulated RPM tracking and idle retention at zero throttle.” Rights to publish internship-related files remain undetermined; see `ATTRIBUTION.md`. No publishing, remote or hardware action occurred.
+</pre></section><section id="file-evidence/environment.txt"><h2>evidence/environment.txt</h2><p><a href="turbojet-speed-control/evidence/environment.txt" download>Download raw file ↓</a> · <a href="turbojet-speed-control.html#file-evidence/environment.txt">Back to file index</a></p><pre>MATLAB 24.2.0.2923080 (R2024b) Update 6
+macOS 15.7.3 Apple Silicon
+Simulink24.2
+</pre></section><section id="file-evidence/results.json"><h2>evidence/results.json</h2><p><a href="turbojet-speed-control/evidence/results.json" download>Download raw file ↓</a> · <a href="turbojet-speed-control.html#file-evidence/results.json">Back to file index</a></p><pre>{
+  &quot;matlab_version&quot;: &quot;24.2.0.2923080 (R2024b) Update 6&quot;,
+  &quot;override_n_feedfw_feedbk_ctrl&quot;: {
+    &quot;antiwindup&quot;: &quot;PI internal output clamping (not external limiter tracking)&quot;,
+    &quot;original_step&quot;: {
+      &quot;final_rpm&quot;: 75.048509867432216,
+      &quot;final_target&quot;: 75,
+      &quot;final_error&quot;: 0.04850986743221597,
+      &quot;fuel_min&quot;: 500,
+      &quot;fuel_max&quot;: 827.314416652955,
+      &quot;max_accel_limit_excess&quot;: 1.1368683772161603E-13
+    },
+    &quot;idle&quot;: {
+      &quot;final_rpm&quot;: 40,
+      &quot;final_target&quot;: 40,
+      &quot;final_error&quot;: 0,
+      &quot;fuel_min&quot;: 180.96748256561114,
+      &quot;fuel_max&quot;: 200,
+      &quot;max_accel_limit_excess&quot;: -300
+    },
+    &quot;full_to_idle&quot;: {
+      &quot;final_rpm&quot;: 40.000021008855065,
+      &quot;final_target&quot;: 40,
+      &quot;final_error&quot;: 2.1008855064508225E-5,
+      &quot;fuel_min&quot;: 180,
+      &quot;fuel_max&quot;: 1770.1576632141014,
+      &quot;max_accel_limit_excess&quot;: 2.2737367544323206E-13
+    }
+  },
+  &quot;override_n_feedfw_feedbk_ctrl_torque_plant&quot;: {
+    &quot;antiwindup&quot;: &quot;PI internal output clamping (not external limiter tracking)&quot;,
+    &quot;original_step&quot;: {
+      &quot;final_rpm&quot;: 87.500000000019142,
+      &quot;final_target&quot;: 87.5,
+      &quot;final_error&quot;: 1.91420213013771E-11,
+      &quot;fuel_min&quot;: 1138.137180945813,
+      &quot;fuel_max&quot;: 2346.7132636976185,
+      &quot;max_accel_limit_excess&quot;: 4.5474735088646412E-13
+    },
+    &quot;idle&quot;: {
+      &quot;final_rpm&quot;: 40,
+      &quot;final_target&quot;: 40,
+      &quot;final_error&quot;: 0,
+      &quot;fuel_min&quot;: 180,
+      &quot;fuel_max&quot;: 202.74156199643477,
+      &quot;max_accel_limit_excess&quot;: -297.25843800356523
+    },
+    &quot;full_to_idle&quot;: {
+      &quot;final_rpm&quot;: 40.000000006628639,
+      &quot;final_target&quot;: 40,
+      &quot;final_error&quot;: 6.6286389710512594E-9,
+      &quot;fuel_min&quot;: 180,
+      &quot;fuel_max&quot;: 2629.2714453678136,
+      &quot;max_accel_limit_excess&quot;: 4.5474735088646412E-13
+    }
+  }
+}</pre></section><section id="file-evidence/source-checksums.csv"><h2>evidence/source-checksums.csv</h2><p><a href="turbojet-speed-control/evidence/source-checksums.csv" download>Download raw file ↓</a> · <a href="turbojet-speed-control.html#file-evidence/source-checksums.csv">Back to file index</a></p><pre>release_file,original_sha256,release_sha256,change
+src/datas.m,af14be4e8d109e921a2e25f9c1bb9eb55bfdaaa13ad199fe0565bb4265ecde53,af14be4e8d109e921a2e25f9c1bb9eb55bfdaaa13ad199fe0565bb4265ecde53,unchanged
+src/override_n_feedfw_feedbk_ctrl.slx,e2862db9106ca51eac9a1c089ede9b3f583fe8097f5ac54526ba1c4264395af5,e2862db9106ca51eac9a1c089ede9b3f583fe8097f5ac54526ba1c4264395af5,unchanged
+src/override_n_feedfw_feedbk_ctrl_torque_plant.slx,fe06ef0da51af528f9e14bf4322497e533176a54192bd7e50e808b971c6a83a4,fe06ef0da51af528f9e14bf4322497e533176a54192bd7e50e808b971c6a83a4,unchanged
+</pre></section><section id="file-evidence/verification.log"><h2>evidence/verification.log</h2><p><a href="turbojet-speed-control/evidence/verification.log" download>Download raw file ↓</a> · <a href="turbojet-speed-control.html#file-evidence/verification.log">Back to file index</a></p><pre>WARNING: package sun.awt.X11 not in java.desktop
+WARNING: package sun.awt.X11 not in java.desktop
+PASS: turbojet refuses preloaded targets and preserves unrelated models
+SIMULATING override_n_feedfw_feedbk_ctrl original_step
+SIMULATING override_n_feedfw_feedbk_ctrl idle
+SIMULATING override_n_feedfw_feedbk_ctrl full_to_idle
+SIMULATING override_n_feedfw_feedbk_ctrl_torque_plant original_step
+SIMULATING override_n_feedfw_feedbk_ctrl_torque_plant idle
+SIMULATING override_n_feedfw_feedbk_ctrl_torque_plant full_to_idle
+PASS: two plants, three scenarios each; fuel bounds, finite RPM, settled tracking, PI clamp
+</pre></section><section id="file-run_all.m"><h2>run_all.m</h2><p><a href="turbojet-speed-control/run_all.m" download>Download raw file ↓</a> · <a href="turbojet-speed-control.html#file-run_all.m">Back to file index</a></p><pre>function results = run_all(artifact_dir)
+% Initialise every lookup explicitly and log named signals in unsaved models.
+if nargin&lt;1,artifact_dir=fullfile(tempdir,&#x27;turbojet-release-results&#x27;);end
+if ~exist(artifact_dir,&#x27;dir&#x27;),mkdir(artifact_dir);end
+root=fileparts(mfilename(&#x27;fullpath&#x27;));
+Simulink.fileGenControl(&#x27;set&#x27;,&#x27;CacheFolder&#x27;,fullfile(artifact_dir,&#x27;cache&#x27;), ...
+ &#x27;CodeGenFolder&#x27;,fullfile(artifact_dir,&#x27;codegen&#x27;),&#x27;createDir&#x27;,true);
+run(fullfile(root,&#x27;src&#x27;,&#x27;datas.m&#x27;));
+variables={&#x27;actual_rpm_pts&#x27;,&#x27;delta_rpm_pts&#x27;,&#x27;decel_limit_fuel&#x27;,&#x27;accel_limit_fuel&#x27;, ...
+ &#x27;steady_state_fuel&#x27;,&#x27;throttle_pct&#x27;,&#x27;altitude_ft&#x27;,&#x27;target_rpm_map&#x27;, ...
+ &#x27;spool_kf&#x27;,&#x27;spool_k2&#x27;,&#x27;spool_k4&#x27;,&#x27;spool_n0&#x27;};
+models={&#x27;override_n_feedfw_feedbk_ctrl&#x27;,&#x27;override_n_feedfw_feedbk_ctrl_torque_plant&#x27;};
+for k=1:numel(models)
+ if bdIsLoaded(models{k})
+  error(&#x27;release:ModelAlreadyLoaded&#x27;,&#x27;Close or save and close the already-open model %s before reproduction.&#x27;,models{k});
+ end
+end
+results.matlab_version=version;
+for k=1:2
+ mdl=models{k};load_system(fullfile(root,&#x27;src&#x27;,[mdl &#x27;.slx&#x27;]));
+ cleanup=onCleanup(@()close_system(mdl,0));
+ lines=find_system(mdl,&#x27;FindAll&#x27;,&#x27;on&#x27;,&#x27;SearchDepth&#x27;,1,&#x27;Type&#x27;,&#x27;line&#x27;);
+ for j=1:numel(lines)
+  name=get_param(lines(j),&#x27;Name&#x27;);
+  if isempty(name),continue,end
+  src=get_param(lines(j),&#x27;SrcPortHandle&#x27;);if src&lt;0,continue,end
+  blk=[mdl &#x27;/release_&#x27; name];
+  if getSimulinkBlockHandle(blk)&gt;0,continue,end
+  add_block(&#x27;simulink/Sinks/To Workspace&#x27;,blk,&#x27;VariableName&#x27;,name,&#x27;SaveFormat&#x27;,&#x27;Timeseries&#x27;);
+  ph=get_param(blk,&#x27;PortHandles&#x27;);add_line(mdl,src,ph.Inport,&#x27;autorouting&#x27;,&#x27;on&#x27;);
+ end
+ input=Simulink.SimulationInput(mdl);
+ for j=1:numel(variables),input=input.setVariable(variables{j},eval(variables{j}));end
+ input=input.setModelParameter(&#x27;StopTime&#x27;,&#x27;90&#x27;,&#x27;MaxStep&#x27;,&#x27;0.01&#x27;,&#x27;RelTol&#x27;,&#x27;1e-7&#x27;,&#x27;ReturnWorkspaceOutputs&#x27;,&#x27;on&#x27;);
+ pid=find_system(mdl,&#x27;SearchDepth&#x27;,1,&#x27;MaskType&#x27;,&#x27;PID 1dof&#x27;);
+ if isempty(pid),pid=find_system(mdl,&#x27;SearchDepth&#x27;,1,&#x27;RegExp&#x27;,&#x27;on&#x27;,&#x27;Name&#x27;,&#x27;PI Fuel Flow Ctrl.*&#x27;);end
+ assert(strcmp(get_param(pid{1},&#x27;AntiWindupMode&#x27;),&#x27;clamping&#x27;),&#x27;PI anti-windup must remain enabled&#x27;);
+ results.(mdl).antiwindup=&#x27;PI internal output clamping (not external limiter tracking)&#x27;;
+ for scenario=1:3
+  names={&#x27;original_step&#x27;,&#x27;idle&#x27;,&#x27;full_to_idle&#x27;};name=names{scenario};
+  trial=input;
+  if scenario==2
+   trial=trial.setBlockParameter([mdl &#x27;/Throttle&#x27;],&#x27;Before&#x27;,&#x27;0&#x27;);
+   trial=trial.setBlockParameter([mdl &#x27;/Throttle&#x27;],&#x27;After&#x27;,&#x27;0&#x27;);
+   trial=trial.setBlockParameter([mdl &#x27;/Throttle&#x27;],&#x27;Time&#x27;,&#x27;30&#x27;);
+  elseif scenario==3
+   trial=trial.setBlockParameter([mdl &#x27;/Throttle&#x27;],&#x27;Before&#x27;,&#x27;100&#x27;);
+   trial=trial.setBlockParameter([mdl &#x27;/Throttle&#x27;],&#x27;After&#x27;,&#x27;0&#x27;);
+   trial=trial.setBlockParameter([mdl &#x27;/Throttle&#x27;],&#x27;Time&#x27;,&#x27;45&#x27;);
+  end
+  fprintf(&#x27;SIMULATING %s %s\n&#x27;,mdl,name);out=sim(trial);
+  rpm=out.rpm_actual;target=out.rpm_target;fuel=out.fuel_flow_target;
+  results.(mdl).(name).final_rpm=rpm.Data(end);
+  results.(mdl).(name).final_target=target.Data(end);
+  results.(mdl).(name).final_error=abs(rpm.Data(end)-target.Data(end));
+  results.(mdl).(name).fuel_min=min(fuel.Data);
+  results.(mdl).(name).fuel_max=max(fuel.Data);
+  actual=interp1(rpm.Time,rpm.Data,fuel.Time,&#x27;linear&#x27;);
+  upper=interp1(actual_rpm_pts,accel_limit_fuel,min(100,max(40,actual)));
+  results.(mdl).(name).max_accel_limit_excess=max(fuel.Data-upper);
+  assert(all(isfinite(rpm.Data)) &amp;&amp; all(rpm.Data&gt;=0),&#x27;Spool must remain finite and nonnegative&#x27;);
+  assert(min(fuel.Data)&gt;=180-1e-6 &amp;&amp; max(fuel.Data-upper)&lt;1e-4,&#x27;Fuel schedules must bound target fuel&#x27;);
+  assert(results.(mdl).(name).final_error&lt;1,&#x27;Steady-state tracking must be within 1 RPM percentage point&#x27;);
+  save(fullfile(artifact_dir,[mdl &#x27;_&#x27; name &#x27;.mat&#x27;]),&#x27;out&#x27;);
+ end
+ close_system(mdl,0);clear cleanup
+end
+fid=fopen(fullfile(artifact_dir,&#x27;results.json&#x27;),&#x27;w&#x27;);fprintf(fid,&#x27;%s&#x27;,jsonencode(results,PrettyPrint=true));fclose(fid);
+fprintf(&#x27;PASS: two plants, three scenarios each; fuel bounds, finite RPM, settled tracking, PI clamp\n&#x27;);
+end
+</pre></section><section id="file-src/datas.m"><h2>src/datas.m</h2><p><a href="turbojet-speed-control/src/datas.m" download>Download raw file ↓</a> · <a href="turbojet-speed-control.html#file-src/datas.m">Back to file index</a></p><pre>% X-Breakpoints (Actual RPM %)
+actual_rpm_pts = [40 50 60 70 80 90 100];
+
+% X-Breakpoints (Delta RPM %)
+delta_rpm_pts = [0 10 20 30 40 50 60];
+
+% Y-Data (Min Fuel Flow allowed)
+decel_limit_fuel = [180 180 180 180 180 180 180]; 
+
+% Y-Data (Max Fuel Flow allowed)
+accel_limit_fuel = [500 1200 1800 2200 2500 2600 2700];
+
+% Y-Data (Fuel Flow in pph or kg/hr required to hold that RPM)
+steady_state_fuel = [200 300 450 650 900 1300 1800];
+
+
+% Breakpoints
+throttle_pct = [0 10 20 30 40 50 60 70 80 90 100];  % Throttle Lever Angle (%)
+altitude_ft  = [0 10000 20000 30000 40000];          % Altitude (ft)
+
+% Data matrix (Rows = Altitude, Columns = Throttle)
+% Idle is ~40% RPM, Max is 100% RPM. At higher altitudes, target is often slightly higher.
+target_rpm_map = ...
+   [40, 55, 65, 75, 80, 85, 90, 92, 95, 98, 100;   % 0ft
+    42, 57, 67, 77, 82, 86, 91, 93, 96, 99, 100;   % 10kft
+    44, 59, 69, 79, 84, 87, 92, 94, 97, 99, 100;   % 20kft
+    45, 60, 70, 80, 85, 88, 92, 94, 97, 99, 100;   % 30kft
+    46, 61, 71, 81, 86, 89, 93, 95, 98, 99, 100];  % 40kft
+% Independent nonlinear spool plant: n = RPM/100
+% dn/dt = spool_kf*Wf - spool_k2*n^2 - spool_k4*n^4
+spool_kf = 1.3324450366422388e-4;
+spool_k2 = 0.15259668157736112;
+spool_k4 = 0.08724342501824187;
+spool_n0 = 0.40;</pre></section><section id="file-tests/test_model_ownership.m"><h2>tests/test_model_ownership.m</h2><p><a href="turbojet-speed-control/tests/test_model_ownership.m" download>Download raw file ↓</a> · <a href="turbojet-speed-control.html#file-tests/test_model_ownership.m">Back to file index</a></p><pre>function test_model_ownership
+mdl=&#x27;override_n_feedfw_feedbk_ctrl&#x27;;other=&#x27;turbo_unsaved_sentinel&#x27;;
+assert(~bdIsLoaded(mdl) &amp;&amp; ~bdIsLoaded(other),&#x27;Close test model names first&#x27;);
+new_system(mdl);add_block(&#x27;simulink/Sources/Constant&#x27;,[mdl &#x27;/unsaved_work&#x27;]);
+new_system(other);add_block(&#x27;simulink/Sources/Constant&#x27;,[other &#x27;/unsaved_work&#x27;]);
+cleanup=onCleanup(@()close_owned({mdl,other}));
+try,run_all;refused=false;catch err,refused=strcmp(err.identifier,&#x27;release:ModelAlreadyLoaded&#x27;);end
+assert(refused &amp;&amp; bdIsLoaded(mdl) &amp;&amp; getSimulinkBlockHandle([mdl &#x27;/unsaved_work&#x27;])&gt;0, ...
+ &#x27;Refusing a preloaded target must preserve its unsaved changes&#x27;);
+assert(bdIsLoaded(other),&#x27;Unrelated unsaved model must stay open&#x27;);
+fprintf(&#x27;PASS: turbojet refuses preloaded targets and preserves unrelated models\n&#x27;);
+end
+function close_owned(names)
+for k=1:numel(names),if bdIsLoaded(names{k}),close_system(names{k},0);end,end
+end
+</pre></section><section id="file-verify.py"><h2>verify.py</h2><p><a href="turbojet-speed-control/verify.py" download>Download raw file ↓</a> · <a href="turbojet-speed-control.html#file-verify.py">Back to file index</a></p><pre>&quot;&quot;&quot;Run MATLAB in a temporary working directory with isolated preferences/cache.&quot;&quot;&quot;
+from pathlib import Path
+import os, subprocess, tempfile
+root=Path(__file__).resolve().parent
+matlab=os.environ.get(&#x27;MATLAB_BIN&#x27;,&#x27;/Applications/MATLAB_R2024b.app/bin/matlab&#x27;)
+def quote(path): return str(path).replace(&quot;&#x27;&quot;, &quot;&#x27;&#x27;&quot;)
+with tempfile.TemporaryDirectory(prefix=&#x27;matlab-release-&#x27;) as scratch:
+    env=os.environ.copy()
+    env[&#x27;MATLAB_PREFDIR&#x27;]=str(Path(scratch)/&#x27;prefs&#x27;)
+    env[&#x27;TMPDIR&#x27;]=scratch
+    result_dir=root/&#x27;results&#x27;
+    expression=&quot;addpath(&#x27;%s&#x27;); &quot; % quote(root)
+    expression+=&quot;addpath(&#x27;%s&#x27;); test_model_ownership; &quot; % quote(root/&#x27;tests&#x27;)
+    expression+=&quot;run_all(&#x27;%s&#x27;);&quot; % quote(result_dir)
+    subprocess.run([matlab,&#x27;-batch&#x27;,expression],cwd=scratch,env=env,timeout=600,check=True)
+</pre></section></main></body></html>

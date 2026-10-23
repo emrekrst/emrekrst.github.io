@@ -1,0 +1,161 @@
+sensor,experiment,condition,trial,distance_cm,source_cell
+ToF,material,White Paper,1,13.8,C5
+ToF,material,White Paper,2,14.2,D5
+ToF,material,White Paper,3,13.8,E5
+ToF,material,White Paper,4,13.8,F5
+ToF,material,White Paper,5,13.9,G5
+ToF,material,Matte Box,1,14.5,C6
+ToF,material,Matte Box,2,13.5,D6
+ToF,material,Matte Box,3,13.7,E6
+ToF,material,Matte Box,4,14.3,F6
+ToF,material,Matte Box,5,14.2,G6
+ToF,material,Acrylic,1,11.8,C7
+ToF,material,Acrylic,2,11.8,D7
+ToF,material,Acrylic,3,12.2,E7
+ToF,material,Acrylic,4,11.9,F7
+ToF,material,Acrylic,5,11.8,G7
+ToF,material,Styrofoam,1,13.5,C8
+ToF,material,Styrofoam,2,14.5,D8
+ToF,material,Styrofoam,3,13.6,E8
+ToF,material,Styrofoam,4,14.2,F8
+ToF,material,Styrofoam,5,13.3,G8
+ToF,material,Cling Film (stretched),1,25,C9
+ToF,material,Cling Film (stretched),2,17.5,D9
+ToF,material,Cling Film (stretched),3,17.3,E9
+ToF,material,Cling Film (stretched),4,15,F9
+ToF,material,Cling Film (stretched),5,28.3,G9
+ToF,material,Cling Film (loose),1,12.2,C10
+ToF,material,Cling Film (loose),2,12.8,D10
+ToF,material,Cling Film (loose),3,12.3,E10
+ToF,material,Cling Film (loose),4,12.5,F10
+ToF,material,Cling Film (loose),5,12.2,G10
+ToF,material,Sponge,1,15.8,C11
+ToF,material,Sponge,2,15.9,D11
+ToF,material,Sponge,3,15.8,E11
+ToF,material,Sponge,4,15.9,F11
+ToF,material,Sponge,5,16.2,G11
+ToF,incidence_deg,0,1,13.8,M5
+ToF,incidence_deg,0,2,14.2,N5
+ToF,incidence_deg,0,3,13.8,O5
+ToF,incidence_deg,0,4,13.8,P5
+ToF,incidence_deg,0,5,14.1,Q5
+ToF,incidence_deg,15,1,13.8,M6
+ToF,incidence_deg,15,2,14,N6
+ToF,incidence_deg,15,3,13.8,O6
+ToF,incidence_deg,15,4,14,P6
+ToF,incidence_deg,15,5,14,Q6
+ToF,incidence_deg,30,1,13.6,M7
+ToF,incidence_deg,30,2,14,N7
+ToF,incidence_deg,30,3,13.6,O7
+ToF,incidence_deg,30,4,13.6,P7
+ToF,incidence_deg,30,5,13.8,Q7
+ToF,incidence_deg,45,1,13.2,M8
+ToF,incidence_deg,45,2,13.5,N8
+ToF,incidence_deg,45,3,13.2,O8
+ToF,incidence_deg,45,4,13.8,P8
+ToF,incidence_deg,45,5,13.8,Q8
+ToF,incidence_deg,60,1,13,M9
+ToF,incidence_deg,60,2,13.8,N9
+ToF,incidence_deg,60,3,13.6,O9
+ToF,incidence_deg,60,4,13,P9
+ToF,incidence_deg,60,5,13.8,Q9
+ToF,offset_cm,0,1,13,W5
+ToF,offset_cm,0,2,13.2,X5
+ToF,offset_cm,0,3,13.2,Y5
+ToF,offset_cm,0,4,13.5,Z5
+ToF,offset_cm,0,5,13,AA5
+ToF,offset_cm,2,1,13.6,W6
+ToF,offset_cm,2,2,14,X6
+ToF,offset_cm,2,3,14,Y6
+ToF,offset_cm,2,4,14,Z6
+ToF,offset_cm,2,5,13.8,AA6
+ToF,offset_cm,4,1,17.6,W7
+ToF,offset_cm,4,2,18.2,X7
+ToF,offset_cm,4,3,17.6,Y7
+ToF,offset_cm,4,4,18.2,Z7
+ToF,offset_cm,4,5,17.6,AA7
+ToF,offset_cm,6,1,819,W8
+ToF,offset_cm,6,2,819,X8
+ToF,offset_cm,6,3,819,Y8
+ToF,offset_cm,6,4,819,Z8
+ToF,offset_cm,6,5,819,AA8
+Ultrasonic,material,White Paper,1,10.2,C14
+Ultrasonic,material,White Paper,2,10.22,D14
+Ultrasonic,material,White Paper,3,10.22,E14
+Ultrasonic,material,White Paper,4,10.22,F14
+Ultrasonic,material,White Paper,5,10.22,G14
+Ultrasonic,material,Matte Box,1,9.64,C15
+Ultrasonic,material,Matte Box,2,10.02,D15
+Ultrasonic,material,Matte Box,3,9.66,E15
+Ultrasonic,material,Matte Box,4,9.64,F15
+Ultrasonic,material,Matte Box,5,9.64,G15
+Ultrasonic,material,Acrylic,1,9.93,C16
+Ultrasonic,material,Acrylic,2,9.93,D16
+Ultrasonic,material,Acrylic,3,9.93,E16
+Ultrasonic,material,Acrylic,4,9.93,F16
+Ultrasonic,material,Acrylic,5,9.93,G16
+Ultrasonic,material,Styrofoam,1,10.12,C17
+Ultrasonic,material,Styrofoam,2,10.05,D17
+Ultrasonic,material,Styrofoam,3,10.12,E17
+Ultrasonic,material,Styrofoam,4,10.07,F17
+Ultrasonic,material,Styrofoam,5,10.07,G17
+Ultrasonic,material,Cling film (stretched),1,10.03,C18
+Ultrasonic,material,Cling film (stretched),2,10.07,D18
+Ultrasonic,material,Cling film (stretched),3,9.98,E18
+Ultrasonic,material,Cling film (stretched),4,10.03,F18
+Ultrasonic,material,Cling film (stretched),5,10.11,G18
+Ultrasonic,material,Cling film (loose),1,9.86,C19
+Ultrasonic,material,Cling film (loose),2,12.22,D19
+Ultrasonic,material,Cling film (loose),3,11.96,E19
+Ultrasonic,material,Cling film (loose),4,10.92,F19
+Ultrasonic,material,Cling film (loose),5,13.12,G19
+Ultrasonic,material,Sponge,1,-0.02,C20
+Ultrasonic,material,Sponge,2,-0.02,D20
+Ultrasonic,material,Sponge,3,-0.02,E20
+Ultrasonic,material,Sponge,4,-0.02,F20
+Ultrasonic,material,Sponge,5,-0.02,G20
+Ultrasonic,incidence_deg,0,1,9.74,M14
+Ultrasonic,incidence_deg,0,2,9.72,N14
+Ultrasonic,incidence_deg,0,3,9.72,O14
+Ultrasonic,incidence_deg,0,4,9.72,P14
+Ultrasonic,incidence_deg,0,5,9.74,Q14
+Ultrasonic,incidence_deg,15,1,9.74,M15
+Ultrasonic,incidence_deg,15,2,9.66,N15
+Ultrasonic,incidence_deg,15,3,9.74,O15
+Ultrasonic,incidence_deg,15,4,9.74,P15
+Ultrasonic,incidence_deg,15,5,9.72,Q15
+Ultrasonic,incidence_deg,30,1,11.03,M16
+Ultrasonic,incidence_deg,30,2,10.58,N16
+Ultrasonic,incidence_deg,30,3,10.68,O16
+Ultrasonic,incidence_deg,30,4,10.58,P16
+Ultrasonic,incidence_deg,30,5,10.58,Q16
+Ultrasonic,incidence_deg,45,1,98.65,M17
+Ultrasonic,incidence_deg,45,2,174.42,N17
+Ultrasonic,incidence_deg,45,3,152.36,O17
+Ultrasonic,incidence_deg,45,4,106.14,P17
+Ultrasonic,incidence_deg,45,5,122.55,Q17
+Ultrasonic,incidence_deg,60,1,219.29,M18
+Ultrasonic,incidence_deg,60,2,174.4,N18
+Ultrasonic,incidence_deg,60,3,177.31,O18
+Ultrasonic,incidence_deg,60,4,179.14,P18
+Ultrasonic,incidence_deg,60,5,175.63,Q18
+Ultrasonic,offset_cm,0,1,9.66,W14
+Ultrasonic,offset_cm,0,2,9.66,X14
+Ultrasonic,offset_cm,0,3,9.66,Y14
+Ultrasonic,offset_cm,0,4,9.66,Z14
+Ultrasonic,offset_cm,0,5,9.66,AA14
+Ultrasonic,offset_cm,2,1,11.06,W15
+Ultrasonic,offset_cm,2,2,11.03,X15
+Ultrasonic,offset_cm,2,3,11.02,Y15
+Ultrasonic,offset_cm,2,4,11.03,Z15
+Ultrasonic,offset_cm,2,5,11.02,AA15
+Ultrasonic,offset_cm,4,1,41.57,W16
+Ultrasonic,offset_cm,4,2,41.57,X16
+Ultrasonic,offset_cm,4,3,42.59,Y16
+Ultrasonic,offset_cm,4,4,41.57,Z16
+Ultrasonic,offset_cm,4,5,41.59,AA16
+Ultrasonic,offset_cm,6,1,207.62,W17
+Ultrasonic,offset_cm,6,2,206.69,X17
+Ultrasonic,offset_cm,6,3,205.96,Y17
+Ultrasonic,offset_cm,6,4,207.45,Z17
+Ultrasonic,offset_cm,6,5,206.52,AA17

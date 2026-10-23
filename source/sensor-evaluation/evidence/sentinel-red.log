@@ -1,0 +1,14 @@
+F
+======================================================================
+FAIL: test_sentinels_are_failures_and_not_distances (test_analysis.AnalysisTest.test_sentinels_are_failures_and_not_distances)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/outputs/github-ready/sensor-evaluation/tests/test_analysis.py", line 7, in test_sentinels_are_failures_and_not_distances
+    self.assertTrue((ROOT/'analyze.py').exists(), 'Missing reproducible invalid-reading rejection')
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : Missing reproducible invalid-reading rejection
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (failures=1)

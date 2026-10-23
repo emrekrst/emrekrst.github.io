@@ -1,0 +1,2384 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RoverD autonomy · Code</title><style>*{box-sizing:border-box}html{color-scheme:light}body{margin:0;background:#f5f3ed;color:#20261f;font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1120px;margin:auto;padding:40px 28px 80px}a{color:#2756dc;text-underline-offset:4px}a:hover{color:#173b9e}a:focus-visible{outline:3px solid #2756dc;outline-offset:5px}nav{display:flex;gap:24px;flex-wrap:wrap;font-size:14px}h1{font-size:clamp(32px,5vw,64px);line-height:1.08;letter-spacing:-.045em;margin:36px 0 18px;max-width:900px}h2{font-size:25px;letter-spacing:-.025em;margin-top:44px}p{max-width:850px}.eyebrow{text-transform:uppercase;font-size:12px;font-weight:700;letter-spacing:.14em;color:#52604c}.status{display:inline-block;border:1px solid #cbd1c4;border-radius:3px;padding:8px 12px;background:#eaf0e3;font-size:14px}.rights{border-left:3px solid #2756dc;padding:6px 22px;margin:28px 0;background:#efeee7}.actions{display:flex;gap:20px;flex-wrap:wrap;margin:24px 0}.button{display:inline-block;background:#2756dc;color:white;padding:11px 18px;text-decoration:none;border-radius:3px}.button:hover{background:#173b9e;color:white}table{border-collapse:collapse;width:100%;font:14px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}th{text-align:left;background:#e7e7de}td,th{padding:11px 14px;border-bottom:1px solid #d9dcd1}td:first-child{overflow-wrap:anywhere}td:nth-child(2),th:nth-child(2){text-align:right;white-space:nowrap}.table-wrap{overflow:auto}pre{padding:24px;border:1px solid #d9dcd1;border-radius:4px;background:#faf9f5;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace}footer{margin-top:48px;font-size:13px;color:#52604c}@media(max-width:540px){main{padding:25px 18px 50px}pre{padding:16px;font-size:13px}td,th{padding:9px 7px}}section{scroll-margin-top:25px}h2{overflow-wrap:anywhere}@media(max-width:540px){nav{gap:8px 16px}a{min-height:44px;display:inline-flex;align-items:center}td a{font-size:14px;overflow-wrap:anywhere}pre{font-size:14px;line-height:1.65}h1{overflow-wrap:anywhere}.actions{gap:8px 16px}.table-wrap{border:1px solid #d9dcd1}.rights{padding:8px 14px}}</style></head><body><main><nav><a href="roverd.html">← Source package</a><a href="../index.html#library">Portfolio projects</a></nav><p class="eyebrow">READABLE SOURCE / ORIGINAL NOTICES RETAINED</p><h1>RoverD autonomy</h1><section id="file-.gitignore"><h2>.gitignore</h2><p><a href="roverd/.gitignore" download>Download raw file ↓</a> · <a href="roverd.html#file-.gitignore">Back to file index</a></p><pre>build*/
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+logs/
+demo-output/
+*.elf
+*.uf2
+*.hex
+*.o
+</pre></section><section id="file-README.md"><h2>README.md</h2><p><a href="roverd/README.md" download>Download raw file ↓</a> · <a href="roverd.html#file-README.md">Back to file index</a></p><pre># RoverD: custom-marker gate navigation
+
+Shared Group D two-wheel rover project: Raspberry Pi vision identifies paired 4×4 markers, smooths gate position and emits steering letters; Raspberry Pi Pico C++ firmware maps those letters into slew-limited differential motor PWM with a UART watchdog.
+
+![Synthetic marker-to-steering demo](samples/gate-demo.png)
+
+## Safe offline demonstration
+
+Python 3.10+, NumPy and OpenCV are sufficient. The demo imports no GPIO, serial or camera modules and opens no hardware.
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r final_navigation/vision/requirements.txt
+python final_navigation/vision/offline_demo.py --output demo-output
+PYTHON=python ./tests/run-offline.sh
+```
+
+The demo generates both marker cards, runs the actual contour/pattern/gate/steering pipeline, and writes `gate-demo.png` and `result.json`. The bundled generated output reports two markers, a center near x=640, command `go`, and letter `M` (the contour center is just left of the M/N boundary). It contains no camera footage.
+
+The test script runs six Python tests and four native C++ firmware scenarios. Its tiny fake Pico SDK supplies only UART, clock and output boundaries; parser, timeout and steering logic come directly from the production firmware header. It validates software behavior without energizing motors.
+
+## Build Pico firmware
+
+Install an official Raspberry Pi Pico SDK and ARM embedded compiler separately, then use their locations:
+
+```bash
+cmake -S final_navigation/firmware -B build-pico   -DPICO_SDK_PATH=/path/to/pico-sdk   -DPICO_TOOLCHAIN_PATH=/path/to/arm-toolchain
+cmake --build build-pico --parallel
+```
+
+This generates `build-pico/rover_move.uf2` for the default RP2040 Pico board. No firmware was flashed during verification. The copy fixes rejection of entire overlong UART lines, the time-zero receive/timeout edge case, equal wheel output in the configured straight band, and SDK path selection with `-D`.
+
+## Physical runtime
+
+`final_navigation/vision/main.py` is the Pi camera/GPIO/UART runtime. Running it can move the rover. It additionally requires Raspberry Pi OS packages providing `picamera2`, `RPi.GPIO` and `serial` (`pyserial`), and working libcamera support. Use distro packages for Pi camera/GPIO integration; the offline requirements deliberately cover only desktop execution. Review pins, UART selection, power, motor polarity and mechanical calibration before using hardware. `test_visualise_laptop.py` is an optional live-camera tool, separate from the offline demo.
+
+The firmware receives one ASCII `A-Z`, `a-z` or `?` followed by LF or CR. The letter selects steering; case currently has no effect on PWM. `?` requests a slew-limited stop; the 300 ms link timeout invokes an immediate zero output after expiry. Invalid packets do not refresh that timeout.
+
+## Scope and evidence
+
+See [VERIFICATION.md](VERIFICATION.md). This is the recovered camera/custom-marker + C++ Pico stack. The master CV&#x27;s deployed MicroPython forward-ToF reactive fallback was not found in this source and is not implemented or verified here. Physical gate traversal, calibrated 90-degree turns, power electronics and race outcomes have not been rerun by this package.
+
+## Attribution and rights
+
+This is shared five-person Group D project work, not a claim of sole authorship of every module. Original code comments are retained; the recovered files did not contain a complete contributor ledger or project license. Existing contributors retain their rights. OpenCV, NumPy, Pico SDK and the Pi runtime libraries retain their own licenses and are not vendored. No blanket license is assigned here. Legacy zipped builds and deployment-specific personal paths are excluded.
+</pre></section><section id="file-VERIFICATION.md"><h2>VERIFICATION.md</h2><p><a href="roverd/VERIFICATION.md" download>Download raw file ↓</a> · <a href="roverd.html#file-VERIFICATION.md">Back to file index</a></p><pre># Verification — 22 October 2026
+
+## Fresh results
+
+macOS arm64; Python 3.14.6, NumPy 2.5.1, OpenCV 4.14.0, CMake 4.3.0, AppleClang 17. Native behavioral tests use the production firmware header with fake UART/clock/output boundaries. Pico firmware was separately cross-compiled using installed Pico SDK 2.2.0 and Arm GNU Toolchain 14.2.Rel1 (GCC 14.2.1).
+
+Commands from the preparation workspace:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHON=/opt/homebrew/bin/python3   outputs/github-ready/roverd/tests/run-offline.sh &quot;$PWD/work/vision-rover/rover-host&quot;
+PYTHONDONTWRITEBYTECODE=1 /opt/homebrew/bin/python3   outputs/github-ready/roverd/final_navigation/vision/offline_demo.py   --output outputs/github-ready/roverd/samples
+cmake -S outputs/github-ready/roverd/final_navigation/firmware -B work/vision-rover/pico-build   -DPICO_SDK_PATH=&quot;$HOME/.pico-sdk/sdk/2.2.0&quot;   -DPICO_TOOLCHAIN_PATH=&quot;$HOME/.pico-sdk/toolchain/14_2_Rel1&quot;   -DPICOTOOL_FETCH_FROM_GIT_PATH=&quot;$PWD/work/vision-rover/picotool&quot;
+cmake --build work/vision-rover/pico-build -j4
+```
+
+**PASS:** six Python tests (end-to-end demo, blank scene, rotation, gate rejection, dropout expiry/recovery, steering limits/case) and four native firmware scenarios (`protocol`, `overflow`, `zero`, `center`). The demo detected exactly two markers, center `[639.5, 339.5]`, command `go`, UART letter `M`, hardware_used `false`. Generated image inspected visually.
+
+**PASS:** real RP2040 firmware compile/link and UF2 generation. Generated `rover_move.uf2` is 52,736 bytes; SHA-256 `6a62bddfe2894c8d1410f02da5b46b89317555dd45206206894aacc5fdabcf99`. Build artifacts remain in `work/`, not the release copy. Picotool was fetched/built into `work/`; no SDK files or installed tools were modified. Nothing was flashed.
+
+## Reproduced issues fixed in the copy
+
+1. A line containing 64 junk bytes followed by `A\n` was wrongly accepted as `A`. A failing host test reproduced it; the parser now discards through the delimiter and then accepts a fresh valid line.
+2. A valid command received at time zero never timed out because zero was also the never-received sentinel. A failing test reproduced it; receipt is now tracked separately. Tests cover the 300/301 ms boundary and unsigned clock rollover.
+3. The configured K-P straight band produced unequal wheel demand because zone 12 still yielded a negative steering fraction. A failing test reproduced it; the deadband now yields zero steering and equal wheel output.
+4. CMake documented `-DPICO_SDK_PATH` but read only the environment variable, attempting `/external/pico_sdk_import.cmake`. The failed configure was captured, then the copy was fixed to support both forms with a clear missing-SDK error. The real build passed after the fix.
+
+Production vision algorithms are unchanged. Added a hardware-free demo, tests and explicit desktop NumPy/OpenCV dependencies; Pi-only dependencies are documented separately.
+
+## Master-CV claim boundaries
+
+| Claim | Status |
+|---|---|
+| Custom-marker camera gate/steering pipeline | PASS offline generated scene; physical performance NOT_RUN |
+| C++ Pico UART parsing, software timeout and wheel slew | PASS native behavior tests and actual cross-build; physical motor output NOT_RUN |
+| Deployed MicroPython single-forward-ToF fallback, stopping/settling/alternating turns | NOT_FOUND in recovered source; NOT_REPRODUCED by this C++ camera stack |
+| Empirically calibrated 90° turns, power distribution, centre of gravity, indoor trials/race result | NOT_RUN; documentary/historical claims outside these software tests |
+
+No camera, GPIO device, serial port, motor, Pi or remote host was opened. `main.py` remains a hardware runtime and should only be run on the configured rover. Original project files were untouched. Existing group work is credited; no blanket license was inferred and nothing was published.
+
+Logs outside the release folder: `work/vision-rover/roverd-tests-final.log`, `firmware-*-before.log`, `pico-configure-before.log`, `pico-configure.log`, and `pico-build-final.log`.
+</pre></section><section id="file-final_navigation/README.md"><h2>final_navigation/README.md</h2><p><a href="roverd/final_navigation/README.md" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/README.md">Back to file index</a></p><pre># Navigation source
+
+- `vision/`: custom marker detection, gate pairing/tracking, steering and Pi runtime.
+- `firmware/`: Pico C++ UART receiver, motor PWM and failsafe state machine.
+
+Start with the repository [README](../README.md) for the offline demonstration and build commands. This source is camera-based navigation; the CV&#x27;s later MicroPython ToF fallback is not in this package.
+</pre></section><section id="file-final_navigation/firmware/CMakeLists.txt"><h2>final_navigation/firmware/CMakeLists.txt</h2><p><a href="roverd/final_navigation/firmware/CMakeLists.txt" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/firmware/CMakeLists.txt">Back to file index</a></p><pre>cmake_minimum_required(VERSION 3.13)
+
+# ---------------------------------------------------------------------------
+# Pico SDK bootstrapping
+# Set PICO_SDK_PATH in your environment, or pass it at configure time:
+#   cmake -DPICO_SDK_PATH=/path/to/pico-sdk ..
+# ---------------------------------------------------------------------------
+if(NOT PICO_SDK_PATH)
+    set(PICO_SDK_PATH &quot;$ENV{PICO_SDK_PATH}&quot;)
+endif()
+if(NOT EXISTS &quot;${PICO_SDK_PATH}/external/pico_sdk_import.cmake&quot;)
+    message(FATAL_ERROR &quot;Set PICO_SDK_PATH to your Raspberry Pi Pico SDK directory&quot;)
+endif()
+include(&quot;${PICO_SDK_PATH}/external/pico_sdk_import.cmake&quot;)
+
+project(rover_move C CXX ASM)
+set(CMAKE_C_STANDARD   11)
+set(CMAKE_CXX_STANDARD 17)
+
+pico_sdk_init()
+
+# ---------------------------------------------------------------------------
+# Pico executable
+# ---------------------------------------------------------------------------
+add_executable(rover_move
+    rover_move.cpp
+)
+
+target_link_libraries(rover_move
+    pico_stdlib
+    hardware_pwm
+    hardware_gpio
+    hardware_uart
+    hardware_clocks
+)
+
+# Route stdio to USB (print debugging via USB serial, e.g. minicom / screen).
+# The Pi -&gt; Pico motor-command link uses hardware UART0 on GP17 RX.
+pico_enable_stdio_usb(rover_move  1)
+pico_enable_stdio_uart(rover_move 0)
+
+# Generate .uf2 (drag-and-drop flash) and .hex alongside the .elf
+pico_add_extra_outputs(rover_move)
+</pre></section><section id="file-final_navigation/firmware/README.md"><h2>final_navigation/firmware/README.md</h2><p><a href="roverd/final_navigation/firmware/README.md" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/firmware/README.md">Back to file index</a></p><pre># Pico firmware
+
+See the repository [README](../../README.md) for SDK configuration and tests. The default board is RP2040 Pico. `rover_move.cpp` implements boot, waiting, active drive and failsafe states; `rover_move.hpp` contains parser, steering and hardware primitives.
+
+UART0 RX is GP17, TX GP16, at 9600 baud. M1 DIR/PWM is GP1/GP0; M2 DIR/PWM GP10/GP11. The control loop runs every 40 ms, the slew step is 8, base demand 120/255, the K-P/k-p band is straight, and timeout is greater than 300 ms since the last valid line. Validate these settings against the actual rover. Native tests do not prove wiring, power, motor direction, stopping distance or mechanical safety.
+</pre></section><section id="file-final_navigation/firmware/rover_move.cpp"><h2>final_navigation/firmware/rover_move.cpp</h2><p><a href="roverd/final_navigation/firmware/rover_move.cpp" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/firmware/rover_move.cpp">Back to file index</a></p><pre>#include &quot;rover_move.hpp&quot;
+
+int main() {
+    MachineContext ctx;
+    DriveState     state = DriveState::BOOT;
+
+    while (true) {
+        // ~25 Hz loop cadence; matches the Pi TX rate
+        sleep_ms(40);
+
+        bool got_letter = false;
+        if (state != DriveState::BOOT) {
+            got_letter = updateContextFromSerial(ctx);
+        }
+
+        switch (state) {
+
+            // ---------------------------------------------------
+            case DriveState::BOOT:
+            // ---------------------------------------------------
+                initHardware(ctx);
+                state = DriveState::WAIT_LINK;
+                break;
+
+            // ---------------------------------------------------
+            case DriveState::WAIT_LINK:
+            // ---------------------------------------------------
+                // Motors already zeroed by initHardware.
+                // Advance as soon as the first valid letter arrives.
+                if (got_letter) {
+                    state = DriveState::ACTIVE_DRIVE;
+                }
+                break;
+
+            // ---------------------------------------------------
+            case DriveState::ACTIVE_DRIVE:
+            // ---------------------------------------------------
+                driveFromLetter(ctx, ctx.last_letter);
+                if (isLinkTimedOut(ctx)) {
+                    stopMotors(ctx);
+                    state = DriveState::FAILSAFE_STOP;
+                }
+                break;
+
+            // ---------------------------------------------------
+            case DriveState::FAILSAFE_STOP:
+            // ---------------------------------------------------
+                // Motors are stopped.
+                // Return to ACTIVE_DRIVE the moment a fresh valid
+                // letter is received on the UART.
+                if (got_letter) {
+                    state = DriveState::ACTIVE_DRIVE;
+                }
+                break;
+        }
+    }
+
+    return 0;
+}
+</pre></section><section id="file-final_navigation/firmware/rover_move.hpp"><h2>final_navigation/firmware/rover_move.hpp</h2><p><a href="roverd/final_navigation/firmware/rover_move.hpp" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/firmware/rover_move.hpp">Back to file index</a></p><pre>#ifndef ROVER_MOVE_H
+#define ROVER_MOVE_H
+
+#include &lt;cstdlib&gt;
+#include &lt;cstring&gt;
+#include &lt;cmath&gt;
+#include &quot;pico/stdlib.h&quot;
+#include &quot;hardware/uart.h&quot;
+#include &quot;hardware/pwm.h&quot;
+#include &quot;hardware/gpio.h&quot;
+#include &quot;hardware/clocks.h&quot;
+
+
+// ============================================================
+//  Drive FSM states
+//   BOOT          – one-shot hardware init
+//   WAIT_LINK     – motors off, waiting for the first valid letter
+//   ACTIVE_DRIVE  – letter → PWM every cycle
+//   FAILSAFE_STOP – timeout / corrupt stream → motors off until fresh letter
+// ============================================================
+enum class DriveState {
+    BOOT,
+    WAIT_LINK,
+    ACTIVE_DRIVE,
+    FAILSAFE_STOP
+};
+
+// ============================================================
+//  Runtime context  (all mutable state in one struct)
+// ============================================================
+struct MachineContext {
+    // Motor pins: M1 → GP1  (DIR) / GP0  (PWM)
+    //             M2 → GP10 (DIR) / GP11 (PWM)
+    // UART0 RX → GP17 (Pi GPIO14 TX), UART0 TX → GP16
+    const uint M1_DIR_PIN = 1;
+    const uint M1_PWM_PIN = 0;
+    const uint M2_DIR_PIN = 10;
+    const uint M2_PWM_PIN = 11;
+
+    // PWM hardware
+    const int  MAX_PWM  = 255;
+    uint16_t   pwm_wrap = 0;
+
+    // UART receive buffer (newline-delimited protocol)
+    char     serial_buf[64] = {};
+    int      buf_index      = 0;
+    bool     discarding_line = false;
+    bool     has_received = false;
+    uint32_t last_rx_ms     = 0;   // ms timestamp of last valid letter
+
+    // Current drive values
+    char last_letter = &#x27;?&#x27;;
+    int  curr_l      = 0;          // slew-limited left  PWM output
+    int  curr_r      = 0;          // slew-limited right PWM output
+
+    // Safety timeout: enter FAILSAFE_STOP if no valid letter for this long
+    const uint32_t RX_TIMEOUT_MS = 300;
+
+};
+
+// ============================================================
+//  Motor primitives
+// ============================================================
+inline void setMotorSpeeds(MachineContext&amp; ctx, int pwm1, int pwm2) {
+    // Motor 1
+    gpio_put(ctx.M1_DIR_PIN, pwm1 &gt;= 0 ? 1 : 0);
+    int sp1 = std::abs(pwm1);
+    if (sp1 &gt; ctx.MAX_PWM) sp1 = ctx.MAX_PWM;
+    pwm_set_gpio_level(ctx.M1_PWM_PIN,
+                       (uint16_t)((sp1 * ctx.pwm_wrap) / ctx.MAX_PWM));
+
+    // Motor 2
+    gpio_put(ctx.M2_DIR_PIN, pwm2 &gt;= 0 ? 1 : 0);
+    int sp2 = std::abs(pwm2);
+    if (sp2 &gt; ctx.MAX_PWM) sp2 = ctx.MAX_PWM;
+    pwm_set_gpio_level(ctx.M2_PWM_PIN,
+                       (uint16_t)((sp2 * ctx.pwm_wrap) / ctx.MAX_PWM));
+}
+
+inline void stopMotors(MachineContext&amp; ctx) {
+    setMotorSpeeds(ctx, 0, 0);
+    ctx.curr_l = 0;
+    ctx.curr_r = 0;
+}
+
+// ============================================================
+//  Hardware init  (called once in BOOT state)
+// ============================================================
+inline void initHardware(MachineContext&amp; ctx) {
+    stdio_init_all();
+
+    // PWM at ~20 kHz
+    uint32_t sys_clk = clock_get_hz(clk_sys);
+    ctx.pwm_wrap     = (uint16_t)(sys_clk / 20000);
+
+    // Motor 1: DIR = GP1, PWM = GP0
+    gpio_init(ctx.M1_DIR_PIN);
+    gpio_set_dir(ctx.M1_DIR_PIN, GPIO_OUT);
+    gpio_set_function(ctx.M1_PWM_PIN, GPIO_FUNC_PWM);
+    uint slice1 = pwm_gpio_to_slice_num(ctx.M1_PWM_PIN);
+    pwm_set_wrap(slice1, ctx.pwm_wrap);
+    pwm_set_enabled(slice1, true);
+
+    // Motor 2: DIR = GP10, PWM = GP11
+    gpio_init(ctx.M2_DIR_PIN);
+    gpio_set_dir(ctx.M2_DIR_PIN, GPIO_OUT);
+    gpio_set_function(ctx.M2_PWM_PIN, GPIO_FUNC_PWM);
+    uint slice2 = pwm_gpio_to_slice_num(ctx.M2_PWM_PIN);
+    pwm_set_wrap(slice2, ctx.pwm_wrap);
+    pwm_set_enabled(slice2, true);
+
+    stopMotors(ctx);
+
+    // UART0 at 9600 baud: GP16 = TX (Pico → Pi), GP17 = RX (Pi → Pico)
+    uart_init(uart0, 9600);
+    gpio_set_function(16, GPIO_FUNC_UART);
+    gpio_set_function(17, GPIO_FUNC_UART);
+}
+
+
+// ============================================================
+//  Letter → motor speed mapping
+//
+//  Zone index 0-25 maps A=0 … Z=25 (or a=0 … z=25).
+//  t in [-1, +1]: negative = left, positive = right.
+//
+//  Differential drive mixing (outer motor stays at BASE,
+//  inner motor scales toward -BASE):
+//    left  = BASE – clamp(t, 0, 1) × 2 × BASE
+//    right = BASE + clamp(t,-1, 0) × 2 × BASE
+//
+//  BASE = 120. K-P/k-p form the straight-ahead deadband.
+//  Only A/a and Z/z may reverse one wheel; intermediate zones
+//  keep the inner motor at a minimum demand of 24.
+//  &#x27;?&#x27; requests zero targets through the same slew limiter.
+//
+//  Slew-rate limit of 8 PWM units per call reduces jerk.
+// ============================================================
+inline void driveFromLetter(MachineContext&amp; ctx, char c) {
+    int target_l, target_r;
+
+    int zone = -1;
+    if      (c &gt;= &#x27;A&#x27; &amp;&amp; c &lt;= &#x27;Z&#x27;) zone = c - &#x27;A&#x27;;
+    else if (c &gt;= &#x27;a&#x27; &amp;&amp; c &lt;= &#x27;z&#x27;) zone = c - &#x27;a&#x27;;
+
+    if (zone &lt; 0) {
+        // &#x27;?&#x27; or any unrecognised character → soft stop via slew limiting
+        target_l = 0;
+        target_r = 0;
+    } else {
+        // Treat a wider center band as straight ahead so small CV jitter does
+        // not keep nudging the rover left and right while it crosses a gate.
+        if (zone &gt;= 10 &amp;&amp; zone &lt;= 15) {
+            zone = 12;
+        }
+
+        // Continuous differential drive mixing
+        float t = zone == 12 ? 0.0f : (zone - 12.5f) / 12.5f;
+        if (t &lt; -1.0f) t = -1.0f;
+        if (t &gt;  1.0f) t =  1.0f;
+
+        const float BASE = 120.0f;
+        float t_pos = (t &gt; 0.0f) ? t : 0.0f;
+        float t_neg = (t &lt; 0.0f) ? t : 0.0f;
+
+        target_l = (int)(BASE - t_pos * 2.0f * BASE);
+        target_r = (int)(BASE + t_neg * 2.0f * BASE);
+
+        // Keep intermediate steering letters from turning into violent
+        // spin-in-place commands. Only the extreme edge zones may reverse one wheel.
+        const int MIN_INNER_PWM = 24;
+        if (zone &gt; 0 &amp;&amp; zone &lt; 25) {
+            if (target_l &lt; MIN_INNER_PWM) target_l = MIN_INNER_PWM;
+            if (target_r &lt; MIN_INNER_PWM) target_r = MIN_INNER_PWM;
+        }
+
+        // Clamp to motor range
+        if (target_l &gt;  ctx.MAX_PWM) target_l =  ctx.MAX_PWM;
+        if (target_l &lt; -ctx.MAX_PWM) target_l = -ctx.MAX_PWM;
+        if (target_r &gt;  ctx.MAX_PWM) target_r =  ctx.MAX_PWM;
+        if (target_r &lt; -ctx.MAX_PWM) target_r = -ctx.MAX_PWM;
+    }
+
+    // Slew-rate limit: smaller changes per cycle keep the two-wheel chassis calm.
+    const int SLEW = 8;
+    int dl = target_l - ctx.curr_l;
+    int dr = target_r - ctx.curr_r;
+    if (dl &gt;  SLEW) dl =  SLEW;
+    if (dl &lt; -SLEW) dl = -SLEW;
+    if (dr &gt;  SLEW) dr =  SLEW;
+    if (dr &lt; -SLEW) dr = -SLEW;
+
+    ctx.curr_l += dl;
+    ctx.curr_r += dr;
+
+    setMotorSpeeds(ctx, ctx.curr_l, ctx.curr_r);
+}
+
+// ============================================================
+//  Serial line receiver
+//
+//  Protocol: one ASCII letter (or &#x27;?&#x27;) followed by &#x27;\n&#x27;.
+//  Malformed lines (wrong length, bad char, overlong) are
+//  silently discarded.
+//
+//  Returns true and updates ctx.last_letter / ctx.last_rx_ms
+//  when a valid letter is parsed from the stream.
+// ============================================================
+inline bool updateContextFromSerial(MachineContext&amp; ctx) {
+    bool got_letter = false;
+
+    while (uart_is_readable(uart0)) {
+        char c = uart_getc(uart0);
+
+        if (c == &#x27;\n&#x27; || c == &#x27;\r&#x27;) {
+            if (ctx.discarding_line) {
+                ctx.discarding_line = false;
+                ctx.buf_index = 0;
+                continue;
+            }
+            if (ctx.buf_index &gt; 0) {
+                ctx.serial_buf[ctx.buf_index] = &#x27;\0&#x27;;
+                char letter = ctx.serial_buf[0];
+
+                // Valid: exactly one letter A-Z, a-z, or &#x27;?&#x27;
+                bool valid_char = ((letter &gt;= &#x27;A&#x27; &amp;&amp; letter &lt;= &#x27;Z&#x27;) ||
+                                   (letter &gt;= &#x27;a&#x27; &amp;&amp; letter &lt;= &#x27;z&#x27;) ||
+                                   letter == &#x27;?&#x27;);
+
+                if (ctx.buf_index == 1 &amp;&amp; valid_char) {
+                    ctx.has_received = true;
+                    ctx.last_letter = letter;
+                    ctx.last_rx_ms  = to_ms_since_boot(get_absolute_time());
+                    got_letter      = true;
+                }
+                // Silently drop malformed lines and reset buffer
+                ctx.buf_index = 0;
+                memset(ctx.serial_buf, 0, sizeof(ctx.serial_buf));
+            }
+        } else {
+            if (ctx.discarding_line) continue;
+            if (ctx.buf_index &lt; 63) {
+                ctx.serial_buf[ctx.buf_index++] = c;
+            } else {
+                // Discard through the delimiter; a suffix must never become a command.
+                ctx.discarding_line = true;
+                ctx.buf_index = 0;
+                memset(ctx.serial_buf, 0, sizeof(ctx.serial_buf));
+            }
+        }
+    }
+
+    return got_letter;
+}
+
+// Returns true when the link has timed out (no valid letter within RX_TIMEOUT_MS).
+// Safe before the first valid command, including a command received at time zero.
+inline bool isLinkTimedOut(const MachineContext&amp; ctx) {
+    if (!ctx.has_received) return false;
+    uint32_t now = to_ms_since_boot(get_absolute_time());
+    return (now - ctx.last_rx_ms) &gt; ctx.RX_TIMEOUT_MS;
+}
+
+#endif // ROVER_MOVE_H
+</pre></section><section id="file-final_navigation/vision/README.md"><h2>final_navigation/vision/README.md</h2><p><a href="roverd/final_navigation/vision/README.md" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/vision/README.md">Back to file index</a></p><pre># Vision
+
+Run the hardware-free path from the repository root:
+
+```bash
+python3 final_navigation/vision/offline_demo.py --output demo-output
+python3 -m unittest discover -s tests -v
+```
+
+`requirements.txt` covers desktop OpenCV/NumPy. The full `main.py` runtime additionally needs Picamera2, RPi.GPIO and pyserial, configured Pi hardware, GPIO LEDs and UART. It starts camera capture, serial output and an MJPEG web stream. `main_no_rover.py` and `test_visualise_laptop.py` also access a camera. They are not offline tests.
+
+The detector uses the project&#x27;s configured custom 4×4 cards. ArUco settings in `config.py` are historical experimental configuration and are not the active detector. `gate_tracker.py` holds short dropouts; `path_finder.py` converts image x into letters and LED steering zones.
+</pre></section><section id="file-final_navigation/vision/calibrate_mac.py"><h2>final_navigation/vision/calibrate_mac.py</h2><p><a href="roverd/final_navigation/vision/calibrate_mac.py" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/vision/calibrate_mac.py">Back to file index</a></p><pre># calibrate_mac.py - Capture marker patterns using Mac webcam
+# Saves patterns to config_mac.py
+
+import re
+import cv2
+import sys
+sys.path.append(&#x27;.&#x27;)
+
+from square_finder import find_squares
+from pattern_reader import warp_to_patch, extract_grid
+
+
+def capture_grid_live():
+    &quot;&quot;&quot;Show live preview, press SPACE to capture, ESC to cancel.&quot;&quot;&quot;
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print(&quot;ERROR: Cannot open camera&quot;)
+        return None
+
+    print(&quot;  Opening camera preview... Press SPACE to capture, ESC to cancel&quot;)
+
+    captured_grid = None
+
+    while True:
+        ok, frame = cap.read()
+        if not ok:
+            break
+
+        vis = frame.copy()
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        markers = find_squares(gray=gray)
+
+        if markers:
+            best = max(markers, key=lambda m: m[&#x27;area&#x27;])
+            corners = best[&#x27;corners&#x27;].astype(int)
+
+            # Draw green outline on detected square
+            cv2.polylines(vis, [corners.reshape(-1, 1, 2)], True, (0, 255, 0), 2)
+
+            # Show grid preview
+            patch = warp_to_patch(frame, best[&#x27;corners&#x27;])
+            grid = extract_grid(patch)
+
+            # Draw grid values on screen
+            cv2.putText(vis, f&quot;Grid: {grid[0].tolist()}&quot;, (10, vis.shape[0] - 100),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+            cv2.putText(vis, f&quot;      {grid[1].tolist()}&quot;, (10, vis.shape[0] - 75),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+            cv2.putText(vis, f&quot;      {grid[2].tolist()}&quot;, (10, vis.shape[0] - 50),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+            cv2.putText(vis, f&quot;      {grid[3].tolist()}&quot;, (10, vis.shape[0] - 25),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+
+            cv2.putText(vis, &quot;Press SPACE to capture&quot;, (10, 30),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        else:
+            cv2.putText(vis, &quot;No marker detected&quot;, (10, 30),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+
+        cv2.imshow(&quot;Calibrate - Hold marker steady&quot;, vis)
+
+        # Longer waitKey for better key detection
+        key = cv2.waitKey(30) &amp; 0xFF
+        if key == ord(&#x27; &#x27;) or key == 13:  # Space OR Enter to capture
+            if markers:
+                captured_grid = grid.tolist()
+                print(&quot;  Captured!&quot;)
+                break
+            else:
+                print(&quot;  No marker detected, can&#x27;t capture&quot;)
+        elif key == 27:  # ESC to cancel
+            print(&quot;  Cancelled&quot;)
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+    return captured_grid
+
+
+def fmt_row(row):
+    return &#x27;[&#x27; + &#x27;,&#x27;.join(str(v) for v in row) + &#x27;]&#x27;
+
+
+def save_to_config_mac(patterns):
+    &quot;&quot;&quot;Save patterns to config_mac.py&quot;&quot;&quot;
+    n = len(list(patterns.values())[0])
+
+    lines = []
+    lines.append(f&#x27;# config_mac.py - Mac webcam calibrated patterns\n&#x27;)
+    lines.append(f&#x27;# Generated by calibrate_mac.py\n\n&#x27;)
+    lines.append(f&#x27;# ===== MARKER PATTERNS ({n}x{n} grid: 1=black, 0=white) =====\n&#x27;)
+    lines.append(&#x27;PATTERNS_MAC = {\n&#x27;)
+
+    items = list(patterns.items())
+    for i, (name, grid) in enumerate(items):
+        comma = &#x27;,&#x27; if i &lt; len(items) - 1 else &#x27;&#x27;
+        lines.append(f&quot;    &#x27;{name}&#x27;: [{fmt_row(grid[0])},\n&quot;)
+        for row in grid[1:-1]:
+            lines.append(f&quot;             {fmt_row(row)},\n&quot;)
+        lines.append(f&quot;             {fmt_row(grid[-1])}]{comma}\n&quot;)
+        if i &lt; len(items) - 1:
+            lines.append(&#x27;\n&#x27;)
+    lines.append(&#x27;}\n&#x27;)
+
+    with open(&#x27;config_mac.py&#x27;, &#x27;w&#x27;) as f:
+        f.writelines(lines)
+
+
+captured = {}
+
+print(&quot;=&quot; * 40)
+print(&quot;MAC WEBCAM PATTERN CALIBRATOR&quot;)
+print(&quot;=&quot; * 40)
+
+for marker in [&#x27;left&#x27;, &#x27;right&#x27;]:
+    while True:
+        print(f&quot;\n=== Capture {marker.upper()} marker ===&quot;)
+        grid = capture_grid_live()
+        if grid is None:
+            print(&quot;  Cancelled or no detection. Try again.&quot;)
+            continue
+        print(f&quot;  Captured grid:&quot;)
+        for row in grid:
+            print(f&quot;    {row}&quot;)
+        confirm = input(&quot;  Save this pattern? (y/n): &quot;).strip().lower()
+        if confirm == &#x27;y&#x27;:
+            captured[marker] = grid
+            print(f&quot;  {marker.upper()} saved.\n&quot;)
+            break
+
+save_to_config_mac(captured)
+print(&quot;\nDone! Saved to config_mac.py&quot;)
+print(f&quot;  left:  {captured[&#x27;left&#x27;]}&quot;)
+print(f&quot;  right: {captured[&#x27;right&#x27;]}&quot;)
+</pre></section><section id="file-final_navigation/vision/camera_utils.py"><h2>final_navigation/vision/camera_utils.py</h2><p><a href="roverd/final_navigation/vision/camera_utils.py" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/vision/camera_utils.py">Back to file index</a></p><pre>import time
+
+from picamera2 import Picamera2
+
+from config import (CAMERA_BUFFER_COUNT, CAMERA_RAW_HEIGHT, CAMERA_RAW_WIDTH,
+                    CAMERA_STARTUP_RETRIES, FRAMERATE, IMG_HEIGHT, IMG_WIDTH)
+
+
+def open_camera():
+    &quot;&quot;&quot;Create, configure, start, and sanity-check the Pi camera.&quot;&quot;&quot;
+    last_error = None
+
+    for attempt in range(1, CAMERA_STARTUP_RETRIES + 1):
+        picam2 = None
+
+        try:
+            picam2 = Picamera2()
+            cam_config = picam2.create_video_configuration(
+                main={&quot;size&quot;: (IMG_WIDTH, IMG_HEIGHT), &quot;format&quot;: &quot;RGB888&quot;},
+                raw={&quot;size&quot;: (CAMERA_RAW_WIDTH, CAMERA_RAW_HEIGHT)},
+                controls={&quot;FrameRate&quot;: FRAMERATE},
+                buffer_count=CAMERA_BUFFER_COUNT,
+            )
+            picam2.configure(cam_config)
+            picam2.start()
+            picam2.capture_array()
+            print(
+                f&quot;Camera ready: {IMG_WIDTH}x{IMG_HEIGHT} RGB888, &quot;
+                f&quot;raw={CAMERA_RAW_WIDTH}x{CAMERA_RAW_HEIGHT}, &quot;
+                f&quot;{FRAMERATE} fps&quot;
+            )
+            return picam2
+        except Exception as exc:
+            last_error = exc
+            if picam2 is not None:
+                try:
+                    picam2.stop()
+                except Exception:
+                    pass
+                try:
+                    picam2.close()
+                except Exception:
+                    pass
+
+            print(f&quot;[camera] open attempt {attempt}/{CAMERA_STARTUP_RETRIES} failed: {exc}&quot;)
+            time.sleep(0.5)
+
+    if last_error and &quot;resource busy&quot; in str(last_error).lower():
+        raise RuntimeError(
+            &quot;Camera is already in use. Stop any other main.py, main_no_rover.py, &quot;
+            &quot;rpicam-hello, libcamera, or Python process that has the camera open, &quot;
+            &quot;then rerun this script.&quot;
+        ) from last_error
+
+    raise RuntimeError(
+        &quot;Camera started but no frame arrived. Reseat the ribbon cable at both &quot;
+        &quot;ends, confirm the cable contacts face the right way, try a shorter or &quot;
+        &quot;known-good cable, and check Pi power before rerunning.&quot;
+    ) from last_error
+</pre></section><section id="file-final_navigation/vision/config.py"><h2>final_navigation/vision/config.py</h2><p><a href="roverd/final_navigation/vision/config.py" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/vision/config.py">Back to file index</a></p><pre># config.py - Master Settings File
+# Add more settings as you build other files!
+
+# ===== IMAGE SETTINGS =====
+IMG_WIDTH = 1280
+IMG_HEIGHT = 720
+FRAMERATE = 25
+# Picamera2&#x27;s libcamera format names are counter-intuitive here: RGB888 gives
+# numpy arrays in OpenCV-friendly BGR channel order.
+CAMERA_FORMAT = &quot;RGB888&quot;
+CAMERA_RAW_WIDTH = 1296
+CAMERA_RAW_HEIGHT = 972
+CAMERA_BUFFER_COUNT = 4
+CAMERA_STARTUP_RETRIES = 3
+CAMERA_FRAME_DURATION_LIMITS = (33333, 66666)
+CAMERA_AE_ENABLE = True
+CAMERA_AWB_ENABLE = True
+CAMERA_NOISE_REDUCTION_MODE = 2
+CAMERA_METADATA_LOG_INTERVAL = 50
+STREAM_JPEG_QUALITY = 85
+
+# ===== EDGE DETECTION SETTINGS =====
+GAUSSIAN_KERNEL_SIZE = 5
+GAUSSIAN_SIGMA = 1.4
+CANNY_LOW_THRESHOLD = 50
+CANNY_HIGH_THRESHOLD = 150
+
+# ===== MARKER PATTERNS (4x4 grid: 1=black, 0=white) =====
+# Pi camera calibrated patterns
+PATTERNS_PI = {
+    &#x27;left&#x27;: [[0, 1, 0, 1],
+             [0, 0, 0, 0],
+             [0, 1, 1, 1],
+             [0, 0, 0, 0]],
+
+    &#x27;right&#x27;: [[1, 0, 1, 0],
+              [1, 1, 0, 0],
+              [1, 1, 0, 1],
+              [0, 0, 1, 1]]
+}
+
+# Mac webcam calibrated patterns (import from config_mac.py if it exists)
+try:
+    from config_mac import PATTERNS_MAC
+except ImportError:
+    PATTERNS_MAC = None
+
+# Active patterns - defaults to Pi, override in platform-specific scripts
+PATTERNS = PATTERNS_PI
+
+# ===== CUSTOM GRID MARKERS =====
+# Used by custom_marker_finder.py. A small Hamming-distance allowance makes the
+# old 4x4 markers more tolerant of blur and lighting while still rejecting
+# badly read grids as unknown.
+CUSTOM_MARKER_MAX_HAMMING = 2
+CUSTOM_MARKER_DUPLICATE_CENTER_FRACTION = 0.35
+
+# ===== ARUCO MARKERS =====
+# Marker ids printed on the physical gate posts. The ArUco detector maps
+# these ids into the existing &#x27;left&#x27;/&#x27;right&#x27; marker types used downstream.
+# Current physical marker set. identify_aruco_markers.py detected the shown
+# arrow marker as DICT_4X4_250 id=190. DICT_4X4_1000 may also report it
+# because it is a larger 4x4 dictionary, but 250 is the tighter match.
+ARUCO_DICTIONARY = &#x27;DICT_4X4_250&#x27;
+ARUCO_MARKER_IDS = {
+    &#x27;left&#x27;: [190],
+    &#x27;right&#x27;: [],  # Fill this after identifying the right-side marker ID.
+}
+
+# ===== PATH FINDER RULES =====
+AREA_MATCH_THRESHOLD = 0.35  # Size difference allowed when pairing markers
+ANGLE_MAX_DEGREES = 75       # Max angle from horizontal
+GATE_MEMORY_FRAMES = 5       # Keep last gate through short detection dropouts
+GATE_SMOOTHING_ALPHA = 0.35  # Lower = steadier gate center, higher = more responsive
+STEER_ZONE_LEFT = IMG_WIDTH / 3
+STEER_ZONE_RIGHT = 2 * IMG_WIDTH / 3
+
+# ===== GPIO PINS =====
+LED_PINS = {
+    &#x27;stop&#x27;: 17,
+    &#x27;strong_left&#x27;: 27,
+    &#x27;light_left&#x27;: 22,
+    &#x27;go&#x27;: 23,
+    &#x27;light_right&#x27;: 24,
+    &#x27;strong_right&#x27;: 6
+}
+SERIAL_TX_PIN = 14
+SERIAL_PORT = &#x27;/dev/ttyAMA0&#x27;
+SERIAL_BAUD_RATE = 9600
+
+# ===== GATE CROSSING DETECTION =====
+GATE_PRESENT_THRESHOLD = 3     # Frames gate must be visible before it counts (debounce)
+GATE_ABSENT_THRESHOLD = 8      # Frames with no gate to trigger clearing phase
+COOLDOWN_FRAMES = 15           # Frames to go straight after gate disappears (~0.5s at 30fps)
+NO_GATE_CHAR = &#x27;?&#x27;             # Sent when no gate visible and not in any phase
+STRAIGHT_CHAR = &#x27;M&#x27;            # Sent during CLEARING phase (center = go straight)
+LETTER_NUM_ZONES = 26          # A-Z = 26 zones across frame width
+
+# ===== DEBUG =====
+LOG_RUNTIME = True
+SHOW_DEBUG = False
+STREAM_OVERLAY = False
+</pre></section><section id="file-final_navigation/vision/config_mac.py"><h2>final_navigation/vision/config_mac.py</h2><p><a href="roverd/final_navigation/vision/config_mac.py" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/vision/config_mac.py">Back to file index</a></p><pre># config_mac.py - Mac webcam calibrated patterns
+# Generated from live camera readings
+
+# ===== MARKER PATTERNS (4x4 grid: 1=black, 0=white) =====
+PATTERNS_MAC = {
+    &#x27;left&#x27;: [[1,0,1,0],
+             [1,1,0,0],
+             [1,1,0,1],
+             [0,0,1,1]],
+
+    &#x27;right&#x27;: [[0,1,0,1],
+              [0,0,0,0],
+              [0,1,1,1],
+              [0,0,0,0]]
+}
+</pre></section><section id="file-final_navigation/vision/custom_marker_finder.py"><h2>final_navigation/vision/custom_marker_finder.py</h2><p><a href="roverd/final_navigation/vision/custom_marker_finder.py" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/vision/custom_marker_finder.py">Back to file index</a></p><pre># custom_marker_finder.py - Robust detector for the project&#x27;s custom 4x4 markers
+#
+# This keeps the old marker contract:
+#   square contour -&gt; perspective warp -&gt; 4x4 grid -&gt; left/right type
+# but packages it as one detector stage and removes duplicate contour hits.
+
+import cv2
+import numpy as np
+
+import config
+from pattern_reader import extract_grid, rotate_grid_90, warp_to_patch
+from square_finder import find_squares
+
+
+DEFAULT_MAX_HAMMING = getattr(config, &#x27;CUSTOM_MARKER_MAX_HAMMING&#x27;, 2)
+DEFAULT_DUPLICATE_CENTER_FRACTION = getattr(config, &#x27;CUSTOM_MARKER_DUPLICATE_CENTER_FRACTION&#x27;, 0.35)
+
+
+def hamming_distance(a, b):
+    return int(np.count_nonzero(np.asarray(a, dtype=int) != np.asarray(b, dtype=int)))
+
+
+def classify_grid(grid, max_hamming=DEFAULT_MAX_HAMMING):
+    &quot;&quot;&quot;
+    Match a read grid against configured patterns, trying all rotations.
+
+    Returns:
+        marker_type: &#x27;left&#x27;, &#x27;right&#x27;, or &#x27;unknown&#x27;
+        best_error:  number of bit differences from the best pattern
+        rotation:    rotation index that matched best
+    &quot;&quot;&quot;
+    patterns = getattr(config, &#x27;PATTERNS&#x27;, {})
+    best_type = &#x27;unknown&#x27;
+    best_error = grid.size + 1
+    best_rotation = 0
+
+    rotated = grid.copy()
+    for rotation in range(4):
+        for marker_type, pattern in patterns.items():
+            error = hamming_distance(rotated, pattern)
+            if error &lt; best_error:
+                best_type = marker_type
+                best_error = error
+                best_rotation = rotation
+        rotated = rotate_grid_90(rotated)
+
+    if best_error &gt; max_hamming:
+        return &#x27;unknown&#x27;, best_error, best_rotation
+    return best_type, best_error, best_rotation
+
+
+def marker_scale(marker):
+    return float(np.sqrt(max(marker.get(&#x27;area&#x27;, 0.0), 1.0)))
+
+
+def is_duplicate(a, b, center_fraction=DEFAULT_DUPLICATE_CENTER_FRACTION):
+    ax, ay = a[&#x27;center&#x27;]
+    bx, by = b[&#x27;center&#x27;]
+    center_distance = float(np.hypot(ax - bx, ay - by))
+    scale = max(marker_scale(a), marker_scale(b))
+    return center_distance &lt; center_fraction * scale
+
+
+def marker_rank(marker):
+    # Known marker beats unknown; lower grid error beats higher; larger area is
+    # usually the outer border and is more stable than an inner duplicate.
+    known_score = 0 if marker[&#x27;type&#x27;] != &#x27;unknown&#x27; else 1
+    return (known_score, marker.get(&#x27;match_error&#x27;, 99), -marker.get(&#x27;area&#x27;, 0.0))
+
+
+def suppress_duplicates(markers):
+    kept = []
+    for marker in sorted(markers, key=marker_rank):
+        if any(is_duplicate(marker, existing) for existing in kept):
+            continue
+        kept.append(marker)
+    return kept
+
+
+def find_markers(gray=None, frame=None, min_area=1000, max_area=50000, include_unknown=True, **kwargs):
+    &quot;&quot;&quot;
+    Detect and classify custom grid markers.
+
+    Each returned marker has the same shape downstream code expects:
+        corners, center, area, type
+
+    Extra debug fields:
+        grid, match_error, rotation
+    &quot;&quot;&quot;
+    if gray is None:
+        if frame is None:
+            print(&#x27;ERROR: Need grayscale image or BGR frame&#x27;)
+            return []
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    source = frame if frame is not None else gray
+    candidates = find_squares(gray=gray, min_area=min_area, max_area=max_area, **kwargs)
+    markers = []
+
+    for candidate in candidates:
+        patch = warp_to_patch(source, candidate[&#x27;corners&#x27;])
+        grid = extract_grid(patch)
+        marker_type, match_error, rotation = classify_grid(grid)
+        if marker_type == &#x27;unknown&#x27; and not include_unknown:
+            continue
+
+        marker = dict(candidate)
+        marker.update({
+            &#x27;type&#x27;: marker_type,
+            &#x27;grid&#x27;: grid,
+            &#x27;match_error&#x27;: match_error,
+            &#x27;rotation&#x27;: rotation,
+        })
+        markers.append(marker)
+
+    return suppress_duplicates(markers)
+</pre></section><section id="file-final_navigation/vision/gate_finder.py"><h2>final_navigation/vision/gate_finder.py</h2><p><a href="roverd/final_navigation/vision/gate_finder.py" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/vision/gate_finder.py">Back to file index</a></p><pre># gate_finder.py - Find valid gates from detected and identified markers
+
+from config import AREA_MATCH_THRESHOLD, ANGLE_MAX_DEGREES
+from math_utils import angle_between, midpoint, distance
+
+
+def gate_metrics(left, right):
+    larger = max(left[&#x27;area&#x27;], right[&#x27;area&#x27;])
+    smaller = min(left[&#x27;area&#x27;], right[&#x27;area&#x27;])
+    area_diff = (larger - smaller) / larger if larger &gt; 0 else 1.0
+    angle = angle_between(left[&#x27;center&#x27;], right[&#x27;center&#x27;])
+    width = distance(left[&#x27;center&#x27;], right[&#x27;center&#x27;])
+    return area_diff, angle, width
+
+
+def gate_score(area_diff, angle, width):
+    area_quality = max(0.0, 1.0 - (area_diff / AREA_MATCH_THRESHOLD))
+    angle_quality = max(0.0, 1.0 - (angle / ANGLE_MAX_DEGREES))
+    return width * (0.55 + 0.30 * area_quality + 0.15 * angle_quality)
+
+
+def find_gates(markers):
+    &quot;&quot;&quot;
+    Given a list of identified markers, find all valid gate pairs.
+
+    Each marker dict (from square_finder + pattern_reader) must have:
+        &#x27;corners&#x27;: numpy array (4, 2)
+        &#x27;center&#x27;:  (cx, cy)
+        &#x27;area&#x27;:    float
+        &#x27;type&#x27;:    &#x27;left&#x27;, &#x27;right&#x27;, or &#x27;unknown&#x27;
+
+    Returns a list of valid gates. Each gate is:
+        {
+            &#x27;left&#x27;:   left marker dict,
+            &#x27;right&#x27;:  right marker dict,
+            &#x27;center&#x27;: [cx, cy]  midpoint between the two markers,
+            &#x27;width&#x27;:  float     pixel distance between the two centers
+        }
+    &quot;&quot;&quot;
+    gates = []
+
+    left_markers = [m for m in markers if m[&#x27;type&#x27;] == &#x27;left&#x27;]
+    right_markers = [m for m in markers if m[&#x27;type&#x27;] == &#x27;right&#x27;]
+
+    for left in left_markers:
+        for right in right_markers:
+            area_diff, angle, gate_width = gate_metrics(left, right)
+            if area_diff &gt; AREA_MATCH_THRESHOLD:
+                continue
+            if angle &gt; ANGLE_MAX_DEGREES:
+                continue
+
+            gate_center = midpoint(left[&#x27;center&#x27;], right[&#x27;center&#x27;])
+
+            gates.append({
+                &#x27;left&#x27;: left,
+                &#x27;right&#x27;: right,
+                &#x27;center&#x27;: gate_center,
+                &#x27;width&#x27;: gate_width,
+                &#x27;area_diff&#x27;: area_diff,
+                &#x27;angle&#x27;: angle,
+                &#x27;score&#x27;: gate_score(area_diff, angle, gate_width),
+                &#x27;stale&#x27;: False,
+            })
+
+    return gates
+
+
+def best_gate(gates):
+    &quot;&quot;&quot;
+    If multiple valid gates are found, pick the most relevant one.
+    Strategy: widest gate = closest to camera = highest priority.
+    &quot;&quot;&quot;
+    if not gates:
+        return None
+
+    return max(gates, key=lambda g: g.get(&#x27;score&#x27;, g[&#x27;width&#x27;]))
+</pre></section><section id="file-final_navigation/vision/gate_tracker.py"><h2>final_navigation/vision/gate_tracker.py</h2><p><a href="roverd/final_navigation/vision/gate_tracker.py" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/vision/gate_tracker.py">Back to file index</a></p><pre># gate_tracker.py - Smooth gate position and bridge short detection dropouts.
+
+from config import GATE_MEMORY_FRAMES, GATE_SMOOTHING_ALPHA
+
+
+def lerp(a, b, alpha):
+    return (1.0 - alpha) * float(a) + alpha * float(b)
+
+
+def blend_point(old, new, alpha):
+    return [
+        lerp(old[0], new[0], alpha),
+        lerp(old[1], new[1], alpha),
+    ]
+
+
+class GateTracker:
+    def __init__(self, memory_frames=GATE_MEMORY_FRAMES, alpha=GATE_SMOOTHING_ALPHA):
+        self.memory_frames = memory_frames
+        self.alpha = alpha
+        self.last_gate = None
+        self.missed_frames = 0
+
+    def reset(self):
+        self.last_gate = None
+        self.missed_frames = 0
+
+    def update(self, gate):
+        if gate is not None:
+            self.missed_frames = 0
+            if self.last_gate is None:
+                self.last_gate = dict(gate)
+            else:
+                smoothed = dict(gate)
+                smoothed[&#x27;center&#x27;] = blend_point(self.last_gate[&#x27;center&#x27;], gate[&#x27;center&#x27;], self.alpha)
+                smoothed[&#x27;width&#x27;] = lerp(self.last_gate[&#x27;width&#x27;], gate[&#x27;width&#x27;], self.alpha)
+                smoothed[&#x27;stale&#x27;] = False
+                self.last_gate = smoothed
+            return self.last_gate
+
+        if self.last_gate is None:
+            return None
+
+        self.missed_frames += 1
+        if self.missed_frames &gt; self.memory_frames:
+            self.reset()
+            return None
+
+        held = dict(self.last_gate)
+        held[&#x27;stale&#x27;] = True
+        held[&#x27;missed_frames&#x27;] = self.missed_frames
+        return held
+</pre></section><section id="file-final_navigation/vision/main.py"><h2>final_navigation/vision/main.py</h2><p><a href="roverd/final_navigation/vision/main.py" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/vision/main.py">Back to file index</a></p><pre># main.py - Full pipeline for Raspberry Pi
+# Camera → Squares → Pattern → Gate → Command → GPIO + Serial + Web stream
+
+import threading
+import time
+import numpy as np
+import cv2
+from http.server import BaseHTTPRequestHandler
+
+import RPi.GPIO as GPIO
+import serial
+
+from config import (IMG_WIDTH, IMG_HEIGHT, FRAMERATE,
+                    CAMERA_METADATA_LOG_INTERVAL, STREAM_JPEG_QUALITY,
+                    STREAM_OVERLAY,
+                    LED_PINS, SERIAL_TX_PIN, SERIAL_PORT, SERIAL_BAUD_RATE, LOG_RUNTIME,
+                    GATE_PRESENT_THRESHOLD, GATE_ABSENT_THRESHOLD,
+                    COOLDOWN_FRAMES, NO_GATE_CHAR, STRAIGHT_CHAR)
+from camera_utils import capture_bgr_frame, camera_metadata_summary, open_camera
+from custom_marker_finder import find_markers
+from gate_finder import find_gates, best_gate
+from gate_tracker import GateTracker
+from path_finder import gate_to_command, x_to_letter
+from stream_server import create_stream_server, stream_url
+
+# ===== GPIO SETUP =====
+GPIO.setmode(GPIO.BCM)
+for pin in LED_PINS.values():
+    GPIO.setup(pin, GPIO.OUT)
+    GPIO.output(pin, GPIO.LOW)
+
+# ===== SERIAL SETUP =====
+ser = serial.Serial(SERIAL_PORT, SERIAL_BAUD_RATE, timeout=1)
+print(f&quot;[UART] port={SERIAL_PORT}  baud={SERIAL_BAUD_RATE}  open={ser.is_open}  tx_pin=GPIO{SERIAL_TX_PIN}&quot;)
+
+# ===== WEB STREAM =====
+PORT = 8080
+latest_frame = None
+frame_lock = threading.Lock()
+
+
+class MJPEGHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == &#x27;/&#x27;:
+            self.send_response(200)
+            self.send_header(&#x27;Content-type&#x27;, &#x27;text/html&#x27;)
+            self.end_headers()
+            self.wfile.write(
+                b&#x27;&lt;html&gt;&lt;body style=&quot;margin:0;background:#000&quot;&gt;&#x27;
+                b&#x27;&lt;img src=&quot;/stream&quot; style=&quot;width:100%;height:100vh;object-fit:contain&quot;&gt;&#x27;
+                b&#x27;&lt;/body&gt;&lt;/html&gt;&#x27;
+            )
+        elif self.path == &#x27;/stream&#x27;:
+            self.send_response(200)
+            self.send_header(&#x27;Cache-Control&#x27;, &#x27;no-cache&#x27;)
+            self.send_header(&#x27;Content-Type&#x27;, &#x27;multipart/x-mixed-replace; boundary=FRAME&#x27;)
+            self.end_headers()
+            try:
+                while True:
+                    with frame_lock:
+                        frame = latest_frame
+                    if frame is None:
+                        time.sleep(0.05)
+                        continue
+                    ret, jpg = cv2.imencode(
+                        &#x27;.jpg&#x27;, frame,
+                        [cv2.IMWRITE_JPEG_QUALITY, STREAM_JPEG_QUALITY]
+                    )
+                    if not ret:
+                        continue
+                    self.wfile.write(b&#x27;--FRAME\r\nContent-Type: image/jpeg\r\n\r\n&#x27;)
+                    self.wfile.write(jpg.tobytes())
+                    self.wfile.write(b&#x27;\r\n&#x27;)
+                    time.sleep(1 / FRAMERATE)
+            except Exception:
+                pass
+
+    def log_message(self, _format, *_args):
+        pass
+
+
+def set_leds(command):
+    &quot;&quot;&quot;Turn off all LEDs then activate the one for this command.&quot;&quot;&quot;
+    for pin in LED_PINS.values():
+        GPIO.output(pin, GPIO.LOW)
+    if command and command in LED_PINS:
+        GPIO.output(LED_PINS[command], GPIO.HIGH)
+
+
+# ===== SERIAL COMMAND RATE CONTROL =====
+_CMD_RATE_HZ  = 25                    # target TX frequency (Hz)
+_CMD_INTERVAL = 1.0 / _CMD_RATE_HZ   # minimum seconds between writes
+_last_cmd_time  = 0.0
+_first_tx_done  = False
+
+
+def send_serial_letter(letter):
+    &quot;&quot;&quot;Send letter + newline over UART at a fixed cadence (max _CMD_RATE_HZ).&quot;&quot;&quot;
+    global _last_cmd_time, _first_tx_done
+    now = time.monotonic()
+    if now - _last_cmd_time &lt; _CMD_INTERVAL:
+        return
+    ser.write(f&quot;{letter}\n&quot;.encode())
+    _last_cmd_time = now
+    if not _first_tx_done:
+        print(f&quot;[UART] First TX: &#x27;{letter}&#x27;  t={now:.3f}s&quot;)
+        _first_tx_done = True
+
+
+def draw_overlay(frame, markers, gate, command, letter=&#x27;?&#x27;, gate_num=0, state=&#x27;&#x27;):
+    &quot;&quot;&quot;Draw detection results onto the frame for the web stream.&quot;&quot;&quot;
+    vis = frame.copy()
+
+    # Draw all detected markers
+    for m in markers:
+        corners = m[&#x27;corners&#x27;].astype(int)
+        color = (0, 255, 0) if m[&#x27;type&#x27;] == &#x27;left&#x27; else \
+                (0, 0, 255) if m[&#x27;type&#x27;] == &#x27;right&#x27; else (128, 128, 128)
+        cv2.polylines(vis, [corners.reshape(-1, 1, 2)], True, color, 2)
+        cx, cy = int(m[&#x27;center&#x27;][0]), int(m[&#x27;center&#x27;][1])
+        cv2.putText(vis, m[&#x27;type&#x27;], (cx - 20, cy - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+
+    # Draw gate center and width
+    if gate:
+        gate_color = (0, 180, 255) if gate.get(&#x27;stale&#x27;) else (0, 255, 255)
+        gx, gy = int(gate[&#x27;center&#x27;][0]), int(gate[&#x27;center&#x27;][1])
+        cv2.circle(vis, (gx, gy), 10, gate_color, -1)
+        cv2.line(vis, (int(gate[&#x27;left&#x27;][&#x27;center&#x27;][0]), int(gate[&#x27;left&#x27;][&#x27;center&#x27;][1])),
+                      (int(gate[&#x27;right&#x27;][&#x27;center&#x27;][0]), int(gate[&#x27;right&#x27;][&#x27;center&#x27;][1])),
+                      gate_color, 2)
+        if gate.get(&#x27;stale&#x27;):
+            cv2.putText(vis, &quot;gate hold&quot;, (gx + 12, gy),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, gate_color, 1)
+
+    # Draw command
+    cmd_text = command if command else &#x27;no gate&#x27;
+    cv2.putText(vis, cmd_text, (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+
+    # Draw serial letter, gate number, and state
+    case_label = &quot;UPPER&quot; if (gate_num % 2 == 0) else &quot;lower&quot;
+    info_text = f&quot;TX:{letter}  Gate#{gate_num+1}({case_label})  [{state}]&quot;
+    cv2.putText(vis, info_text, (10, 60),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 200, 255), 2)
+
+    return vis
+
+
+# ===== START WEB SERVER =====
+server, PORT = create_stream_server(MJPEGHandler, PORT)
+server_thread = threading.Thread(target=server.serve_forever)
+server_thread.daemon = True
+server_thread.start()
+print(f&quot;Stream: {stream_url(PORT)}&quot;)
+
+# ===== START CAMERA =====
+picam2 = open_camera()
+print(&quot;Running pipeline...&quot;)
+
+# ===== GATE CROSSING STATE =====
+gate_counter = 0                # How many gates the rover has passed
+frames_gate_present = 0         # Consecutive frames with a gate detected
+frames_gate_absent = 0          # Consecutive frames with no gate detected
+gate_was_solidly_present = False # True once gate visible &gt;= GATE_PRESENT_THRESHOLD
+clearing_frames_left = 0        # Countdown during CLEARING phase
+last_letter = NO_GATE_CHAR      # Last letter sent
+gate_tracker = GateTracker()
+frame_count = 0
+
+try:
+    while True:
+        t0 = time.time()
+        frame_count += 1
+
+        # 1. Capture frame
+        frame = capture_bgr_frame(picam2)
+        if (LOG_RUNTIME and CAMERA_METADATA_LOG_INTERVAL and
+                frame_count % CAMERA_METADATA_LOG_INTERVAL == 0):
+            print(f&quot;[camera] {camera_metadata_summary(picam2)}&quot;)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # 2. Detect custom grid markers
+        markers = find_markers(gray=gray, frame=frame)
+
+        # 3. Find and smooth valid gates
+        gates = find_gates(markers)
+        raw_gate = best_gate(gates)
+        gate = gate_tracker.update(raw_gate)
+
+        # 4. Get steering command (for LEDs - unchanged)
+        command, led_pin = gate_to_command(gate)
+
+        # 5. Gate crossing state machine
+        use_uppercase = (gate_counter % 2 == 0)
+
+        if clearing_frames_left &gt; 0:
+            # CLEARING phase: go straight, ignore any gates
+            state = &#x27;CLEARING&#x27;
+            letter = STRAIGHT_CHAR if use_uppercase else STRAIGHT_CHAR.lower()
+            clearing_frames_left -= 1
+            if clearing_frames_left == 0:
+                # PASSED: done clearing, toggle case for next gate
+                gate_counter += 1
+                gate_was_solidly_present = False
+                frames_gate_present = 0
+                frames_gate_absent = 0
+                last_letter = NO_GATE_CHAR
+                gate_tracker.reset()
+                if LOG_RUNTIME:
+                    print(f&quot;*** GATE {gate_counter} PASSED ***&quot;)
+
+        elif gate is not None:
+            # Gate is visible
+            frames_gate_present += 1
+            frames_gate_absent = 0
+            if frames_gate_present &gt;= GATE_PRESENT_THRESHOLD:
+                gate_was_solidly_present = True
+
+            letter = x_to_letter(gate[&#x27;center&#x27;][0], uppercase=use_uppercase)
+            last_letter = letter
+            state = &#x27;TRACKING&#x27;
+
+        else:
+            # No gate visible
+            frames_gate_present = 0
+            frames_gate_absent += 1
+
+            if gate_was_solidly_present and frames_gate_absent &gt;= GATE_ABSENT_THRESHOLD:
+                # Gate was solidly visible, now gone long enough -&gt; start clearing
+                clearing_frames_left = COOLDOWN_FRAMES
+                letter = STRAIGHT_CHAR if use_uppercase else STRAIGHT_CHAR.lower()
+                state = &#x27;CLEARING&#x27;
+            elif gate_was_solidly_present:
+                # Brief dropout - keep sending last known letter
+                letter = last_letter
+                state = &#x27;DROPOUT&#x27;
+            else:
+                # Never saw a gate solidly
+                letter = NO_GATE_CHAR
+                state = &#x27;SEARCHING&#x27;
+
+        # 6. Output: LEDs + serial
+        set_leds(command)
+        send_serial_letter(letter)
+
+        # 7. Update web stream
+        if STREAM_OVERLAY:
+            vis = draw_overlay(frame, markers, gate, command,
+                               letter=letter, gate_num=gate_counter, state=state)
+        else:
+            vis = frame
+        with frame_lock:
+            latest_frame = vis
+
+        if LOG_RUNTIME:
+            print(f&quot;{1/(time.time()-t0):.1f} fps | markers={len(markers)} | &quot;
+                  f&quot;raw_gate={&#x27;yes&#x27; if raw_gate else &#x27;no&#x27;} | &quot;
+                  f&quot;gate={&#x27;hold&#x27; if gate and gate.get(&#x27;stale&#x27;) else &#x27;yes&#x27; if gate else &#x27;no&#x27;} | &quot;
+                  f&quot;cmd={command} | &quot;
+                  f&quot;TX={letter} | gate#{gate_counter+1} | {state}&quot;)
+
+except KeyboardInterrupt:
+    print(&quot;\nStopped.&quot;)
+finally:
+    picam2.stop()
+    server.shutdown()
+    GPIO.cleanup()
+    ser.close()
+    print(&quot;Done.&quot;)
+</pre></section><section id="file-final_navigation/vision/main_no_rover.py"><h2>final_navigation/vision/main_no_rover.py</h2><p><a href="roverd/final_navigation/vision/main_no_rover.py" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/vision/main_no_rover.py">Back to file index</a></p><pre># main_no_rover.py - Vision-only pipeline for Raspberry Pi
+# Camera -&gt; Squares -&gt; Pattern -&gt; Gate -&gt; Command -&gt; Web stream
+
+import threading
+import time
+import numpy as np
+import cv2
+from http.server import BaseHTTPRequestHandler
+
+from config import (IMG_WIDTH, IMG_HEIGHT, FRAMERATE,
+                    CAMERA_METADATA_LOG_INTERVAL, STREAM_JPEG_QUALITY,
+                    STREAM_OVERLAY,
+                    LED_PINS, SERIAL_TX_PIN, SERIAL_PORT, SERIAL_BAUD_RATE, LOG_RUNTIME,
+                    GATE_PRESENT_THRESHOLD, GATE_ABSENT_THRESHOLD,
+                    COOLDOWN_FRAMES, NO_GATE_CHAR, STRAIGHT_CHAR)
+from camera_utils import capture_bgr_frame, camera_metadata_summary, open_camera
+from custom_marker_finder import find_markers
+from gate_finder import find_gates, best_gate
+from gate_tracker import GateTracker
+from path_finder import gate_to_command, x_to_letter
+from stream_server import create_stream_server, stream_url
+
+# ===== HARDWARE OUTPUTS DISABLED =====
+print(&quot;[NO ROVER] GPIO and UART disabled; running camera/detection/web stream only.&quot;)
+
+print(f&quot;[NO ROVER] Would use LEDs={LED_PINS} and UART port={SERIAL_PORT} TX=GPIO{SERIAL_TX_PIN} baud={SERIAL_BAUD_RATE}&quot;)
+
+# ===== WEB STREAM =====
+PORT = 8080
+latest_frame = None
+frame_lock = threading.Lock()
+
+
+class MJPEGHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == &#x27;/&#x27;:
+            self.send_response(200)
+            self.send_header(&#x27;Content-type&#x27;, &#x27;text/html&#x27;)
+            self.end_headers()
+            self.wfile.write(
+                b&#x27;&lt;html&gt;&lt;body style=&quot;margin:0;background:#000&quot;&gt;&#x27;
+                b&#x27;&lt;img src=&quot;/stream&quot; style=&quot;width:100%;height:100vh;object-fit:contain&quot;&gt;&#x27;
+                b&#x27;&lt;/body&gt;&lt;/html&gt;&#x27;
+            )
+        elif self.path == &#x27;/stream&#x27;:
+            self.send_response(200)
+            self.send_header(&#x27;Cache-Control&#x27;, &#x27;no-cache&#x27;)
+            self.send_header(&#x27;Content-Type&#x27;, &#x27;multipart/x-mixed-replace; boundary=FRAME&#x27;)
+            self.end_headers()
+            try:
+                while True:
+                    with frame_lock:
+                        frame = latest_frame
+                    if frame is None:
+                        time.sleep(0.05)
+                        continue
+                    ret, jpg = cv2.imencode(
+                        &#x27;.jpg&#x27;, frame,
+                        [cv2.IMWRITE_JPEG_QUALITY, STREAM_JPEG_QUALITY]
+                    )
+                    if not ret:
+                        continue
+                    self.wfile.write(b&#x27;--FRAME\r\nContent-Type: image/jpeg\r\n\r\n&#x27;)
+                    self.wfile.write(jpg.tobytes())
+                    self.wfile.write(b&#x27;\r\n&#x27;)
+                    time.sleep(1 / FRAMERATE)
+            except Exception:
+                pass
+
+    def log_message(self, _format, *_args):
+        pass
+
+
+def set_leds(command):
+    &quot;&quot;&quot;No-op in Pi-only vision test mode.&quot;&quot;&quot;
+    return
+
+
+# ===== SERIAL COMMAND RATE CONTROL =====
+_CMD_RATE_HZ  = 25                    # target TX frequency (Hz)
+_CMD_INTERVAL = 1.0 / _CMD_RATE_HZ   # minimum seconds between writes
+_last_cmd_time  = 0.0
+_first_tx_done  = False
+
+
+def send_serial_letter(letter):
+    &quot;&quot;&quot;Log the first TX only; no UART is used in Pi-only vision test mode.&quot;&quot;&quot;
+    global _last_cmd_time, _first_tx_done
+    now = time.monotonic()
+    if now - _last_cmd_time &lt; _CMD_INTERVAL:
+        return
+    _last_cmd_time = now
+    if not _first_tx_done:
+        print(f&quot;[NO ROVER] First simulated TX: &#x27;{letter}&#x27;  t={now:.3f}s&quot;)
+        _first_tx_done = True
+
+
+def draw_overlay(frame, markers, gate, command, letter=&#x27;?&#x27;, gate_num=0, state=&#x27;&#x27;):
+    &quot;&quot;&quot;Draw detection results onto the frame for the web stream.&quot;&quot;&quot;
+    vis = frame.copy()
+
+    # Draw all detected markers
+    for m in markers:
+        corners = m[&#x27;corners&#x27;].astype(int)
+        color = (0, 255, 0) if m[&#x27;type&#x27;] == &#x27;left&#x27; else \
+                (0, 0, 255) if m[&#x27;type&#x27;] == &#x27;right&#x27; else (128, 128, 128)
+        cv2.polylines(vis, [corners.reshape(-1, 1, 2)], True, color, 2)
+        cx, cy = int(m[&#x27;center&#x27;][0]), int(m[&#x27;center&#x27;][1])
+        cv2.putText(vis, m[&#x27;type&#x27;], (cx - 20, cy - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+
+    # Draw gate center and width
+    if gate:
+        gate_color = (0, 180, 255) if gate.get(&#x27;stale&#x27;) else (0, 255, 255)
+        gx, gy = int(gate[&#x27;center&#x27;][0]), int(gate[&#x27;center&#x27;][1])
+        cv2.circle(vis, (gx, gy), 10, gate_color, -1)
+        cv2.line(vis, (int(gate[&#x27;left&#x27;][&#x27;center&#x27;][0]), int(gate[&#x27;left&#x27;][&#x27;center&#x27;][1])),
+                      (int(gate[&#x27;right&#x27;][&#x27;center&#x27;][0]), int(gate[&#x27;right&#x27;][&#x27;center&#x27;][1])),
+                      gate_color, 2)
+        if gate.get(&#x27;stale&#x27;):
+            cv2.putText(vis, &quot;gate hold&quot;, (gx + 12, gy),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, gate_color, 1)
+
+    # Draw command
+    cmd_text = command if command else &#x27;no gate&#x27;
+    cv2.putText(vis, cmd_text, (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+
+    # Draw serial letter, gate number, and state
+    case_label = &quot;UPPER&quot; if (gate_num % 2 == 0) else &quot;lower&quot;
+    info_text = f&quot;TX:{letter}  Gate#{gate_num+1}({case_label})  [{state}]&quot;
+    cv2.putText(vis, info_text, (10, 60),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 200, 255), 2)
+
+    return vis
+
+
+# ===== START WEB SERVER =====
+server, PORT = create_stream_server(MJPEGHandler, PORT)
+server_thread = threading.Thread(target=server.serve_forever)
+server_thread.daemon = True
+server_thread.start()
+print(f&quot;Stream: {stream_url(PORT)}&quot;)
+
+# ===== START CAMERA =====
+picam2 = open_camera()
+print(&quot;Running pipeline...&quot;)
+
+# ===== GATE CROSSING STATE =====
+gate_counter = 0                # How many gates the rover has passed
+frames_gate_present = 0         # Consecutive frames with a gate detected
+frames_gate_absent = 0          # Consecutive frames with no gate detected
+gate_was_solidly_present = False # True once gate visible &gt;= GATE_PRESENT_THRESHOLD
+clearing_frames_left = 0        # Countdown during CLEARING phase
+last_letter = NO_GATE_CHAR      # Last letter sent
+gate_tracker = GateTracker()
+frame_count = 0
+
+try:
+    while True:
+        t0 = time.time()
+        frame_count += 1
+
+        # 1. Capture frame
+        frame = capture_bgr_frame(picam2)
+        if (LOG_RUNTIME and CAMERA_METADATA_LOG_INTERVAL and
+                frame_count % CAMERA_METADATA_LOG_INTERVAL == 0):
+            print(f&quot;[camera] {camera_metadata_summary(picam2)}&quot;)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # 2. Detect custom grid markers
+        markers = find_markers(gray=gray, frame=frame)
+
+        # 3. Find and smooth valid gates
+        gates = find_gates(markers)
+        raw_gate = best_gate(gates)
+        gate = gate_tracker.update(raw_gate)
+
+        # 4. Get steering command (for LEDs - unchanged)
+        command, led_pin = gate_to_command(gate)
+
+        # 5. Gate crossing state machine
+        use_uppercase = (gate_counter % 2 == 0)
+
+        if clearing_frames_left &gt; 0:
+            # CLEARING phase: go straight, ignore any gates
+            state = &#x27;CLEARING&#x27;
+            letter = STRAIGHT_CHAR if use_uppercase else STRAIGHT_CHAR.lower()
+            clearing_frames_left -= 1
+            if clearing_frames_left == 0:
+                # PASSED: done clearing, toggle case for next gate
+                gate_counter += 1
+                gate_was_solidly_present = False
+                frames_gate_present = 0
+                frames_gate_absent = 0
+                last_letter = NO_GATE_CHAR
+                gate_tracker.reset()
+                if LOG_RUNTIME:
+                    print(f&quot;*** GATE {gate_counter} PASSED ***&quot;)
+
+        elif gate is not None:
+            # Gate is visible
+            frames_gate_present += 1
+            frames_gate_absent = 0
+            if frames_gate_present &gt;= GATE_PRESENT_THRESHOLD:
+                gate_was_solidly_present = True
+
+            letter = x_to_letter(gate[&#x27;center&#x27;][0], uppercase=use_uppercase)
+            last_letter = letter
+            state = &#x27;TRACKING&#x27;
+
+        else:
+            # No gate visible
+            frames_gate_present = 0
+            frames_gate_absent += 1
+
+            if gate_was_solidly_present and frames_gate_absent &gt;= GATE_ABSENT_THRESHOLD:
+                # Gate was solidly visible, now gone long enough -&gt; start clearing
+                clearing_frames_left = COOLDOWN_FRAMES
+                letter = STRAIGHT_CHAR if use_uppercase else STRAIGHT_CHAR.lower()
+                state = &#x27;CLEARING&#x27;
+            elif gate_was_solidly_present:
+                # Brief dropout - keep sending last known letter
+                letter = last_letter
+                state = &#x27;DROPOUT&#x27;
+            else:
+                # Never saw a gate solidly
+                letter = NO_GATE_CHAR
+                state = &#x27;SEARCHING&#x27;
+
+        # 6. Output: LEDs + serial
+        set_leds(command)
+        send_serial_letter(letter)
+
+        # 7. Update web stream
+        if STREAM_OVERLAY:
+            vis = draw_overlay(frame, markers, gate, command,
+                               letter=letter, gate_num=gate_counter, state=state)
+        else:
+            vis = frame
+        with frame_lock:
+            latest_frame = vis
+
+        if LOG_RUNTIME:
+            print(f&quot;{1/(time.time()-t0):.1f} fps | markers={len(markers)} | &quot;
+                  f&quot;raw_gate={&#x27;yes&#x27; if raw_gate else &#x27;no&#x27;} | &quot;
+                  f&quot;gate={&#x27;hold&#x27; if gate and gate.get(&#x27;stale&#x27;) else &#x27;yes&#x27; if gate else &#x27;no&#x27;} | &quot;
+                  f&quot;cmd={command} | &quot;
+                  f&quot;TX={letter} | gate#{gate_counter+1} | {state}&quot;)
+
+except KeyboardInterrupt:
+    print(&quot;\nStopped.&quot;)
+finally:
+    picam2.stop()
+    server.shutdown()
+    print(&quot;Done.&quot;)
+</pre></section><section id="file-final_navigation/vision/math_utils.py"><h2>final_navigation/vision/math_utils.py</h2><p><a href="roverd/final_navigation/vision/math_utils.py" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/vision/math_utils.py">Back to file index</a></p><pre>import math
+import numpy as np
+
+def shoelace_area(corners):
+    &quot;&quot;&quot;
+    Calculate area of polygon using Shoelace Formula (Gauss&#x27;s Area Formula)
+    Input: corners = [[x1,y1], [x2,y2], [x3,y3], [x4,y4]] (list of 4 points)
+    Output: area in pixels (float)
+    
+    Formula: Area = 0.5 * |sum of (x[i]*y[i+1] - x[i+1]*y[i])|
+    Like tying shoelaces with coordinates!
+    &quot;&quot;&quot;
+    corners = np.array(corners)
+    n = len(corners)
+    
+    # Shoelace calculation
+    area = 0.0
+    for i in range(n):
+        j = (i + 1) % n  # Wrap around to first point
+        area += corners[i][0] * corners[j][1]  # x[i] * y[j]
+        area -= corners[j][0] * corners[i][1]  # x[j] * y[i]
+    
+    area = abs(area) / 2.0
+    return area
+
+
+def distance(point1, point2):
+    &quot;&quot;&quot;
+    Euclidean distance between two points
+    
+    Input: point1 = [x1, y1], point2 = [x2, y2]
+    Output: distance in pixels (float)
+    
+    Formula: sqrt((x2-x1)^2 + (y2-y1)^2) - Pythagorean theorem
+    &quot;&quot;&quot;
+    x1, y1 = point1
+    x2, y2 = point2
+    dist = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+    return dist
+
+
+def angle_between(point1, point2):
+    &quot;&quot;&quot;
+    Calculate angle between two points relative to horizontal X-axis
+    
+    Input: point1 = [x1, y1] (left marker), point2 = [x2, y2] (right marker)
+    Output: angle in degrees (0-90)
+    
+    Formula: arctan(|y2-y1| / |x2-x1|) converted to degrees
+    &quot;&quot;&quot;
+    x1, y1 = point1
+    x2, y2 = point2
+    
+    dx = abs(x2 - x1)
+    dy = abs(y2 - y1)
+    
+    # Avoid division by zero
+    if dx == 0:
+        return 90.0  # Vertical line
+    
+    angle_rad = math.atan(dy / dx)
+    angle_deg = math.degrees(angle_rad)
+    return angle_deg
+
+
+def midpoint(point1, point2):
+    &quot;&quot;&quot;
+    Calculate midpoint (average) of two points
+    Used to find gate center between left and right markers
+    
+    Input: point1 = [x1, y1], point2 = [x2, y2]
+    Output: [x_mid, y_mid] (center point)
+    
+    Formula: [(x1+x2)/2, (y1+y2)/2]
+    &quot;&quot;&quot;
+    x1, y1 = point1
+    x2, y2 = point2
+    mid_x = (x1 + x2) / 2.0
+    mid_y = (y1 + y2) / 2.0
+    return [mid_x, mid_y]
+
+
+def point_in_bounds(point, img_width, img_height):
+    &quot;&quot;&quot;
+    Check if point is inside image boundaries
+    Prevents processing markers outside frame
+    
+    Input: point = [x, y], img_width, img_height (from config)
+    Output: True if inside, False if outside
+    &quot;&quot;&quot;
+    x, y = point
+    if 0 &lt;= x &lt; img_width and 0 &lt;= y &lt; img_height:
+        return True
+    return False
+</pre></section><section id="file-final_navigation/vision/offline_demo.py"><h2>final_navigation/vision/offline_demo.py</h2><p><a href="roverd/final_navigation/vision/offline_demo.py" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/vision/offline_demo.py">Back to file index</a></p><pre>#!/usr/bin/env python3
+&quot;&quot;&quot;Generated marker -&gt; detector -&gt; gate -&gt; steering demonstration. No hardware I/O.&quot;&quot;&quot;
+import argparse
+import json
+from pathlib import Path
+
+import cv2
+import numpy as np
+
+from config import IMG_WIDTH, IMG_HEIGHT, PATTERNS_PI
+from custom_marker_finder import find_markers
+from gate_finder import find_gates, best_gate
+from path_finder import gate_to_command, x_to_letter
+
+
+def synthetic_gate():
+    frame = np.full((IMG_HEIGHT, IMG_WIDTH, 3), 235, np.uint8)
+    for kind, x in [(&quot;left&quot;, 260), (&quot;right&quot;, 860)]:
+        patch = np.zeros((80, 80), np.uint8)
+        for row in range(4):
+            for col in range(4):
+                patch[16+12*row:28+12*row, 16+12*col:28+12*col] = 0 if PATTERNS_PI[kind][row][col] else 255
+        patch = cv2.resize(patch, (160, 160), interpolation=cv2.INTER_NEAREST)
+        frame[260:420, x:x+160] = cv2.cvtColor(patch, cv2.COLOR_GRAY2BGR)
+    return frame
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(&quot;--output&quot;, type=Path, default=Path(&quot;demo-output&quot;))
+    args = parser.parse_args()
+    frame = synthetic_gate()
+    markers = find_markers(frame=frame, include_unknown=False)
+    gate = best_gate(find_gates(markers))
+    command, _ = gate_to_command(gate)
+    if len(markers) != 2 or gate is None or command != &quot;go&quot;:
+        raise RuntimeError(&quot;synthetic end-to-end detection failed&quot;)
+    for marker in markers:
+        corners = marker[&quot;corners&quot;].astype(int)
+        cv2.polylines(frame, [corners.reshape(-1, 1, 2)], True, (40, 160, 30), 3)
+        cv2.putText(frame, marker[&quot;type&quot;], tuple(corners[0] - [0, 12]), cv2.FONT_HERSHEY_SIMPLEX, .7, (20, 80, 20), 2)
+    center = tuple(int(x) for x in gate[&quot;center&quot;])
+    cv2.circle(frame, center, 12, (30, 80, 220), -1)
+    cv2.line(frame, tuple(map(int,gate[&quot;left&quot;][&quot;center&quot;])), tuple(map(int,gate[&quot;right&quot;][&quot;center&quot;])), (30, 80, 220), 3)
+    letter = x_to_letter(gate[&quot;center&quot;][0])
+    cv2.putText(frame, f&quot;OFFLINE / SYNTHETIC | steering: {command} | UART: {letter}&quot;, (45, 80), cv2.FONT_HERSHEY_SIMPLEX, .85, (30, 30, 30), 2)
+    args.output.mkdir(parents=True, exist_ok=True)
+    if not cv2.imwrite(str(args.output / &quot;gate-demo.png&quot;), frame):
+        raise RuntimeError(&quot;could not save demo image&quot;)
+    result = {&quot;markers&quot;: len(markers), &quot;center&quot;: [float(v) for v in gate[&quot;center&quot;]], &quot;command&quot;: command, &quot;letter&quot;: letter, &quot;hardware_used&quot;: False}
+    (args.output / &quot;result.json&quot;).write_text(json.dumps(result, indent=2) + &quot;\n&quot;)
+    print(json.dumps(result))
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</pre></section><section id="file-final_navigation/vision/path_finder.py"><h2>final_navigation/vision/path_finder.py</h2><p><a href="roverd/final_navigation/vision/path_finder.py" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/vision/path_finder.py">Back to file index</a></p><pre># path_finder.py - Decide steering direction from gate center position
+# Divides the frame into 5 zones and maps gate center x to a command
+
+from config import IMG_WIDTH, STEER_ZONE_LEFT, STEER_ZONE_RIGHT, LED_PINS, LETTER_NUM_ZONES
+
+# Split each side further for fine-grained steering
+# Frame: |--SL--|--LL--|----GO----|--LR--|--SR--|
+ZONE_STRONG_LEFT  = STEER_ZONE_LEFT / 2          # 0  – 106
+ZONE_LIGHT_LEFT   = STEER_ZONE_LEFT               # 107 – 213
+ZONE_GO_LEFT      = STEER_ZONE_LEFT               # 213 – 426  (centre zone)
+ZONE_LIGHT_RIGHT  = STEER_ZONE_RIGHT              # 426 – 533
+ZONE_STRONG_RIGHT = STEER_ZONE_RIGHT + (IMG_WIDTH - STEER_ZONE_RIGHT) / 2  # 533 – 640
+
+
+def x_to_letter(gate_center_x, uppercase=True):
+    &quot;&quot;&quot;
+    Map gate center X position (0 to IMG_WIDTH) to a letter A-Z or a-z.
+
+    Frame divided into 26 equal zones (~24.6px each):
+      A = far left, M/N = center, Z = far right.
+
+    Args:
+        gate_center_x: pixel X coordinate of gate midpoint
+        uppercase: True for odd gates (1,3,5...), False for even gates (2,4,6...)
+
+    Returns:
+        Single character, e.g. &#x27;A&#x27;, &#x27;N&#x27;, &#x27;z&#x27;
+    &quot;&quot;&quot;
+    clamped_x = max(0.0, min(float(gate_center_x), float(IMG_WIDTH)))
+    zone_width = IMG_WIDTH / LETTER_NUM_ZONES
+    zone_index = int(clamped_x / zone_width)
+    if zone_index &gt;= LETTER_NUM_ZONES:
+        zone_index = LETTER_NUM_ZONES - 1
+
+    if uppercase:
+        return chr(ord(&#x27;A&#x27;) + zone_index)
+    else:
+        return chr(ord(&#x27;a&#x27;) + zone_index)
+
+
+def get_command(gate_center_x):
+    &quot;&quot;&quot;
+    Map gate centre x position to a steering command.
+
+    Args:
+        gate_center_x: x pixel coordinate of the gate midpoint
+
+    Returns:
+        command: one of &#x27;strong_left&#x27;, &#x27;light_left&#x27;, &#x27;go&#x27;,
+                         &#x27;light_right&#x27;, &#x27;strong_right&#x27;
+        led_pin: GPIO pin number to activate (from config)
+    &quot;&quot;&quot;
+    if gate_center_x &lt; ZONE_STRONG_LEFT:
+        command = &#x27;strong_left&#x27;
+    elif gate_center_x &lt; ZONE_LIGHT_LEFT:
+        command = &#x27;light_left&#x27;
+    elif gate_center_x &lt;= ZONE_LIGHT_RIGHT:
+        command = &#x27;go&#x27;
+    elif gate_center_x &lt;= ZONE_STRONG_RIGHT:
+        command = &#x27;light_right&#x27;
+    else:
+        command = &#x27;strong_right&#x27;
+
+    return command, LED_PINS[command]
+
+
+def gate_to_command(gate):
+    &quot;&quot;&quot;
+    Convenience wrapper: takes a gate dict from gate_finder and returns command.
+
+    Args:
+        gate: dict with &#x27;center&#x27; key → [cx, cy]
+
+    Returns:
+        command, led_pin  (or None, None if gate is None)
+    &quot;&quot;&quot;
+    if gate is None:
+        return None, None
+
+    gate_center_x = gate[&#x27;center&#x27;][0]
+    return get_command(gate_center_x)
+</pre></section><section id="file-final_navigation/vision/pattern_reader.py"><h2>final_navigation/vision/pattern_reader.py</h2><p><a href="roverd/final_navigation/vision/pattern_reader.py" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/vision/pattern_reader.py">Back to file index</a></p><pre># pattern_reader.py - Read and identify marker patterns
+# Takes a detected square, unwarps it via perspective transform,
+# reads the inner NxN binary grid, and matches against known patterns.
+
+import numpy as np
+import cv2
+from config import PATTERNS
+
+# Grid size is read dynamically from config (currently 4x4)
+GRID_SIZE = len(list(PATTERNS.values())[0])
+
+# Size of the normalised patch we warp each marker into
+# 80px: border=16px each side, inner=48px, cell=12px per side
+PATCH_SIZE = 80
+
+# Black border takes up 20% on each side → inner region is 60% of patch
+BORDER_FRACTION = 0.2
+
+
+def warp_to_patch(frame, corners):
+    &quot;&quot;&quot;
+    Perspective-warp the detected square into a flat PATCH_SIZE x PATCH_SIZE image.
+
+    corners: numpy array (4, 2), ordered [TL, TR, BR, BL]
+    Returns: warped patch (grayscale)
+    &quot;&quot;&quot;
+    dst = np.array([
+        [0,             0],
+        [PATCH_SIZE - 1, 0],
+        [PATCH_SIZE - 1, PATCH_SIZE - 1],
+        [0,             PATCH_SIZE - 1]
+    ], dtype=np.float32)
+
+    src = corners.astype(np.float32)
+    H = cv2.getPerspectiveTransform(src, dst)
+    patch = cv2.warpPerspective(frame, H, (PATCH_SIZE, PATCH_SIZE))
+
+    # Convert to grayscale for thresholding
+    if len(patch.shape) == 3:
+        patch = cv2.cvtColor(patch, cv2.COLOR_BGR2GRAY)
+
+    return patch
+
+
+def extract_grid(patch):
+    &quot;&quot;&quot;
+    Convert the warped patch into an NxN binary grid (N = GRID_SIZE).
+
+    Returns: numpy array (N, N) where 1 = black cell, 0 = white cell
+    &quot;&quot;&quot;
+    # Otsu threshold → clean black/white image
+    _, binary = cv2.threshold(patch, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    # Crop out the black border to get the inner pattern region
+    border = int(PATCH_SIZE * BORDER_FRACTION)
+    inner = binary[border:PATCH_SIZE - border, border:PATCH_SIZE - border]
+
+    cell_size = inner.shape[0] // GRID_SIZE
+    grid = np.zeros((GRID_SIZE, GRID_SIZE), dtype=int)
+
+    for row in range(GRID_SIZE):
+        for col in range(GRID_SIZE):
+            cell = inner[row * cell_size:(row + 1) * cell_size,
+                         col * cell_size:(col + 1) * cell_size]
+            # Black pixels = 0 in binary image → mean &lt; 127 means mostly black
+            grid[row][col] = 1 if np.mean(cell) &lt; 127 else 0
+
+    return grid
+
+
+def rotate_grid_90(grid):
+    &quot;&quot;&quot;Rotate grid 90 degrees clockwise.&quot;&quot;&quot;
+    return np.rot90(grid, k=-1)
+
+
+def read_pattern(frame, corners):
+    &quot;&quot;&quot;
+    Main function: identify which marker type a detected square is.
+
+    Args:
+        frame:   full camera frame (BGR or grayscale)
+        corners: numpy array (4, 2), corners ordered [TL, TR, BR, BL]
+
+    Returns:
+        marker_type: &#x27;left&#x27;, &#x27;right&#x27;, or &#x27;unknown&#x27;
+        grid:        the NxN binary grid that was read (for debugging)
+    &quot;&quot;&quot;
+    # 1. Unwarp the square into a flat patch
+    patch = warp_to_patch(frame, corners)
+
+    # 2. Read the NxN binary grid from the inner region
+    grid = extract_grid(patch)
+
+    # 3. Try all 4 rotations against every known pattern
+    rotated = grid.copy()
+    for _ in range(4):
+        for name, pattern in PATTERNS.items():
+            if np.array_equal(rotated, np.array(pattern)):
+                return name, grid
+        rotated = rotate_grid_90(rotated)
+
+    return &#x27;unknown&#x27;, grid
+</pre></section><section id="file-final_navigation/vision/requirements.txt"><h2>final_navigation/vision/requirements.txt</h2><p><a href="roverd/final_navigation/vision/requirements.txt" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/vision/requirements.txt">Back to file index</a></p><pre>numpy&gt;=1.26,&lt;3
+opencv-python&gt;=4.10,&lt;5
+</pre></section><section id="file-final_navigation/vision/square_finder.py"><h2>final_navigation/vision/square_finder.py</h2><p><a href="roverd/final_navigation/vision/square_finder.py" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/vision/square_finder.py">Back to file index</a></p><pre># square_finder.py - Direct Contour Detection (quads.py approach)
+# Simple and robust: adaptive threshold + contour detection
+# No Hough lines needed - direct detection of square markers
+
+import numpy as np
+import cv2
+import math
+import sys
+sys.path.append(&#x27;..&#x27;)
+
+from math_utils import shoelace_area, distance
+
+
+def order_corners(corners):
+    &quot;&quot;&quot;
+    Order 4 corners consistently: top-left, top-right, bottom-right, bottom-left
+    &quot;&quot;&quot;
+    pts = np.array(corners, dtype=np.float32)
+    rect = np.zeros((4, 2), dtype=np.float32)
+    
+    s = pts.sum(axis=1)
+    rect[0] = pts[np.argmin(s)]      # top-left
+    rect[2] = pts[np.argmax(s)]      # bottom-right
+    
+    diff = np.diff(pts, axis=1)
+    rect[1] = pts[np.argmin(diff)]   # top-right
+    rect[3] = pts[np.argmax(diff)]   # bottom-left
+    
+    return rect
+
+
+def find_squares_direct(gray, min_area=1000, max_area=50000):
+    &quot;&quot;&quot;
+    Direct contour detection using adaptive threshold (quads.py approach)
+    Simple and robust - no Hough lines needed
+    &quot;&quot;&quot;
+    try:
+        # Adaptive threshold finds local contrast changes = marker borders
+        blur = cv2.GaussianBlur(gray, (5, 5), 0)
+        thresh = cv2.adaptiveThreshold(
+            blur, 255,
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY_INV,
+            11, 2
+        )
+
+        # Light morphology to clean up noise
+        kernel = np.ones((3, 3), np.uint8)
+        thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=1)
+
+        # Find contours
+        contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    except cv2.error as e:
+        print(f&quot;OpenCV error in preprocessing: {e}&quot;)
+        return []
+    except Exception as e:
+        print(f&quot;Unexpected error in preprocessing: {e}&quot;)
+        return []
+
+    markers = []
+    
+    for contour in contours:
+        try:
+            area = cv2.contourArea(contour)
+
+            
+            if area &lt; min_area or area &gt; max_area:
+                continue
+
+            perimeter = cv2.arcLength(contour, True)
+            approx = cv2.approxPolyDP(contour, 0.04 * perimeter, True)
+
+            # Must be a quadrilateral
+            if len(approx) != 4:
+                continue
+
+            # Must be convex
+            if not cv2.isContourConvex(approx):
+                continue
+
+            corners = approx.reshape(-1, 2).astype(np.float32)
+            ordered = order_corners(corners)
+
+            # Check aspect ratio using minimum area rectangle
+            rect = cv2.minAreaRect(corners)
+            w, h = rect[1]
+            if w &lt; 20 or h &lt; 20:
+                continue
+
+            ratio = max(w, h) / min(w, h)
+
+            # ArUco markers are SQUARE - ratio should be close to 1.0
+            if ratio &gt; 1.5:
+                continue
+
+            # Check side lengths for squareness
+            side_lengths = []
+            for i in range(4):
+                p1 = ordered[i]
+                p2 = ordered[(i + 1) % 4]
+                length = distance(p1.tolist(), p2.tolist())
+                side_lengths.append(length)
+
+            side_ratio = max(side_lengths) / (min(side_lengths) + 1e-6)
+            if side_ratio &gt; 1.6:
+                continue
+
+            precise_area = shoelace_area(ordered.tolist())
+            cx = np.mean(ordered[:, 0])
+            cy = np.mean(ordered[:, 1])
+
+            markers.append({
+                &#x27;corners&#x27;: ordered,
+                &#x27;center&#x27;: (cx, cy),
+                &#x27;area&#x27;: precise_area
+            })
+        except Exception as e:
+            # Skip problematic contours
+            continue
+    
+    return markers
+
+
+def find_squares(gray=None, img_width=None, img_height=None, min_area=1000, max_area=50000, **kwargs):
+    &quot;&quot;&quot;
+    Main function: Direct contour detection (quads.py approach)
+    
+    Simple and robust - no Hough lines needed
+    Uses adaptive thresholding to find square markers
+    &quot;&quot;&quot;
+    if gray is None:
+        print(&quot;ERROR: Need grayscale image&quot;)
+        return []
+    
+    markers = find_squares_direct(gray, min_area, max_area)
+    return markers
+
+</pre></section><section id="file-final_navigation/vision/stream_server.py"><h2>final_navigation/vision/stream_server.py</h2><p><a href="roverd/final_navigation/vision/stream_server.py" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/vision/stream_server.py">Back to file index</a></p><pre>import errno
+import socket
+from http.server import HTTPServer
+
+
+class ReusableHTTPServer(HTTPServer):
+    allow_reuse_address = True
+
+
+def create_stream_server(handler_class, preferred_port, host=&quot;0.0.0.0&quot;, max_tries=10):
+    &quot;&quot;&quot;Bind the stream server, falling back if the preferred port is busy.&quot;&quot;&quot;
+    last_error = None
+
+    for port in range(preferred_port, preferred_port + max_tries):
+        try:
+            server = ReusableHTTPServer((host, port), handler_class)
+            if port != preferred_port:
+                print(f&quot;[stream] Port {preferred_port} is busy; using {port} instead.&quot;)
+            return server, port
+        except OSError as exc:
+            last_error = exc
+            if exc.errno != errno.EADDRINUSE:
+                raise
+
+    raise RuntimeError(
+        f&quot;Could not bind stream server on ports {preferred_port}-&quot;
+        f&quot;{preferred_port + max_tries - 1}. Stop the old process or choose &quot;
+        &quot;a different stream port.&quot;
+    ) from last_error
+
+
+def stream_url(port):
+    hostname = socket.gethostname().split(&quot;.&quot;)[0]
+    return f&quot;http://{hostname}.local:{port}&quot;
+</pre></section><section id="file-final_navigation/vision/test_visualise_laptop.py"><h2>final_navigation/vision/test_visualise_laptop.py</h2><p><a href="roverd/final_navigation/vision/test_visualise_laptop.py" download>Download raw file ↓</a> · <a href="roverd.html#file-final_navigation/vision/test_visualise_laptop.py">Back to file index</a></p><pre># test_visualise_laptop.py - Test full pipeline on Mac webcam
+# Shows: detected squares, marker labels, gate, steering zones, command
+
+import cv2
+import time
+
+import config
+from config import IMG_WIDTH, IMG_HEIGHT, STEER_ZONE_LEFT, STEER_ZONE_RIGHT
+
+try:
+    from config_mac import PATTERNS_MAC
+    config.PATTERNS = PATTERNS_MAC
+    PATTERN_SOURCE = &#x27;config_mac.py&#x27;
+except ImportError:
+    PATTERN_SOURCE = &#x27;config.py&#x27;
+
+from custom_marker_finder import find_markers
+from gate_finder import find_gates, best_gate
+from gate_tracker import GateTracker
+from path_finder import gate_to_command
+
+
+def draw_overlay(frame, markers, gate, command):
+    vis = frame.copy()
+    h, w = vis.shape[:2]
+
+    # --- Steering zone lines ---
+    zone_left = int(STEER_ZONE_LEFT * w / IMG_WIDTH)
+    zone_right = int(STEER_ZONE_RIGHT * w / IMG_WIDTH)
+    mid = w // 2
+
+    cv2.line(vis, (zone_left, 0), (zone_left, h), (50, 50, 50), 1)
+    cv2.line(vis, (zone_right, 0), (zone_right, h), (50, 50, 50), 1)
+    cv2.line(vis, (mid, 0), (mid, h), (30, 30, 30), 1)
+
+    # Zone labels
+    cv2.putText(vis, &#x27;SL&#x27;, (20, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (100, 100, 100), 1)
+    cv2.putText(vis, &#x27;LL&#x27;, (zone_left + 5, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (100, 100, 100), 1)
+    cv2.putText(vis, &#x27;GO&#x27;, (mid - 15, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (100, 100, 100), 1)
+    cv2.putText(vis, &#x27;LR&#x27;, (zone_right + 5, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (100, 100, 100), 1)
+    cv2.putText(vis, &#x27;SR&#x27;, (w - 30, h - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (100, 100, 100), 1)
+
+    # --- Detected markers ---
+    for m in markers:
+        corners = m[&#x27;corners&#x27;].astype(int)
+        if m[&#x27;type&#x27;] == &#x27;left&#x27;:
+            color = (0, 255, 0)    # green
+        elif m[&#x27;type&#x27;] == &#x27;right&#x27;:
+            color = (0, 0, 255)    # red
+        else:
+            color = (128, 128, 128)  # grey = unknown
+
+        cv2.polylines(vis, [corners.reshape(-1, 1, 2)], True, color, 2)
+        cx, cy = int(m[&#x27;center&#x27;][0]), int(m[&#x27;center&#x27;][1])
+        cv2.circle(vis, (cx, cy), 4, color, -1)
+        cv2.putText(vis, f&quot;{m[&#x27;type&#x27;]} d={m.get(&#x27;match_error&#x27;, &#x27;?&#x27;)}&quot;, (cx - 35, cy - 12),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+
+    # --- Gate ---
+    if gate:
+        gate_color = (0, 180, 255) if gate.get(&#x27;stale&#x27;) else (0, 255, 255)
+        lx, ly = int(gate[&#x27;left&#x27;][&#x27;center&#x27;][0]), int(gate[&#x27;left&#x27;][&#x27;center&#x27;][1])
+        rx, ry = int(gate[&#x27;right&#x27;][&#x27;center&#x27;][0]), int(gate[&#x27;right&#x27;][&#x27;center&#x27;][1])
+        gx, gy = int(gate[&#x27;center&#x27;][0]), int(gate[&#x27;center&#x27;][1])
+
+        # Line between markers
+        cv2.line(vis, (lx, ly), (rx, ry), gate_color, 2)
+        # Gate center
+        cv2.circle(vis, (gx, gy), 10, gate_color, -1)
+        cv2.putText(vis, &quot;gate hold&quot; if gate.get(&#x27;stale&#x27;) else &quot;gate center&quot;, (gx + 12, gy),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, gate_color, 1)
+
+    # --- Command ---
+    cmd_text = command.upper() if command else &#x27;NO GATE&#x27;
+    cmd_color = (0, 255, 0) if command == &#x27;go&#x27; else \
+                (0, 165, 255) if command and &#x27;left&#x27; in command else \
+                (255, 100, 100) if command and &#x27;right&#x27; in command else \
+                (100, 100, 100)
+    cv2.putText(vis, cmd_text, (10, 35),
+                cv2.FONT_HERSHEY_SIMPLEX, 1.0, cmd_color, 3)
+
+    types = [m.get(&#x27;type&#x27;) for m in markers]
+    cv2.putText(vis, f&quot;custom={types} patterns={PATTERN_SOURCE}&quot;, (10, 68),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+
+    return vis
+
+
+print(&quot;=&quot; * 50)
+print(&quot;LAPTOP VISUALISER (Mac Webcam)&quot;)
+print(&quot;=&quot; * 50)
+print(&quot;Press Q to quit&quot;)
+print(f&quot;Using custom grid markers from {PATTERN_SOURCE}&quot;)
+print(&quot;=&quot; * 50)
+
+cap = cv2.VideoCapture(0, cv2.CAP_AVFOUNDATION)
+if not cap.isOpened():
+    print(&quot;ERROR: Cannot open webcam&quot;)
+    print(&quot;macOS is still blocking camera access for the app running this script.&quot;)
+    print(&quot;Quit/reopen that app after enabling Camera permission, then run this again.&quot;)
+    exit(1)
+
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMG_WIDTH)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMG_HEIGHT)
+cap.set(cv2.CAP_PROP_FPS, 30)
+gate_tracker = GateTracker()
+
+try:
+    while True:
+        t0 = time.time()
+
+        ok, frame = cap.read()
+        if not ok:
+            break
+
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        markers = find_markers(gray=gray, frame=frame)
+
+        gates = find_gates(markers)
+        raw_gate = best_gate(gates)
+        gate = gate_tracker.update(raw_gate)
+        command, _ = gate_to_command(gate)
+
+        vis = draw_overlay(frame, markers, gate, command)
+        cv2.imshow(&quot;Laptop Test - Full Pipeline&quot;, vis)
+
+        fps = 1 / (time.time() - t0)
+        details = [(m[&#x27;type&#x27;], m.get(&#x27;match_error&#x27;), m.get(&#x27;grid&#x27;).tolist()) for m in markers]
+        print(f&quot;{fps:.1f} fps | markers={len(markers)} | custom={details} | &quot;
+              f&quot;raw_gate={&#x27;yes&#x27; if raw_gate else &#x27;no&#x27;} | &quot;
+              f&quot;gate={&#x27;hold&#x27; if gate and gate.get(&#x27;stale&#x27;) else &#x27;yes&#x27; if gate else &#x27;no&#x27;} | &quot;
+              f&quot;cmd={command}&quot;)
+
+        if cv2.waitKey(1) &amp; 0xFF == ord(&#x27;q&#x27;):
+            break
+
+except KeyboardInterrupt:
+    print(&quot;\nStopped.&quot;)
+finally:
+    cap.release()
+    cv2.destroyAllWindows()
+    print(&quot;Done.&quot;)
+</pre></section><section id="file-samples/result.json"><h2>samples/result.json</h2><p><a href="roverd/samples/result.json" download>Download raw file ↓</a> · <a href="roverd.html#file-samples/result.json">Back to file index</a></p><pre>{
+  &quot;markers&quot;: 2,
+  &quot;center&quot;: [
+    639.5,
+    339.5
+  ],
+  &quot;command&quot;: &quot;go&quot;,
+  &quot;letter&quot;: &quot;M&quot;,
+  &quot;hardware_used&quot;: false
+}
+</pre></section><section id="file-tests/fake_sdk/fake_hardware.hpp"><h2>tests/fake_sdk/fake_hardware.hpp</h2><p><a href="roverd/tests/fake_sdk/fake_hardware.hpp" download>Download raw file ↓</a> · <a href="roverd.html#file-tests/fake_sdk/fake_hardware.hpp">Back to file index</a></p><pre>#pragma once
+#include &lt;cstdint&gt;
+#include &lt;string&gt;
+using uint = unsigned int;
+inline uint32_t fake_now = 0;
+inline std::string fake_uart;
+inline int uart0 = 0;
+inline constexpr int GPIO_OUT=1, GPIO_FUNC_PWM=2, GPIO_FUNC_UART=3, clk_sys=0;
+inline uint32_t get_absolute_time(){return fake_now;}
+inline uint32_t to_ms_since_boot(uint32_t t){return t;}
+inline bool uart_is_readable(int){return !fake_uart.empty();}
+inline char uart_getc(int){char c=fake_uart.front();fake_uart.erase(0,1);return c;}
+inline void gpio_put(uint,int){}
+inline void gpio_init(uint){}
+inline void gpio_set_dir(uint,int){}
+inline void gpio_set_function(uint,int){}
+inline void pwm_set_gpio_level(uint,uint16_t){}
+inline uint pwm_gpio_to_slice_num(uint p){return p/2;}
+inline void pwm_set_wrap(uint,uint16_t){}
+inline void pwm_set_enabled(uint,bool){}
+inline void stdio_init_all(){}
+inline uint32_t clock_get_hz(int){return 125000000;}
+inline void uart_init(int,int){}
+</pre></section><section id="file-tests/fake_sdk/hardware/clocks.h"><h2>tests/fake_sdk/hardware/clocks.h</h2><p><a href="roverd/tests/fake_sdk/hardware/clocks.h" download>Download raw file ↓</a> · <a href="roverd.html#file-tests/fake_sdk/hardware/clocks.h">Back to file index</a></p><pre>#pragma once
+#include &quot;fake_hardware.hpp&quot;
+</pre></section><section id="file-tests/fake_sdk/hardware/gpio.h"><h2>tests/fake_sdk/hardware/gpio.h</h2><p><a href="roverd/tests/fake_sdk/hardware/gpio.h" download>Download raw file ↓</a> · <a href="roverd.html#file-tests/fake_sdk/hardware/gpio.h">Back to file index</a></p><pre>#pragma once
+#include &quot;fake_hardware.hpp&quot;
+</pre></section><section id="file-tests/fake_sdk/hardware/pwm.h"><h2>tests/fake_sdk/hardware/pwm.h</h2><p><a href="roverd/tests/fake_sdk/hardware/pwm.h" download>Download raw file ↓</a> · <a href="roverd.html#file-tests/fake_sdk/hardware/pwm.h">Back to file index</a></p><pre>#pragma once
+#include &quot;fake_hardware.hpp&quot;
+</pre></section><section id="file-tests/fake_sdk/hardware/uart.h"><h2>tests/fake_sdk/hardware/uart.h</h2><p><a href="roverd/tests/fake_sdk/hardware/uart.h" download>Download raw file ↓</a> · <a href="roverd.html#file-tests/fake_sdk/hardware/uart.h">Back to file index</a></p><pre>#pragma once
+#include &quot;fake_hardware.hpp&quot;
+</pre></section><section id="file-tests/fake_sdk/pico/stdlib.h"><h2>tests/fake_sdk/pico/stdlib.h</h2><p><a href="roverd/tests/fake_sdk/pico/stdlib.h" download>Download raw file ↓</a> · <a href="roverd.html#file-tests/fake_sdk/pico/stdlib.h">Back to file index</a></p><pre>#pragma once
+#include &quot;fake_hardware.hpp&quot;
+</pre></section><section id="file-tests/firmware_test.cpp"><h2>tests/firmware_test.cpp</h2><p><a href="roverd/tests/firmware_test.cpp" download>Download raw file ↓</a> · <a href="roverd.html#file-tests/firmware_test.cpp">Back to file index</a></p><pre>#include &lt;cassert&gt;
+#include &lt;iostream&gt;
+#include &quot;rover_move.hpp&quot;
+
+int main(int argc, char** argv) {
+    const std::string scenario = argc &gt; 1 ? argv[1] : &quot;protocol&quot;;
+    MachineContext ctx;
+    if (scenario == &quot;overflow&quot;) {
+        fake_uart = std::string(64, &#x27;x&#x27;) + &quot;A\n&quot;;
+        assert(!updateContextFromSerial(ctx) &amp;&amp; &quot;overlong line must not accept its suffix&quot;);
+        fake_uart = &quot;B\n&quot;;
+        assert(updateContextFromSerial(ctx) &amp;&amp; ctx.last_letter == &#x27;B&#x27;);
+    } else if (scenario == &quot;zero&quot;) {
+        fake_now=0; fake_uart=&quot;M\n&quot;;
+        assert(updateContextFromSerial(ctx));
+        fake_now=301;
+        assert(isLinkTimedOut(ctx) &amp;&amp; &quot;command received at boot must time out&quot;);
+    } else if (scenario == &quot;center&quot;) {
+        for (char letter : std::string(&quot;KLMNOPklmnop&quot;)) {
+            stopMotors(ctx);
+            for(int i=0;i&lt;50;++i) driveFromLetter(ctx,letter);
+            assert(ctx.curr_l==ctx.curr_r &amp;&amp; ctx.curr_l&gt;0 &amp;&amp; &quot;straight deadband must command equal wheel speeds&quot;);
+        }
+    } else {
+        assert(!isLinkTimedOut(ctx));
+        fake_now=100; fake_uart=&quot;A\r\n&quot;;
+        assert(updateContextFromSerial(ctx) &amp;&amp; ctx.last_letter==&#x27;A&#x27;);
+        fake_now=400; assert(!isLinkTimedOut(ctx));
+        fake_now=401; assert(isLinkTimedOut(ctx));
+        fake_uart=&quot;AB\n!\n\n&quot;;
+        assert(!updateContextFromSerial(ctx) &amp;&amp; ctx.last_rx_ms==100);
+        fake_now=0xfffffff0; fake_uart=&quot;z\n&quot;;
+        assert(updateContextFromSerial(ctx) &amp;&amp; ctx.last_letter==&#x27;z&#x27;);
+        fake_now=0x120; assert(isLinkTimedOut(ctx));
+        fake_uart=&quot;?\n&quot;; assert(updateContextFromSerial(ctx));
+        for(int i=0;i&lt;50;++i) driveFromLetter(ctx,&#x27;A&#x27;);
+        assert(ctx.curr_l&gt;0 &amp;&amp; ctx.curr_r&lt;0);
+        stopMotors(ctx); assert(ctx.curr_l==0 &amp;&amp; ctx.curr_r==0);
+        for(int i=0;i&lt;50;++i) driveFromLetter(ctx,&#x27;Z&#x27;);
+        assert(ctx.curr_l&lt;0 &amp;&amp; ctx.curr_r&gt;0);
+        for(int i=0;i&lt;50;++i) driveFromLetter(ctx,&#x27;?&#x27;);
+        assert(ctx.curr_l==0 &amp;&amp; ctx.curr_r==0);
+    }
+    std::cout &lt;&lt; scenario &lt;&lt; &quot; passed\n&quot;;
+}
+</pre></section><section id="file-tests/run-offline.sh"><h2>tests/run-offline.sh</h2><p><a href="roverd/tests/run-offline.sh" download>Download raw file ↓</a> · <a href="roverd.html#file-tests/run-offline.sh">Back to file index</a></p><pre>#!/usr/bin/env bash
+set -euo pipefail
+root=&quot;$(cd &quot;$(dirname &quot;$0&quot;)/..&quot; &amp;&amp; pwd)&quot;
+build=&quot;${1:-$root/build-host}&quot;
+python=&quot;${PYTHON:-python3}&quot;
+mkdir -p &quot;$build&quot;
+&quot;$python&quot; -m unittest discover -s &quot;$root/tests&quot; -v
+&quot;${CXX:-c++}&quot; -std=c++17 -Wall -Wextra -pedantic \
+  -I&quot;$root/tests/fake_sdk&quot; -I&quot;$root/final_navigation/firmware&quot; \
+  &quot;$root/tests/firmware_test.cpp&quot; -o &quot;$build/firmware_test&quot;
+for scenario in protocol overflow zero center; do
+  &quot;$build/firmware_test&quot; &quot;$scenario&quot;
+done
+</pre></section><section id="file-tests/test_offline.py"><h2>tests/test_offline.py</h2><p><a href="roverd/tests/test_offline.py" download>Download raw file ↓</a> · <a href="roverd.html#file-tests/test_offline.py">Back to file index</a></p><pre>import pathlib
+import subprocess
+import sys
+import tempfile
+import unittest
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+VISION = ROOT / &quot;final_navigation/vision&quot;
+sys.path.insert(0, str(VISION))
+
+class OfflineDemoTest(unittest.TestCase):
+    def test_demo_detects_two_markers_gate_and_command(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result = subprocess.run([sys.executable, str(VISION / &quot;offline_demo.py&quot;),
+                                     &quot;--output&quot;, directory], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(&#x27;&quot;markers&quot;: 2&#x27;, result.stdout)
+            self.assertIn(&#x27;&quot;command&quot;: &quot;go&quot;&#x27;, result.stdout)
+            self.assertTrue((pathlib.Path(directory) / &quot;gate-demo.png&quot;).is_file())
+
+class VisionBehaviorTest(unittest.TestCase):
+    def test_patterns_survive_rotation(self):
+        import numpy as np
+        from config import PATTERNS_PI
+        from custom_marker_finder import classify_grid
+        for kind, pattern in PATTERNS_PI.items():
+            for turns in range(4):
+                self.assertEqual(classify_grid(np.rot90(np.array(pattern), turns))[0], kind)
+
+    def test_blank_frame_contains_no_gate(self):
+        import numpy as np
+        from custom_marker_finder import find_markers
+        from gate_finder import find_gates
+        markers = find_markers(frame=np.full((720,1280,3), 255, dtype=np.uint8), include_unknown=False)
+        self.assertEqual(find_gates(markers), [])
+
+    def test_gate_rejects_different_size_or_vertical_markers(self):
+        from gate_finder import find_gates
+        left = {&quot;type&quot;:&quot;left&quot;, &quot;center&quot;:(100,200), &quot;area&quot;:1600}
+        self.assertEqual(find_gates([left, {&quot;type&quot;:&quot;right&quot;, &quot;center&quot;:(500,200), &quot;area&quot;:300}]), [])
+        self.assertEqual(find_gates([left, {&quot;type&quot;:&quot;right&quot;, &quot;center&quot;:(100,400), &quot;area&quot;:1600}]), [])
+
+    def test_dropout_hold_expires_and_recovers(self):
+        from gate_tracker import GateTracker
+        tracker = GateTracker(memory_frames=2, alpha=.5)
+        self.assertIsNone(tracker.update(None))
+        tracker.update({&quot;center&quot;:[100,200],&quot;width&quot;:300})
+        self.assertEqual(tracker.update({&quot;center&quot;:[200,200],&quot;width&quot;:400})[&quot;center&quot;], [150,200])
+        self.assertTrue(tracker.update(None)[&quot;stale&quot;])
+        self.assertTrue(tracker.update(None)[&quot;stale&quot;])
+        self.assertIsNone(tracker.update(None))
+        self.assertEqual(tracker.update({&quot;center&quot;:[300,200],&quot;width&quot;:100})[&quot;center&quot;], [300,200])
+
+    def test_steering_edges_center_and_letter_case(self):
+        from path_finder import x_to_letter, get_command, gate_to_command
+        from config import IMG_WIDTH
+        self.assertEqual(x_to_letter(-10), &#x27;A&#x27;)
+        self.assertEqual(x_to_letter(IMG_WIDTH+10, False), &#x27;z&#x27;)
+        self.assertEqual(x_to_letter(IMG_WIDTH/2), &#x27;N&#x27;)
+        self.assertEqual(get_command(IMG_WIDTH/2)[0], &#x27;go&#x27;)
+        self.assertEqual(get_command(0)[0], &#x27;strong_left&#x27;)
+        self.assertEqual(get_command(IMG_WIDTH)[0], &#x27;strong_right&#x27;)
+        self.assertEqual(gate_to_command(None), (None,None))
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</pre></section></main></body></html>

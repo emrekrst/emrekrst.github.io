@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>PWM, DAC and PID tooling · Prepared source</title><style>*{box-sizing:border-box}html{color-scheme:light}body{margin:0;background:#f5f3ed;color:#20261f;font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1120px;margin:auto;padding:40px 28px 80px}a{color:#2756dc;text-underline-offset:4px}a:hover{color:#173b9e}a:focus-visible{outline:3px solid #2756dc;outline-offset:5px}nav{display:flex;gap:24px;flex-wrap:wrap;font-size:14px}h1{font-size:clamp(32px,5vw,64px);line-height:1.08;letter-spacing:-.045em;margin:36px 0 18px;max-width:900px}h2{font-size:25px;letter-spacing:-.025em;margin-top:44px}p{max-width:850px}.eyebrow{text-transform:uppercase;font-size:12px;font-weight:700;letter-spacing:.14em;color:#52604c}.status{display:inline-block;border:1px solid #cbd1c4;border-radius:3px;padding:8px 12px;background:#eaf0e3;font-size:14px}.rights{border-left:3px solid #2756dc;padding:6px 22px;margin:28px 0;background:#efeee7}.actions{display:flex;gap:20px;flex-wrap:wrap;margin:24px 0}.button{display:inline-block;background:#2756dc;color:white;padding:11px 18px;text-decoration:none;border-radius:3px}.button:hover{background:#173b9e;color:white}table{border-collapse:collapse;width:100%;font:14px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}th{text-align:left;background:#e7e7de}td,th{padding:11px 14px;border-bottom:1px solid #d9dcd1}td:first-child{overflow-wrap:anywhere}td:nth-child(2),th:nth-child(2){text-align:right;white-space:nowrap}.table-wrap{overflow:auto}pre{padding:24px;border:1px solid #d9dcd1;border-radius:4px;background:#faf9f5;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace}footer{margin-top:48px;font-size:13px;color:#52604c}@media(max-width:540px){main{padding:25px 18px 50px}pre{padding:16px;font-size:13px}td,th{padding:9px 7px}}@media(max-width:540px){nav{gap:8px 16px}a{min-height:44px;display:inline-flex;align-items:center}td a{font-size:14px;overflow-wrap:anywhere}pre{font-size:14px;line-height:1.65}h1{overflow-wrap:anywhere}.actions{gap:8px 16px}.table-wrap{border:1px solid #d9dcd1}.rights{padding:8px 14px}}</style></head>
+<body><main><nav aria-label="Source navigation"><a href="../index.html">← Portfolio</a><a href="#files">Browse files</a><a href="#documentation">Read documentation</a></nav><p class="eyebrow">Emre Karausta / source collection</p><h1>PWM, DAC and PID tooling</h1><p class="status">Prepared source; repository not yet published</p><p>A complete local release candidate with 15 files. Read the verification record for what was executed and what remains unverified.</p><div class="actions"><a class="button" href="../downloads/pwm-dac-pid.zip" download>Download complete source ZIP ↓</a><a href="pwm-dac-pid/README.md" download>Readme file</a></div><aside class="rights" aria-label="Publication and licensing"><p><strong>Licensing and attribution</strong><br>Supplied UART header retains Steve Gunn’s Creative Commons Attribution notice. Confirm its exact terms and license original contributions separately.</p><p>This local copy grants no additional rights. Existing notices and attributions remain in the source and ZIP.</p></aside><h2 id="files">Files <span aria-hidden="true">↗</span></h2><p>Text files open in a readable code view. Models, images and other binary files open or download in their native format. “Raw file” saves the original bytes.</p><div class="table-wrap"><table><thead><tr><th scope="col">File / path</th><th scope="col">Size</th><th scope="col">Source</th></tr></thead><tbody><tr id="file-.gitignore"><td><a href="pwm-dac-pid-code.html#file-.gitignore">.gitignore</a></td><td>43 B</td><td><a href="pwm-dac-pid/.gitignore" download>Raw file ↓</a></td></tr><tr id="file-Makefile"><td><a href="pwm-dac-pid-code.html#file-Makefile">Makefile</a></td><td>905 B</td><td><a href="pwm-dac-pid/Makefile" download>Raw file ↓</a></td></tr><tr id="file-README.md"><td><a href="pwm-dac-pid-code.html#file-README.md">README.md</a></td><td>5,053 B</td><td><a href="pwm-dac-pid/README.md" download>Raw file ↓</a></td></tr><tr id="file-VERIFICATION.md"><td><a href="pwm-dac-pid-code.html#file-VERIFICATION.md">VERIFICATION.md</a></td><td>3,503 B</td><td><a href="pwm-dac-pid/VERIFICATION.md" download>Raw file ↓</a></td></tr><tr id="file-debug.h"><td><a href="pwm-dac-pid-code.html#file-debug.h">debug.h</a></td><td>1,321 B</td><td><a href="pwm-dac-pid/debug.h" download>Raw file ↓</a></td></tr><tr id="file-embedded_skeleton.c"><td><a href="pwm-dac-pid-code.html#file-embedded_skeleton.c">embedded_skeleton.c</a></td><td>3,490 B</td><td><a href="pwm-dac-pid/embedded_skeleton.c" download>Raw file ↓</a></td></tr><tr id="file-gui.py"><td><a href="pwm-dac-pid-code.html#file-gui.py">gui.py</a></td><td>229 B</td><td><a href="pwm-dac-pid/gui.py" download>Raw file ↓</a></td></tr><tr id="file-gui_plus.py"><td><a href="pwm-dac-pid-code.html#file-gui_plus.py">gui_plus.py</a></td><td>10,808 B</td><td><a href="pwm-dac-pid/gui_plus.py" download>Raw file ↓</a></td></tr><tr id="file-protocol.c"><td><a href="pwm-dac-pid-code.html#file-protocol.c">protocol.c</a></td><td>1,630 B</td><td><a href="pwm-dac-pid/protocol.c" download>Raw file ↓</a></td></tr><tr id="file-protocol.h"><td><a href="pwm-dac-pid-code.html#file-protocol.h">protocol.h</a></td><td>545 B</td><td><a href="pwm-dac-pid/protocol.h" download>Raw file ↓</a></td></tr><tr id="file-pwm_cli.cpp"><td><a href="pwm-dac-pid-code.html#file-pwm_cli.cpp">pwm_cli.cpp</a></td><td>2,837 B</td><td><a href="pwm-dac-pid/pwm_cli.cpp" download>Raw file ↓</a></td></tr><tr id="file-requirements.txt"><td><a href="pwm-dac-pid-code.html#file-requirements.txt">requirements.txt</a></td><td>17 B</td><td><a href="pwm-dac-pid/requirements.txt" download>Raw file ↓</a></td></tr><tr id="file-tests/test_gui.py"><td><a href="pwm-dac-pid-code.html#file-tests/test_gui.py">tests/test_gui.py</a></td><td>3,921 B</td><td><a href="pwm-dac-pid/tests/test_gui.py" download>Raw file ↓</a></td></tr><tr id="file-tests/test_protocol.c"><td><a href="pwm-dac-pid-code.html#file-tests/test_protocol.c">tests/test_protocol.c</a></td><td>1,468 B</td><td><a href="pwm-dac-pid/tests/test_protocol.c" download>Raw file ↓</a></td></tr><tr id="file-tests/test_serial.py"><td><a href="pwm-dac-pid-code.html#file-tests/test_serial.py">tests/test_serial.py</a></td><td>2,236 B</td><td><a href="pwm-dac-pid/tests/test_serial.py" download>Raw file ↓</a></td></tr></tbody></table></div><div id="documentation"><section aria-label="Project readme"><h2>Project readme</h2><p><a href="pwm-dac-pid/README.md" download>Download README.md</a></p><pre># Serial-controlled PWM DAC with PID feedback
+
+An ATmega644P coursework example combining 8-bit PWM, ADC feedback, a serial command interface and a Python/Tkinter control panel with a 50-sample freehand waveform editor. The source implements bounded integral accumulation and PWM saturation. An external RC low-pass filter converts PWM into an approximate analogue voltage.
+
+## What was recovered
+
+- `embedded_skeleton.c`: AVR application, including manual/PID operation and ADC monitoring.
+- `debug.h`: supplied UART stream library credited to Steve Gunn; its existing Creative Commons Attribution notice is retained.
+- `gui_plus.py`: recovered GUI including waveform drawing. `gui.py` now launches this consolidated GUI.
+
+**`pwm_cli.cpp` is a newly reconstructed POSIX C++ client. The historical C++ host CLI mentioned in the master CV was not recovered.** `protocol.c/.h`, tests and build/docs were added during preparation. The recovered firmware&#x27;s unsafe command parsing and truncated-line handling were fixed; ADC targets and PWM are bounded, and firmware gain commands now match the recovered GUI controls. These are changes to the standalone copy only.
+
+## Build and test without hardware
+
+Requires GCC/Clang, Make, Python 3 with Tk, and pySerial. AVR compilation requires avr-gcc and avr-libc.
+
+```sh
+python3 -m venv .venv
+. .venv/bin/activate
+python3 -m pip install -r requirements.txt
+make
+make test
+make firmware                 # AVR_CC=/path/to/avr-gcc if needed
+```
+
+`make test` opens local pseudoterminals, not physical serial devices. It checks command framing, parser bounds/ranges, GUI logic and C++/pySerial transport. `make firmware` only builds an ELF; it does not flash a board. Outputs remain in ignored `build/`.
+
+## Host use with a separately verified circuit
+
+```sh
+python3 gui_plus.py
+./build/pwm_cli /dev/ttyUSB0 READ
+./build/pwm_cli /dev/ttyUSB0 SET 128
+./build/pwm_cli /dev/ttyUSB0 AUTO 512
+./build/pwm_cli /dev/ttyUSB0 MONITOR    # Ctrl-C sends STOP and exits
+```
+
+Select the actual port in the GUI. The client examples are usage instructions; no physical port or board was accessed during preparation. The new CLI supports macOS/Linux POSIX serial devices at 9600 baud, 8 data bits, no parity, one stop bit. It does not provide a Windows backend.
+
+## Firmware connections and assumptions
+
+The source configures a **12 MHz** CPU clock, UART0 at **9600 8N1**, timer0 fast PWM on **PORTB bit 3 / OC0A**, and ADC **channel 0** feedback. The RC-filter output feeds ADC0 and the measurement instrument; all signal grounds must share a reference. Connect UART0 through a logic-level-compatible USB–UART adapter. Package pin numbers depend on the actual MCU package and must be checked against its datasheet.
+
+The ADC selects **AVCC** as reference (`REFS0`). The GUI&#x27;s voltage conversion assumes that reference is **3.3 V**, as stated in the CV. Confirm actual AVCC, PWM high voltage and ADC input limits before using that conversion. No recovered schematic, RC component values or load value is included; choose and measure a circuit appropriate to the board rather than treating the display labels as calibration.
+
+## Command schema
+
+Commands are ASCII, case-sensitive and terminated by CR or LF. Oversized lines (more than 49 characters) are discarded entirely. Missing numeric arguments, nonnumeric/trailing data, unknown tokens and unsupported extra arguments produce `ERR invalid command`.
+
+| Command | Effect / units |
+| --- | --- |
+| `SET n` | Disable PID and monitoring; PWM saturated to 0–255 |
+| `AUTO n` | Enable PID, reset history; ADC target saturated to 0–1023 |
+| `READ` | One `ADC: n | PWM: n` response |
+| `MONITOR` | Start repeated ADC/PWM text readings |
+| `STOP` | Stop monitoring; **does not disable PID or force PWM to zero** |
+| `KP n`, `KI n`, `KD n` | Gain in thousandths, integer range 0–30000 |
+
+Any incoming byte also stops monitoring, matching the original firmware. `SET 0` explicitly disables PID and commands zero duty cycle. PWM waveform playback sends 50 duty-cycle samples using cancellable Tk callbacks scheduled 50 ms apart; it is not a precision waveform generator. Serial delays and OS scheduling affect timing. Mode changes cancel queued waveform callbacks; playback and UI commands execute on the same Tk thread.
+
+The original discrete PID is empirically tuned in iterations; it has no measured fixed-period scheduler or explicit time scaling. The nominal 100 µs loop delay excludes ADC/serial execution time. Monitor timing and waveform amplitude/frequency require bench measurement.
+
+## Scope and rights
+
+This project corresponds to the master CV&#x27;s serial PWM DAC project. Historical oscilloscope, load-transient and physical voltage-regulation statements come from that CV and were **not reverified** here. No new physical measurement is claimed. See [VERIFICATION.md](VERIFICATION.md).
+
+No project-wide licence has been invented. Keep the supplied UART attribution; its header does not specify a CC version, and other source rights need confirmation before public release.
+</pre></section><section aria-label="Verification record"><h2>Verification record</h2><p><a href="pwm-dac-pid/VERIFICATION.md" download>Download VERIFICATION.md</a></p><pre># Verification
+
+Executed on 2026-10-22 on macOS arm64: Apple clang 17.0.0, Python 3.14.0, pySerial 3.5, Homebrew avr-gcc 9.5.0. No board, physical serial port, camera or motor was opened or operated.
+
+```sh
+make test
+make firmware AVR_CC=/opt/homebrew/bin/avr-gcc
+```
+
+Both commands PASS, exit 0, no compiler warnings. Firmware uses `-mmcu=atmega644p -DF_CPU=12000000UL -Os` and links the shared parser with the application and supplied UART header.
+
+- Shared C parser/framing tests execute with AddressSanitizer and UndefinedBehaviorSanitizer: missing/long/unknown tokens, malformed and overflowing integers, extra parameters, SET/AUTO saturation, gains, READ/MONITOR/STOP, oversized-line rejection and recovery.
+- GUI method tests check command formatting, acknowledgement-before-ADC handling, ADC-to-voltage display, and bounds of the actual 50-sample drawing array. Additional playback regressions verify cancellation on STOP/AUTO/manual/monitor/disconnect, a single loop after repeated starts, and all 50 samples wrapping in order.
+- Reconstructed C++ CLI exchanges SET/AUTO/READ/KP/STOP commands through local pseudoterminals, receives expected text responses and rejects a missing argument before opening a device.
+- Recovered GUI&#x27;s actual `read_once`/`send_cmd` methods exchange a READ/ADC transaction using real pySerial over a pseudoterminal; widget stand-ins allow headless testing.
+- Python files compile via `py_compile`.
+
+Before the parser fix, an extracted copy of the original `process_command` produced an AddressSanitizer **stack-buffer-overflow** for a 47-character token. The original GUI regression failed because it sent `READ 0`; after that fix it also needed to skip older acknowledgement lines to display the requested ADC reading. The CLI transport tests were introduced before the new reconstructed client existed.
+
+Fresh review also reproduced a waveform-worker race: a worker paused after its loop condition could send a stale `SET 128` after `AUTO 512`, disabling PID in the firmware. The playback regression failed against the thread-based implementation. Playback now schedules a single cancellable Tk callback, so mode changes and waveform writes run serially on the UI thread. Stop/mode changes/disconnect cancel the pending callback; repeated starts cannot create duplicate loops. The 50-sample sequence and nominal 50 ms scheduling interval are retained.
+
+The transport peer returns canned protocol responses. It is not an AVR emulator or an electrical/circuit model. AVR compilation verifies syntax/linkage for the target, not real-time or physical behaviour.
+
+## NOT_RUN — hardware and runtime limits
+
+- Flashing, actual UART electrical compatibility/baud timing, board clock and pin wiring.
+- PWM voltage/ripple and RC filter characteristics; AVCC/reference calibration and physical ADC accuracy.
+- PID stability, step response, integral behaviour under a real load, oscilloscope/load-transient CV measurements.
+- Monitor cadence, waveform timing/amplitude/frequency and full GUI interaction with hardware.
+- Cross-platform GUI thread/connection stress, Windows support and serial disconnect fault injection.
+
+GUI one-shot reads can block up to the serial timeout, and background monitoring relies on a host thread and waveform callbacks use the Tk event loop rather than deterministic scheduling. These limits must be evaluated on the intended board before bench use. All hardware claims remain historical claims, not results generated during this preparation.
+</pre></section></div><footer>Prepared local source · No repository has been published · <a href="../index.html">Return to portfolio</a></footer></main></body></html>

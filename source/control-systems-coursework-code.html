@@ -1,0 +1,1093 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Control systems coursework · Code</title><style>*{box-sizing:border-box}html{color-scheme:light}body{margin:0;background:#f5f3ed;color:#20261f;font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1120px;margin:auto;padding:40px 28px 80px}a{color:#2756dc;text-underline-offset:4px}a:hover{color:#173b9e}a:focus-visible{outline:3px solid #2756dc;outline-offset:5px}nav{display:flex;gap:24px;flex-wrap:wrap;font-size:14px}h1{font-size:clamp(32px,5vw,64px);line-height:1.08;letter-spacing:-.045em;margin:36px 0 18px;max-width:900px}h2{font-size:25px;letter-spacing:-.025em;margin-top:44px}p{max-width:850px}.eyebrow{text-transform:uppercase;font-size:12px;font-weight:700;letter-spacing:.14em;color:#52604c}.status{display:inline-block;border:1px solid #cbd1c4;border-radius:3px;padding:8px 12px;background:#eaf0e3;font-size:14px}.rights{border-left:3px solid #2756dc;padding:6px 22px;margin:28px 0;background:#efeee7}.actions{display:flex;gap:20px;flex-wrap:wrap;margin:24px 0}.button{display:inline-block;background:#2756dc;color:white;padding:11px 18px;text-decoration:none;border-radius:3px}.button:hover{background:#173b9e;color:white}table{border-collapse:collapse;width:100%;font:14px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}th{text-align:left;background:#e7e7de}td,th{padding:11px 14px;border-bottom:1px solid #d9dcd1}td:first-child{overflow-wrap:anywhere}td:nth-child(2),th:nth-child(2){text-align:right;white-space:nowrap}.table-wrap{overflow:auto}pre{padding:24px;border:1px solid #d9dcd1;border-radius:4px;background:#faf9f5;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace}footer{margin-top:48px;font-size:13px;color:#52604c}@media(max-width:540px){main{padding:25px 18px 50px}pre{padding:16px;font-size:13px}td,th{padding:9px 7px}}section{scroll-margin-top:25px}h2{overflow-wrap:anywhere}@media(max-width:540px){nav{gap:8px 16px}a{min-height:44px;display:inline-flex;align-items:center}td a{font-size:14px;overflow-wrap:anywhere}pre{font-size:14px;line-height:1.65}h1{overflow-wrap:anywhere}.actions{gap:8px 16px}.table-wrap{border:1px solid #d9dcd1}.rights{padding:8px 14px}}</style></head><body><main><nav><a href="control-systems-coursework.html">← Source package</a><a href="../index.html#library">Portfolio projects</a></nav><p class="eyebrow">READABLE SOURCE / ORIGINAL NOTICES RETAINED</p><h1>Control systems coursework</h1><section id="file-.gitignore"><h2>.gitignore</h2><p><a href="control-systems-coursework/.gitignore" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-.gitignore">Back to file index</a></p><pre>results/
+slprj/
+*.slxc
+*.autosave
+*.asv
+*.slx.r20*
+.DS_Store
+__pycache__/
+</pre></section><section id="file-ATTRIBUTION.md"><h2>ATTRIBUTION.md</h2><p><a href="control-systems-coursework/ATTRIBUTION.md" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-ATTRIBUTION.md">Back to file index</a></p><pre># Attribution and publication rights
+
+Academic work by Emre Karausta at the University of Southampton. The original task numbering, modelling structure and MATLAB-generated symbolic-function header are retained. University laboratory tasks, rig designs, supplied material and any instructor contributions remain attributable to their owners. MathWorks software and Simulink/Simscape library blocks remain subject to MathWorks licences.
+
+No licence was found in the selected original coursework files. This release does not assign MIT or another blanket licence to them. Confirm the university&#x27;s coursework-sharing rules and ownership of any supplied material before public release. The added reproduction/test harness does not transfer rights in the underlying models. Nothing in this preparation grants rights to third-party material.
+
+The helicopter model in this copy adds an explicitly documented torque saturation. All other copied source/model bytes retain their original content. Personal reports and student IDs are excluded. Hardware experiments described in the CV are historical evidence and were not repeated here.
+</pre></section><section id="file-README.md"><h2>README.md</h2><p><a href="control-systems-coursework/README.md" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-README.md">Back to file index</a></p><pre># Control systems coursework
+
+MATLAB and Simulink studies by Emre Karausta, prepared during Electrical and Electronic Engineering coursework at the University of Southampton. Six folders cover six coursework projects: two-cart dynamics, five-DOF body vibration, beam modes and mass tuning, nonlinear cart–pendulums, helicopter pitch control, and inverted-pendulum lead compensation. Beam analysis and tuning are kept together.
+
+The reproducible entry point is `run_all.m`. `src/` retains the coursework equations and models; several original plotting scripts expect a manually created `out` variable and are included for provenance, not as the clean-start entry point. The runner calculates results directly, runs the six saved simulation models, and logs outputs without saving logging changes into them.
+
+## Run
+
+Requires MATLAB R2024b, Simulink, Control System Toolbox, Signal Processing Toolbox, Simscape and Simscape Multibody. Symbolic Math Toolbox is needed only to regenerate `pendulum_ode.m` using the original `Task_B.m` derivation.
+
+```sh
+python3 verify.py
+```
+
+`MATLAB_BIN` can specify another MATLAB executable. Close any already-open target model before running; the helper refuses preloaded targets to protect unsaved work. Unrelated open models are left intact. The wrapper uses a temporary working directory and preferences, a 600-second process timeout, and writes generated traces/cache to ignored `results/`. It runs the analytical/nonlinear regression tests and the positive/negative torque-bound tests, then all saved simulation models. Alternatively, add this folder to MATLAB&#x27;s path and call `run_all(false)` for the analytical and nonlinear ODE results, or `run_all(true, artifact_dir)` for the full run.
+
+## Release changes
+
+- Added a clean-start runner, explicit output logging, full timeseries instead of mixing capped `tout` with longer workspace arrays, and numerical regression checks.
+- Added the missing −6/+10 Nm saturation to the copied helicopter model. The original saved model had no torque limiter and commanded 20 Nm for a 0.5 rad step. Both ±0.5 rad commands now stay within bounds. Gains and plant parameters are unchanged.
+- Retained all original mechanical constants, including the five-DOF model&#x27;s unusually large shoe damping coefficient. Matrix linear solves in the runner avoid explicit inverses.
+- Retained differences between historical results and current reproduction. The helicopter response, two beam error percentages, and exact nonlinear matching are not presented as reproduced CV numbers.
+
+Read [VERIFICATION.md](VERIFICATION.md) for numerical results, claim status and suggested corrected descriptions. `evidence/` contains compact recorded results. No physical rig was operated. See [ATTRIBUTION.md](ATTRIBUTION.md) before publishing or relicensing these academic materials.
+</pre></section><section id="file-VERIFICATION.md"><h2>VERIFICATION.md</h2><p><a href="control-systems-coursework/VERIFICATION.md" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-VERIFICATION.md">Back to file index</a></p><pre># Verification — 22 October 2026
+
+## Commands and environment
+
+From the release folder: `python3 verify.py` (exit 0). It starts `/Applications/MATLAB_R2024b.app/bin/matlab -batch` with `test_release; test_torque_limits; run_all(true, artifact_dir)`, using absolute addpaths, temporary cwd/preferences/TMPDIR, and a 600-second process timeout. All execution used copies. Compact actual output and numerical JSON are in `evidence/`.
+
+MATLAB 24.2.0.2923080 (R2024b) Update 6 on macOS 15.7.3, Apple Silicon. Available and exercised: Simulink, Control System Toolbox, Signal Processing Toolbox, Simscape, Simscape Multibody, all version 24.2. Symbolic Math Toolbox 24.2 was installed; the existing generated ODE was used rather than regenerating it. No toolbox/license blocker occurred.
+
+`test_release` passes numerical resonance, body-mode, Rayleigh, point-mass ratio, phase-margin, unstable-pole and nonlinear passivity checks. `test_torque_limits` passes both ±0.5 rad commands. Six physical/signal models execute: two-cart 10 s, each of three beams 10 s, nonlinear cart–pendulums 100 s, helicopter 10 s. Expected MATLAB warnings report instability when evaluating the motor-lag loop. Startup emits Java X11-package warnings; they did not prevent execution.
+
+## CV claim comparison
+
+| Claim | Current evidence | Status |
+|---|---|---|
+| Cart resonances ≈17.5 and 49.4 rad/s | Peaks of cart-1/force-1 frequency response: 17.516005 and 49.429514 rad/s. Undamped modes: 17.521402 and 49.426718 rad/s. | Reproduced |
+| Cart free/forced MATLAB and equivalent Simscape responses | Analytical model computed; saved forced Simscape model ran 10 s and outputs were captured. This release does not assert a quantitative waveform-alignment tolerance. | Executed; historical “near-identical” wording remains qualitative |
+| Body soft soil 14.20, 1.73 Hz; hard soil 32.30, 1.76 Hz | Distinct positive imaginary parts of full damped eigenvalues: 14.19986747, 1.73259755; 32.29505230, 1.76015436 Hz. | Reproduced |
+| All five undamped body modes calculated | Soft: 1.676000, 7.075063, 10.703647, 19.182925, 209.117485 Hz. Hard: 1.724382, 7.176866, 10.703876, 28.657886, 255.397995 Hz. Original `bs=2170e3` remains unchanged. | Reproduced |
+| Simply supported beam first three modes and Rayleigh estimate | 6.535654705, 26.142618820, 58.820892344 Hz. Rayleigh relative error 2.72e−16 using the exact first-mode trial shape. | Reproduced |
+| Midspan mass 1.5× beam mass for half frequency | Rayleigh modal-mass calculation gives 351 kg for a 234 kg beam. This is an assumed-shape estimate; a point mass changes the exact mode shape. | Reproduced within stated approximation |
+| Beam Simscape errors 0.15% cantilever and 0.37% simply supported | Measured 2.329244098 Hz versus analytical 2.328306262 Hz: 0.040280%. Measured 6.559697358 Hz versus 6.535654705 Hz: 0.367869%. | Simply supported matches rounding; cantilever 0.15% not reproduced |
+| Tuned beam error 0.62% against half original analytical frequency | Measured 3.256240061 Hz versus target 3.267827352 Hz: 0.354587%. | 0.62% not reproduced |
+| Nonlinear MATLAB/Simscape overlap over 100 s | Both run for 100 s. After original cart-coordinate offsets −0.55/+0.55 m, maximum differences are 0.00092576 m, 0.00147944 m, 0.01798834 rad and 0.01438680 rad. ODE energy decreases throughout sampled trajectory. | Duration reproduced; exact agreement not established |
+| Helicopter torque limits −6/+10 Nm | Original saved model had no limiter: +0.5 rad commanded 20 Nm. Added explicit saturation to release copy. ±0.5 rad regressions now stay within limits. | Missing enforcement fixed in copy; not evidence that historical original enforced limits |
+| Helicopter 0.119 s settling, 0.88% overshoot for 0.25 rad | Saved model/release gains Kp=40, Kd=2.42979296119, Ki=0, J=0.073824; derivative acts on pitch feedback. Released Simulink result: 0.25525646 s, 4.26352861%. Independent transfer calculation: 0.25617596 s, 4.32569854%. Settling is MATLAB `stepinfo` default 2%; step at t=0, no motor lag. The .25 rad response does not exceed the added limits. | CV response metrics not reproduced; gains were not tuned to match them |
+| Ideal phase margin 65.5° at 36.2 rad/s | 65.52388666° at 36.16318336 rad/s. | Reproduced |
+| 0.1 s motor lag gives −13° at 19.6 rad/s and instability | −13.00413120° at 19.57019933 rad/s; closed loop unstable. | Reproduced |
+| Infinite gain margin for both loops | R2024b `margin` returns 0 at zero-frequency phase crossover for both integrator loops. `allmargin` returns `[0 Inf]` for the motor-lag loop, with frequencies `[0 Inf]`. | Blanket “infinite” statement not reproduced under this MATLAB convention |
+| Inverted-pendulum poles ≈±7 rad/s | −7.003570518, +7.003570518 rad/s. Original lead and servo analysis script included. | Pole calculation reproduced |
+| Bytronic rig balancing, measured gain limits, movable-mass effects | Historical CV/lab statements only. No physical rig or experimental traces were included in this run. | Not retested |
+
+Beam frequency extraction uses positive displacement peaks after 5.1 s (free response after the force pulse), three-sample quadratic interpolation in actual simulation time, then reciprocal median peak spacing. Errors above are calculated from measured signals, not copied from the CV. Different cursor-based or spectral estimators may give different rounded errors; their historical settings were not retained.
+
+The nonlinear ODE uses g=9.81 while the saved Simscape model uses 9.80665 m/s². A separate diagnostic using the saved model&#x27;s gravity reduced angular differences to approximately 0.0033/0.0048 rad, but residual differences remained and that diagnostic did not meet a 0.001-unit comparison test. It was not used to overwrite the baseline results or claim exact matching.
+
+## Defects and red/green evidence
+
+Before the harness existed, the release lacked clean-start execution and original plotting scripts required manually generated `out` data. Initial checks failed; the release now runs without that base-workspace dependency. A first integration run also exposed a real logging mismatch: original `tout` was capped at 10,000 samples while nonlinear output arrays held 50,002 samples. The helper now captures individual full timeseries. Another initial logger attempted duplicate named branches; deduplicated logging now supports the turbojet package independently.
+
+The helicopter behavioral regression failed with 20 Nm for a 0.5 rad command. Adding the single saturation block produced passing +0.5 and −0.5 rad tests. Original gains and dynamics were retained. The original model is unchanged outside this release; the baseline failure log is retained in compact form.
+
+## Suggested precise CV wording
+
+- Beam: “Validated simulated beam frequencies against analytical references; current reproducible extraction gives approximately 0.04% cantilever, 0.37% simply supported, and 0.35% against the half-frequency tuning target.” Retain historical numbers only if their original measurement method can be produced.
+- Nonlinear: “Cross-compared MATLAB and Simscape responses over 100 seconds, aligned coordinate references and quantified peak differences of about 1.5 mm and 0.018 rad in the retained models.”
+- Helicopter: “Implemented derivative-on-feedback PD control; the retained ideal model gives about 0.256 s settling time and 4.3% overshoot for a 0.25 rad command. Reproduced the loss of stability with 0.1 s motor lag.” Describe torque saturation as an added release correction unless historical evidence supports earlier enforcement. Report phase margins without an unqualified infinite gain-margin claim.
+
+No physical validation, employer/university publication permission, or public licence was established by these tests. No originals were edited and no remote, commit, push or publication was performed.
+
+A final independent review found that broad `bdclose(&#x27;all&#x27;)` cleanup could close unrelated unsaved models. A behavioral sentinel regression reproduced that failure. The broad cleanup was removed. The simulation helper now refuses already-loaded target models before mutation, with an actionable `release:ModelAlreadyLoaded` error. Final targeted MATLAB command `test_model_ownership; test_release; test_torque_limits` exited 0 after that lifecycle-only correction; it checks unrelated unsaved models on success/error and preserves a preloaded same-name target. The full six-model numerical run above preceded this lifecycle correction. See the retained red/green ownership logs.
+</pre></section><section id="file-evidence/environment.txt"><h2>evidence/environment.txt</h2><p><a href="control-systems-coursework/evidence/environment.txt" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-evidence/environment.txt">Back to file index</a></p><pre>MATLAB 24.2.0.2923080 (R2024b) Update 6
+macOS 15.7.3 Apple Silicon
+Simulink, Control System Toolbox, Signal Processing Toolbox, Simscape, Simscape Multibody:24.2
+Symbolic Math Toolbox24.2 installed; not needed for pre-generated ODE
+</pre></section><section id="file-evidence/gain-margin-diagnostic.log"><h2>evidence/gain-margin-diagnostic.log</h2><p><a href="control-systems-coursework/evidence/gain-margin-diagnostic.log" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-evidence/gain-margin-diagnostic.log">Back to file index</a></p><pre>WARNING: package sun.awt.X11 not in java.desktop
+WARNING: package sun.awt.X11 not in java.desktop
+         0   65.5239         0   36.1632
+
+     GainMargin: 0
+    GMFrequency: 0
+    PhaseMargin: 65.5239
+    PMFrequency: 36.1632
+    DelayMargin: 0.0316
+    DMFrequency: 36.1632
+         Stable: 1
+
+null
+[Warning: The closed-loop system is unstable.] 
+[&gt; In DynamicSystem/margin (line 82)
+In margins (line 3)] 
+         0  -13.0041         0   19.5702
+
+     GainMargin: [0 Inf]
+    GMFrequency: [0 Inf]
+    PhaseMargin: -13.0041
+    PMFrequency: 19.5702
+    DelayMargin: 0.3095
+    DMFrequency: 19.5702
+         Stable: 0
+
+</pre></section><section id="file-evidence/ownership-green.log"><h2>evidence/ownership-green.log</h2><p><a href="control-systems-coursework/evidence/ownership-green.log" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-evidence/ownership-green.log">Back to file index</a></p><pre>WARNING: package sun.awt.X11 not in java.desktop
+WARNING: package sun.awt.X11 not in java.desktop
+[Warning: The closed-loop system is unstable.] 
+[&gt; In DynamicSystem/margin (line 82)
+In run_all (line 42)
+In test_model_ownership (line 8)] 
+                    matlab_version: &#x27;24.2.0.2923080 (R2024b) Update 6&#x27;
+               cart_resonance_rads: [17.5160 49.4295]
+                cart_undamped_rads: [17.5214 49.4267]
+                  body_undamped_hz: [2x5 double]
+                    body_damped_hz: [2x2 double]
+               beam_frequencies_hz: [6.5357 26.1426 58.8209]
+      beam_rayleigh_relative_error: 2.7179e-16
+                midspan_mass_ratio: 1.5000
+                      beam_mass_kg: 234
+                   midspan_mass_kg: 351
+           cantilever_reference_hz: 2.3283
+                 helicopter_margin: [2x3 double]
+       helicopter_ideal_settling_s: 0.2562
+    helicopter_ideal_overshoot_pct: 4.3257
+           inverted_pendulum_poles: [-7.0036 7.0036]
+     nonlinear_energy_increase_max: -2.9683e-10
+              nonlinear_duration_s: 100
+
+[Warning: The model name &#x27;PI_D_controller&#x27; is shadowing another name in the
+MATLAB workspace or path. Type &quot;which -all PI_D_controller&quot; at the command line
+to find the other uses of this name. You should change the name of the model to
+avoid problems.] 
+[&gt; In test_model_ownership (line 11)] 
+PASS: unrelated models survive success/error, preloaded targets are refused intact
+[Warning: The closed-loop system is unstable.] 
+[&gt; In DynamicSystem/margin (line 82)
+In run_all (line 42)
+In test_release (line 2)] 
+                    matlab_version: &#x27;24.2.0.2923080 (R2024b) Update 6&#x27;
+               cart_resonance_rads: [17.5160 49.4295]
+                cart_undamped_rads: [17.5214 49.4267]
+                  body_undamped_hz: [2x5 double]
+                    body_damped_hz: [2x2 double]
+               beam_frequencies_hz: [6.5357 26.1426 58.8209]
+      beam_rayleigh_relative_error: 2.7179e-16
+                midspan_mass_ratio: 1.5000
+                      beam_mass_kg: 234
+                   midspan_mass_kg: 351
+           cantilever_reference_hz: 2.3283
+                 helicopter_margin: [2x3 double]
+       helicopter_ideal_settling_s: 0.2562
+    helicopter_ideal_overshoot_pct: 4.3257
+           inverted_pendulum_poles: [-7.0036 7.0036]
+     nonlinear_energy_increase_max: -2.9683e-10
+              nonlinear_duration_s: 100
+
+PASS: controls analytical and nonlinear regression checks
+command 0.50 rad: torque [-4.088844 10.000000] Nm
+command -0.50 rad: torque [-6.000000 3.836131] Nm
+PASS: helicopter enforces asymmetric actuator torque bounds
+</pre></section><section id="file-evidence/ownership-red.log"><h2>evidence/ownership-red.log</h2><p><a href="control-systems-coursework/evidence/ownership-red.log" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-evidence/ownership-red.log">Back to file index</a></p><pre>WARNING: package sun.awt.X11 not in java.desktop
+WARNING: package sun.awt.X11 not in java.desktop
+[Warning: The closed-loop system is unstable.] 
+[&gt; In DynamicSystem/margin (line 82)
+In run_all (line 43)
+In test_model_ownership (line 8)] 
+                    matlab_version: &#x27;24.2.0.2923080 (R2024b) Update 6&#x27;
+               cart_resonance_rads: [17.5160 49.4295]
+                cart_undamped_rads: [17.5214 49.4267]
+                  body_undamped_hz: [2x5 double]
+                    body_damped_hz: [2x2 double]
+               beam_frequencies_hz: [6.5357 26.1426 58.8209]
+      beam_rayleigh_relative_error: 2.7179e-16
+                midspan_mass_ratio: 1.5000
+                      beam_mass_kg: 234
+                   midspan_mass_kg: 351
+           cantilever_reference_hz: 2.3283
+                 helicopter_margin: [2x3 double]
+       helicopter_ideal_settling_s: 0.2562
+    helicopter_ideal_overshoot_pct: 4.3257
+           inverted_pendulum_poles: [-7.0036 7.0036]
+     nonlinear_energy_increase_max: -2.9683e-10
+              nonlinear_duration_s: 100
+
+[Warning: The model name &#x27;PI_D_controller&#x27; is shadowing another name in the
+MATLAB workspace or path. Type &quot;which -all PI_D_controller&quot; at the command line
+to find the other uses of this name. You should change the name of the model to
+avoid problems.] 
+[&gt; In test_model_ownership (line 11)] 
+{Error using assert
+Runner closed an unrelated unsaved model
+
+Error in test_model_ownership (line 22)
+assert(success_preserved &amp;&amp; error_preserved,&#x27;Runner closed an unrelated unsaved model&#x27;);
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+} 
+</pre></section><section id="file-evidence/results.json"><h2>evidence/results.json</h2><p><a href="control-systems-coursework/evidence/results.json" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-evidence/results.json">Back to file index</a></p><pre>{
+  &quot;matlab_version&quot;: &quot;24.2.0.2923080 (R2024b) Update 6&quot;,
+  &quot;cart_resonance_rads&quot;: [
+    17.516005160051602,
+    49.429514295142951
+  ],
+  &quot;cart_undamped_rads&quot;: [
+    17.521402108145011,
+    49.42671816097738
+  ],
+  &quot;body_undamped_hz&quot;: [
+    [
+      1.6760002218258967,
+      7.0750633059616055,
+      10.703647101033789,
+      19.18292482788846,
+      209.11748540461684
+    ],
+    [
+      1.7243817268892971,
+      7.1768664359305,
+      10.703876172617992,
+      28.657885853538286,
+      255.39799470102955
+    ]
+  ],
+  &quot;body_damped_hz&quot;: [
+    [
+      14.19986747,
+      1.73259755
+    ],
+    [
+      32.2950523,
+      1.76015436
+    ]
+  ],
+  &quot;beam_frequencies_hz&quot;: [
+    6.535654704925471,
+    26.142618819701884,
+    58.820892344329245
+  ],
+  &quot;beam_rayleigh_relative_error&quot;: 2.7179478102806335E-16,
+  &quot;midspan_mass_ratio&quot;: 1.5,
+  &quot;beam_mass_kg&quot;: 234,
+  &quot;midspan_mass_kg&quot;: 351,
+  &quot;cantilever_reference_hz&quot;: 2.3283062621665405,
+  &quot;helicopter_margin&quot;: [
+    [
+      65.52388666057972,
+      36.163183356515056,
+      0
+    ],
+    [
+      -13.004131198786224,
+      19.570199326680829,
+      0
+    ]
+  ],
+  &quot;helicopter_ideal_settling_s&quot;: 0.2561759630153137,
+  &quot;helicopter_ideal_overshoot_pct&quot;: 4.3256985398036241,
+  &quot;inverted_pendulum_poles&quot;: [
+    -7.0035705179572521,
+    7.00357051795725
+  ],
+  &quot;nonlinear_energy_increase_max&quot;: -2.9683355773357789E-10,
+  &quot;nonlinear_duration_s&quot;: 100,
+  &quot;simulink&quot;: {
+    &quot;Task_A8_was_A7&quot;: {
+      &quot;stop_time&quot;: 10
+    },
+    &quot;beam_A6_1&quot;: {
+      &quot;stop_time&quot;: 10,
+      &quot;free_frequency_hz&quot;: 2.3292440981671017,
+      &quot;relative_error_pct&quot;: 0.040279752530869573
+    },
+    &quot;beam_A6_2&quot;: {
+      &quot;stop_time&quot;: 10,
+      &quot;free_frequency_hz&quot;: 6.55969735780866,
+      &quot;relative_error_pct&quot;: 0.36786908073753732
+    },
+    &quot;beam_A7&quot;: {
+      &quot;stop_time&quot;: 10,
+      &quot;free_frequency_hz&quot;: 3.2562400609771438,
+      &quot;relative_error_pct&quot;: 0.3545870156469344
+    },
+    &quot;Task_B3&quot;: {
+      &quot;stop_time&quot;: 100,
+      &quot;max_abs_difference&quot;: [
+        0.0009257574441821001,
+        0.0014794387976529155,
+        0.017988335170408303,
+        0.014386799966174252
+      ]
+    },
+    &quot;PI_D_controller&quot;: {
+      &quot;stop_time&quot;: 10,
+      &quot;settling_s&quot;: 0.25525646058280405,
+      &quot;overshoot_pct&quot;: 4.2635286063710032
+    }
+  }
+}</pre></section><section id="file-evidence/source-checksums.csv"><h2>evidence/source-checksums.csv</h2><p><a href="control-systems-coursework/evidence/source-checksums.csv" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-evidence/source-checksums.csv">Back to file index</a></p><pre>release_file,original_sha256,release_sha256,change
+src/beam/Task_A4.m,9aaaa84e1622b8d2b85967a43431d22a777ab47b196fe725d9f083bead2f45f0,9aaaa84e1622b8d2b85967a43431d22a777ab47b196fe725d9f083bead2f45f0,unchanged
+src/beam/beam_A6_1.slx,e1438ec7d9149910ad6444c9cfabd635f5bf095d0bbab85e7c55622b90950ab7,e1438ec7d9149910ad6444c9cfabd635f5bf095d0bbab85e7c55622b90950ab7,unchanged
+src/beam/beam_A6_2.slx,abd9fa51a7dcca9c5dafe40217b494e2ba56cb1d250fd155c7ecdb7b839fa94a,abd9fa51a7dcca9c5dafe40217b494e2ba56cb1d250fd155c7ecdb7b839fa94a,unchanged
+src/beam/beam_A7.slx,1f3df6739cde586853763b82b50b2a5f51c64df9ff4c79ce36133562e5a771c6,1f3df6739cde586853763b82b50b2a5f51c64df9ff4c79ce36133562e5a771c6,unchanged
+src/body/Tasks_B2_to_4.m,c716a609b7fb8fe313da0de4ceadfb0d2179a1dbcd244775aaf4228eaf32847e,c716a609b7fb8fe313da0de4ceadfb0d2179a1dbcd244775aaf4228eaf32847e,unchanged
+src/helicopter/PI_D_controller.slx,0f80eafe9454139be3fdbd16cf6d7c2c17ee0622ccd6dea2f2c6c5d99edb12be,15c84627f351b48d123bcc3975cc27fdc579f75437411d01c138ba25c84ff2a3,added -6/+10 Nm saturation
+src/helicopter/zeta.m,2666a665c1177147318c1f383756530f3987f1016a569b2208361700ee27fa28,2666a665c1177147318c1f383756530f3987f1016a569b2208361700ee27fa28,unchanged
+src/inverted_pendulum/zheta1.m,f85243932b9208e9e7ebe94137de69f97976f33d505e6030a8f040840006a21a,f85243932b9208e9e7ebe94137de69f97976f33d505e6030a8f040840006a21a,unchanged
+src/nonlinear/Task_B.m,ace6fa5b7ecc79aceae4d598cb3a4dfba389a2f07a0f86e8fe326c1cbf78e642,ace6fa5b7ecc79aceae4d598cb3a4dfba389a2f07a0f86e8fe326c1cbf78e642,unchanged
+src/nonlinear/Task_B3.slx,6725cebe79482e3f55c352d1d019bee0b9e26b678132bde39220d1db44c3cb4e,6725cebe79482e3f55c352d1d019bee0b9e26b678132bde39220d1db44c3cb4e,unchanged
+src/nonlinear/pendulum_ode.m,9469f8c5f26a67ed12dea479f3c39c06a26cd22288d5ea5a25f29fea1b6a5488,9469f8c5f26a67ed12dea479f3c39c06a26cd22288d5ea5a25f29fea1b6a5488,unchanged
+src/two_cart/Task_A8_was_A7.slx,879af002d85c23f934ae4b2b04a47aa8942be369df186b1156a506e33d25e64a,879af002d85c23f934ae4b2b04a47aa8942be369df186b1156a506e33d25e64a,unchanged
+src/two_cart/Tasks_A3_to_A8.m,75561a61948ea1cf1e8a1832394f76aadc02794b5ce1522d9f70be369fc2d138,75561a61948ea1cf1e8a1832394f76aadc02794b5ce1522d9f70be369fc2d138,unchanged
+</pre></section><section id="file-evidence/torque-red.log"><h2>evidence/torque-red.log</h2><p><a href="control-systems-coursework/evidence/torque-red.log" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-evidence/torque-red.log">Back to file index</a></p><pre>WARNING: package sun.awt.X11 not in java.desktop
+WARNING: package sun.awt.X11 not in java.desktop
+command 0.50 rad: torque [-4.173787 20.000000] Nm
+{Error using assert
+Helicopter commanded torque exceeded -6/+10 Nm
+
+Error in test_torque_limits (line 8)
+ assert(min(torque)&gt;=-6-1e-9 &amp;&amp; max(torque)&lt;=10+1e-9,&#x27;Helicopter commanded torque exceeded -6/+10 Nm&#x27;);
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+} 
+</pre></section><section id="file-evidence/verification.log"><h2>evidence/verification.log</h2><p><a href="control-systems-coursework/evidence/verification.log" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-evidence/verification.log">Back to file index</a></p><pre>WARNING: package sun.awt.X11 not in java.desktop
+WARNING: package sun.awt.X11 not in java.desktop
+[Warning: The closed-loop system is unstable.] 
+[&gt; In DynamicSystem/margin (line 82)
+In run_all (line 43)
+In test_release (line 2)] 
+                    matlab_version: &#x27;24.2.0.2923080 (R2024b) Update 6&#x27;
+               cart_resonance_rads: [17.5160 49.4295]
+                cart_undamped_rads: [17.5214 49.4267]
+                  body_undamped_hz: [2x5 double]
+                    body_damped_hz: [2x2 double]
+               beam_frequencies_hz: [6.5357 26.1426 58.8209]
+      beam_rayleigh_relative_error: 2.7179e-16
+                midspan_mass_ratio: 1.5000
+                      beam_mass_kg: 234
+                   midspan_mass_kg: 351
+           cantilever_reference_hz: 2.3283
+                 helicopter_margin: [2x3 double]
+       helicopter_ideal_settling_s: 0.2562
+    helicopter_ideal_overshoot_pct: 4.3257
+           inverted_pendulum_poles: [-7.0036 7.0036]
+     nonlinear_energy_increase_max: -2.9683e-10
+              nonlinear_duration_s: 100
+
+PASS: controls analytical and nonlinear regression checks
+command 0.50 rad: torque [-4.088844 10.000000] Nm
+command -0.50 rad: torque [-6.000000 3.836131] Nm
+PASS: helicopter enforces asymmetric actuator torque bounds
+[Warning: The closed-loop system is unstable.] 
+[&gt; In DynamicSystem/margin (line 82)
+In run_all (line 43)] 
+SIMULATING Task_A8_was_A7
+SIMULATING beam_A6_1
+SIMULATING beam_A6_2
+SIMULATING beam_A7
+SIMULATING Task_B3
+SIMULATING PI_D_controller
+                    matlab_version: &#x27;24.2.0.2923080 (R2024b) Update 6&#x27;
+               cart_resonance_rads: [17.5160 49.4295]
+                cart_undamped_rads: [17.5214 49.4267]
+                  body_undamped_hz: [2x5 double]
+                    body_damped_hz: [2x2 double]
+               beam_frequencies_hz: [6.5357 26.1426 58.8209]
+      beam_rayleigh_relative_error: 2.7179e-16
+                midspan_mass_ratio: 1.5000
+                      beam_mass_kg: 234
+                   midspan_mass_kg: 351
+           cantilever_reference_hz: 2.3283
+                 helicopter_margin: [2x3 double]
+       helicopter_ideal_settling_s: 0.2562
+    helicopter_ideal_overshoot_pct: 4.3257
+           inverted_pendulum_poles: [-7.0036 7.0036]
+     nonlinear_energy_increase_max: -2.9683e-10
+              nonlinear_duration_s: 100
+                          simulink: [1x1 struct]
+
+</pre></section><section id="file-run_all.m"><h2>run_all.m</h2><p><a href="control-systems-coursework/run_all.m" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-run_all.m">Back to file index</a></p><pre>function r = run_all(include_simulink, artifact_dir)
+% Reproduce analytical results without manual base-workspace dependencies.
+% Original coursework source and models remain in src/ with original equations.
+if nargin&lt;1, include_simulink=true; end
+if nargin&lt;2, artifact_dir=fullfile(tempdir,&#x27;controls-release-results&#x27;); end
+if ~exist(artifact_dir,&#x27;dir&#x27;), mkdir(artifact_dir); end
+root=fileparts(mfilename(&#x27;fullpath&#x27;));
+addpath(genpath(fullfile(root,&#x27;src&#x27;)));
+Simulink.fileGenControl(&#x27;set&#x27;,&#x27;CacheFolder&#x27;,fullfile(artifact_dir,&#x27;cache&#x27;), ...
+ &#x27;CodeGenFolder&#x27;,fullfile(artifact_dir,&#x27;codegen&#x27;),&#x27;createDir&#x27;,true);
+r.matlab_version=version;
+% Mechanical state [x1 x2 v1 v2], independently equivalent to original force states.
+M=diag([2 1]); K=[2500 -1500;-1500 1500]; B=diag([0.5 1]);
+A=[zeros(2) eye(2);-M\K -M\B];
+sys=ss(A,[zeros(2);M\eye(2)],[eye(2) zeros(2)],zeros(2));
+w=linspace(1,70,100000); mag=squeeze(abs(freqresp(sys(1,1),w)));
+[~,loc]=findpeaks(mag); r.cart_resonance_rads=w(loc);
+r.cart_undamped_rads=sort(sqrt(eig(K,M)))&#x27;;
+assert(all(real(eig(A))&lt;0),&#x27;Cart model must dissipate energy&#x27;);
+% Five DOF matrices retained from Tasks_B2_to_4, with linear solves replacing inv.
+M=diag([.3 6.15 6 12.58 50.34]); bs=2170e3; b1=300;b2=650;b4=1900;
+B=[bs -bs 0 0 0;-bs bs+b1+b2 -b2 -b1 0;0 -b2 b2 0 0;0 -b1 0 b1+b4 -b4;0 0 0 -b4 b4];
+for i=1:2
+ kg=[99e3 359e3];kg=kg(i);ks=403e3;k1=6000;k2=6000;k3=10000;k4=10000;k5=18000;
+ K=[ks+kg -ks 0 0 0;-ks ks+k1+k2 -k2 -k1 0;0 -k2 k2+k3 -k3 0;0 -k1 -k3 k1+k3+k4+k5 -(k4+k5);0 0 0 -(k4+k5) k4+k5];
+ A=[zeros(5) eye(5);-M\K -M\B];
+ r.body_undamped_hz(i,:)=sort(sqrt(eig(K,M)))&#x27;/(2*pi);
+ f=unique(round(abs(imag(eig(A)))/(2*pi),8));f=f(f&gt;1e-6);
+ r.body_damped_hz(i,:)=maxk(f,2)&#x27;;
+end
+E=210e9;rho=7800;L=6;h=.1;d=.05;I=d*h^3/12;mu=rho*d*h;
+r.beam_frequencies_hz=((1:3)*pi).^2*sqrt(E*I/(mu*L^4))/(2*pi);
+Y=@(x)sin(pi*x/L);Ypp=@(x)-(pi/L)^2*sin(pi*x/L);
+wr=sqrt(integral(@(x)E*I*Ypp(x).^2,0,L)/integral(@(x)mu*Y(x).^2,0,L));
+r.beam_rayleigh_relative_error=abs(wr/(2*pi)-r.beam_frequencies_hz(1))/r.beam_frequencies_hz(1);
+% Rayleigh modal mass is half beam mass; reducing omega by half needs 3 modal masses.
+r.midspan_mass_ratio=(1/.5^2-1)/2;
+r.beam_mass_kg=mu*L;r.midspan_mass_kg=r.midspan_mass_ratio*r.beam_mass_kg;
+r.cantilever_reference_hz=1.875104068711961^2*sqrt(E*I/(mu*L^4))/(2*pi);
+J=.073824;kp=40;kd=2.42979296119;s=tf(&#x27;s&#x27;);Loop=(kd*s+kp)/(J*s^2);
+[gm,pm,~,wc]=margin(Loop);r.helicopter_margin(1,:)=[pm wc gm];
+[gm,pm,~,wc]=margin(Loop/(.1*s+1));r.helicopter_margin(2,:)=[pm wc gm];
+% Derivative on feedback gives numerator Kp, unlike feedback(Loop,1).
+closed=kp/(J*s^2+kd*s+kp);info=stepinfo(.25*closed);
+r.helicopter_ideal_settling_s=info.SettlingTime;r.helicopter_ideal_overshoot_pct=info.Overshoot;
+r.inverted_pendulum_poles=sort(pole(tf(-9.81/.2,[1 0 -9.81/.2])))&#x27;;
+X0=[.1;zeros(7,1)]; t=(0:.01:100)&#x27;;
+[t,X]=ode45(@(~,X)pendulum_ode(X(1:4),X(5:8),2,1,2,1000,1500,.5,1,.3,9.81),t,X0,odeset(&#x27;RelTol&#x27;,1e-9,&#x27;AbsTol&#x27;,1e-11));
+energy=.5*2*X(:,5).^2+.5*X(:,6).^2;
+for j=1:2
+ v=X(:,4+j);th=X(:,2+j);dth=X(:,6+j);
+ energy=energy+.5*2*((v+.3*cos(th).*dth).^2+(.3*sin(th).*dth).^2)+2*9.81*.3*(1-cos(th));
+end
+energy=energy+.5*1000*X(:,1).^2+.5*1500*(X(:,2)-X(:,1)).^2;
+r.nonlinear_energy_increase_max=max(diff(energy));r.nonlinear_duration_s=t(end);
+assert(all(isfinite(X(:))) &amp;&amp; r.nonlinear_energy_increase_max&lt;1e-5,&#x27;Nonlinear passivity regression&#x27;);
+if include_simulink
+ models={&#x27;two_cart/Task_A8_was_A7&#x27;,&#x27;beam/beam_A6_1&#x27;,&#x27;beam/beam_A6_2&#x27;,&#x27;beam/beam_A7&#x27;,&#x27;nonlinear/Task_B3&#x27;,&#x27;helicopter/PI_D_controller&#x27;};
+ for j=1:numel(models)
+  [~,name]=fileparts(models{j});fprintf(&#x27;SIMULATING %s\n&#x27;,name);
+  simout=simulate_logged(fullfile(root,&#x27;src&#x27;,[models{j} &#x27;.slx&#x27;]));
+  save(fullfile(artifact_dir,[name &#x27;.mat&#x27;]),&#x27;simout&#x27;);
+  r.simulink.(name).stop_time=simout.tout(end);
+  if startsWith(name,&#x27;beam&#x27;)
+   z=simout.release_scope_1; tt=z.Time; yy=z.Data(:,1);use=tt&gt;5.1;
+   [~,pk]=findpeaks(yy(use));tz=tt(use);yz=yy(use);
+   peak_time=tz(pk);
+   for v=1:numel(pk)
+    ids=pk(v)+(-1:1);poly=polyfit(tz(ids)-tz(pk(v)),yz(ids),2);
+    peak_time(v)=tz(pk(v))-poly(2)/(2*poly(1));
+   end
+   if numel(pk)&gt;2
+    frequency=1/median(diff(peak_time));r.simulink.(name).free_frequency_hz=frequency;
+    if strcmp(name,&#x27;beam_A6_1&#x27;),reference=r.cantilever_reference_hz;
+    elseif strcmp(name,&#x27;beam_A6_2&#x27;),reference=r.beam_frequencies_hz(1);
+    else,reference=r.beam_frequencies_hz(1)/2;end
+    r.simulink.(name).relative_error_pct=100*abs(frequency/reference-1);
+   end
+  elseif strcmp(name,&#x27;Task_B3&#x27;)
+   fields={&#x27;x1&#x27;,&#x27;x2&#x27;,&#x27;th1&#x27;,&#x27;th2&#x27;};offsets=[-.55 .55 0 0];
+   for k=1:4
+    z=simout.get(fields{k}); if isa(z,&#x27;timeseries&#x27;),zz=z.Data;tt=z.Time;else,zz=z;tt=simout.tout;end
+    ref=interp1(t,X(:,k),tt,&#x27;pchip&#x27;);
+    r.simulink.(name).max_abs_difference(k)=max(abs(squeeze(zz)-offsets(k)-ref));
+   end
+  elseif strcmp(name,&#x27;PI_D_controller&#x27;)
+   z=simout.release_scope_1;inf=stepinfo(z.Data,z.Time,.25);
+   r.simulink.(name).settling_s=inf.SettlingTime;r.simulink.(name).overshoot_pct=inf.Overshoot;
+  end
+ end
+end
+fid=fopen(fullfile(artifact_dir,&#x27;results.json&#x27;),&#x27;w&#x27;);fprintf(fid,&#x27;%s&#x27;,jsonencode(r,PrettyPrint=true));fclose(fid);
+disp(r);
+end
+</pre></section><section id="file-simulate_logged.m"><h2>simulate_logged.m</h2><p><a href="control-systems-coursework/simulate_logged.m" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-simulate_logged.m">Back to file index</a></p><pre>function out = simulate_logged(model_file, stop_time, step_amplitude)
+% Add logging only in memory. Never save over the supplied model.
+[~,mdl]=fileparts(model_file);
+if bdIsLoaded(mdl)
+ error(&#x27;release:ModelAlreadyLoaded&#x27;,&#x27;Close or save and close the already-open model %s before reproduction.&#x27;,mdl);
+end
+load_system(model_file);
+cleanup=onCleanup(@()close_system(mdl,0));
+if nargin&gt;2,set_param([mdl &#x27;/Step&#x27;],&#x27;After&#x27;,num2str(step_amplitude));end
+try,set_param(mdl,&#x27;SimMechanicsOpenEditorOnUpdate&#x27;,&#x27;off&#x27;);catch,end
+scopes=find_system(mdl,&#x27;SearchDepth&#x27;,1,&#x27;BlockType&#x27;,&#x27;Scope&#x27;);
+for i=1:numel(scopes)
+ ports=get_param(scopes{i},&#x27;PortHandles&#x27;);
+ for j=1:numel(ports.Inport)
+  line=get_param(ports.Inport(j),&#x27;Line&#x27;);if line&lt;0,continue,end
+  src=get_param(line,&#x27;SrcPortHandle&#x27;);name=sprintf(&#x27;release_scope_%d&#x27;,i);
+  if numel(ports.Inport)&gt;1,name=sprintf(&#x27;%s_%d&#x27;,name,j);end
+  block=[mdl &#x27;/&#x27; name];add_block(&#x27;simulink/Sinks/To Workspace&#x27;,block,&#x27;VariableName&#x27;,name,&#x27;SaveFormat&#x27;,&#x27;Timeseries&#x27;);
+  ph=get_param(block,&#x27;PortHandles&#x27;);add_line(mdl,src,ph.Inport,&#x27;autorouting&#x27;,&#x27;on&#x27;);
+ end
+end
+existing=find_system(mdl,&#x27;BlockType&#x27;,&#x27;ToWorkspace&#x27;);
+for k=1:numel(existing),set_param(existing{k},&#x27;SaveFormat&#x27;,&#x27;Timeseries&#x27;,&#x27;MaxDataPoints&#x27;,&#x27;inf&#x27;);end
+set_param(mdl,&#x27;LimitDataPoints&#x27;,&#x27;off&#x27;);
+set_param(mdl,&#x27;ReturnWorkspaceOutputs&#x27;,&#x27;on&#x27;,&#x27;MaxStep&#x27;,&#x27;0.002&#x27;,&#x27;RelTol&#x27;,&#x27;1e-7&#x27;);
+if nargin&gt;1,set_param(mdl,&#x27;StopTime&#x27;,num2str(stop_time));end
+out=sim(mdl);
+end
+</pre></section><section id="file-src/beam/Task_A4.m"><h2>src/beam/Task_A4.m</h2><p><a href="control-systems-coursework/src/beam/Task_A4.m" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-src/beam/Task_A4.m">Back to file index</a></p><pre>clear; clc; close all;
+
+%% A1
+betaL = linspace(0, 12, 2000);
+f = sin(betaL);
+
+n = 1:3;
+roots_betaL = n*pi;
+roots_betaL_sq = roots_betaL.^2;
+
+figure(&#x27;Color&#x27;,&#x27;w&#x27;,&#x27;Position&#x27;,[100 100 800 450]);
+plot(betaL, f, &#x27;b-&#x27;, &#x27;LineWidth&#x27;, 1.6); hold on;
+yline(0, &#x27;k--&#x27;, &#x27;LineWidth&#x27;, 0.8);
+
+plot(roots_betaL, zeros(size(roots_betaL)), &#x27;ro&#x27;, ...
+     &#x27;MarkerSize&#x27;, 10, &#x27;MarkerFaceColor&#x27;, &#x27;r&#x27;, &#x27;LineWidth&#x27;, 1.5);
+
+for k = 1:length(roots_betaL)
+    txt = sprintf(&#x27;  n=%d\n  \\betaL = %d\\pi\n  (\\betaL)^2 = %.3f&#x27;, ...
+                  k, k, roots_betaL_sq(k));
+    yoff = 0.45 * (-1)^(k+1);   % alternate above/below
+    text(roots_betaL(k), yoff, txt, ...
+         &#x27;FontSize&#x27;, 10, &#x27;HorizontalAlignment&#x27;, &#x27;left&#x27;);
+end
+
+xlabel(&#x27;\betaL&#x27;, &#x27;FontSize&#x27;, 12);
+ylabel(&#x27;sin(\betaL)&#x27;, &#x27;FontSize&#x27;, 12);
+title(&#x27;Characteristic equation for simply supported beam: sin(\betaL) = 0&#x27;, ...
+      &#x27;FontSize&#x27;, 12);
+grid on;
+xlim([0 12]); ylim([-1.4 1.4]);
+legend(&#x27;sin(\betaL)&#x27;, &#x27;zero line&#x27;, &#x27;Roots (modes 1-3)&#x27;, ...
+       &#x27;Location&#x27;, &#x27;southeast&#x27;);
+
+fprintf(&#x27;\n--- Task A.1 Results ---\n&#x27;);
+fprintf(&#x27; Mode n   betaL      (betaL)^2\n&#x27;);
+fprintf(&#x27;-------------------------------\n&#x27;);
+for k = 1:3
+    fprintf(&#x27;   %d    %d*pi=%.4f   %.4f\n&#x27;, ...
+            k, k, roots_betaL(k), roots_betaL_sq(k));
+end
+
+%% A3
+L = 6;
+x = linspace(0, L, 500);
+
+figure(&#x27;Color&#x27;,&#x27;w&#x27;,&#x27;Position&#x27;,[100 100 800 500]);
+hold on;
+
+colors = {&#x27;b&#x27;, &#x27;r&#x27;, &#x27;g&#x27;};
+for n = 1:3
+    Yn = sin(n*pi*x/L);
+    plot(x, Yn, &#x27;LineWidth&#x27;, 1.8, &#x27;Color&#x27;, colors{n}, ...
+         &#x27;DisplayName&#x27;, sprintf(&#x27;Mode %d: Y_%d(x) = sin(%d\\pi x/L)&#x27;, n, n, n));
+end
+
+yline(0, &#x27;k--&#x27;, &#x27;LineWidth&#x27;, 0.6, &#x27;HandleVisibility&#x27;,&#x27;off&#x27;);
+plot(0, 0, &#x27;k^&#x27;, &#x27;MarkerSize&#x27;, 12, &#x27;MarkerFaceColor&#x27;, &#x27;k&#x27;, ...
+     &#x27;HandleVisibility&#x27;,&#x27;off&#x27;);
+plot(L, 0, &#x27;k^&#x27;, &#x27;MarkerSize&#x27;, 12, &#x27;MarkerFaceColor&#x27;, &#x27;k&#x27;, ...
+     &#x27;HandleVisibility&#x27;,&#x27;off&#x27;);
+
+xlabel(&#x27;x (m)&#x27;, &#x27;FontSize&#x27;, 12);
+ylabel(&#x27;Y_n(x)  (normalised)&#x27;, &#x27;FontSize&#x27;, 12);
+title(&#x27;First three mode shapes of simply supported beam&#x27;, &#x27;FontSize&#x27;, 12);
+legend(&#x27;Location&#x27;, &#x27;best&#x27;, &#x27;FontSize&#x27;, 10);
+grid on;
+xlim([-0.2 L+0.2]);
+ylim([-1.3 1.3]);
+
+%% Task A4
+h = 0.1; d = 0.05; L = 6; rho = 7800; E = 210e9;
+I  = (1/12)*d*h^3;
+A  = d*h;
+m  = rho*A;
+EI = E*I;
+
+Y    = @(x) sin(pi*x/L);
+Ypp  = @(x) -(pi/L)^2 * sin(pi*x/L);
+
+num  = integral(@(x) EI * Ypp(x).^2, 0, L);
+den  = integral(@(x) m  * Y(x).^2,   0, L);
+
+omega_rayleigh = sqrt(num/den);
+omega_exact    = pi^2 * sqrt(EI/(m*L^4));
+
+fprintf(&#x27;Rayleigh estimate : omega_1 = %.4f rad/s, f_1 = %.4f Hz\n&#x27;, ...
+        omega_rayleigh, omega_rayleigh/(2*pi));
+fprintf(&#x27;Exact (Task A.2)  : omega_1 = %.4f rad/s, f_1 = %.4f Hz\n&#x27;, ...
+        omega_exact, omega_exact/(2*pi));
+fprintf(&#x27;Relative error    : %.2e %%\n&#x27;, ...
+        100*abs(omega_rayleigh - omega_exact)/omega_exact);</pre></section><section id="file-src/body/Tasks_B2_to_4.m"><h2>src/body/Tasks_B2_to_4.m</h2><p><a href="control-systems-coursework/src/body/Tasks_B2_to_4.m" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-src/body/Tasks_B2_to_4.m">Back to file index</a></p><pre>m1 = 6.15;
+m2 = 6.0;
+m3 = 12.58;
+m4 = 50.34;
+ms = 0.3;
+
+k1 = 6e3;
+k2 = 6e3;
+k3 = 10e3;
+k4 = 10e3;
+k5 = 18e3; 
+ks = 403e3;
+
+b1 = 0.3e3;
+b2 = 0.65e3;
+b4 = 1.9e3; 
+bs = 2170e3; 
+
+kg_soft = 99e3;
+kg_hard = 359e3;
+kg_values = [kg_soft, kg_hard];
+soil_names = {&#x27;Soft Soil (99 kN/m)&#x27;, &#x27;Hard Soil (359 kN/m)&#x27;};
+
+M = diag([ms, m1, m2, m3, m4]);
+
+B = [bs,        -bs,        0,   0,         0;
+    -bs,  bs + b1 + b2,   -b2, -b1,         0;
+      0,        -b2,       b2,   0,         0;
+      0,        -b1,        0, b1 + b4,    -b4;
+      0,          0,        0,  -b4,        b4];
+
+freq_Hz = logspace(log10(0.01), log10(1000), 1000);
+freq_rads = 2 * pi * freq_Hz;
+
+for i = 1:length(kg_values)
+    kg = kg_values(i);
+    
+    K = [ks + kg,      -ks,              0,              0,            0;
+         -ks,    ks + k1 + k2,         -k2,            -k1,            0;
+           0,          -k2,        k2 + k3,            -k3,            0;
+           0,          -k1,            -k3,     k1+k3+k4+k5,  -(k4 + k5);
+           0,            0,              0,      -(k4 + k5),    k4 + k5];
+         
+    F = [kg; 0; 0; 0; 0];
+    
+    A_sys = [zeros(5,5), eye(5,5);
+            -inv(M)*K,  -inv(M)*B];
+    B_sys = [zeros(5,1);
+             inv(M)*F];
+    C_sys = [eye(5,5), zeros(5,5)];
+    D_sys = zeros(5,1);
+    
+    sys = ss(A_sys, B_sys, C_sys, D_sys);
+    figure(&#x27;Name&#x27;, [&#x27;Frequency Response: &#x27;, soil_names{i}]);
+    opts = bodeoptions(&#x27;cstprefs&#x27;);
+    opts.FreqUnits = &#x27;Hz&#x27;;
+    opts.MagUnits = &#x27;dB&#x27;;
+    bode(sys, freq_rads, opts);
+    grid on;
+    title([&#x27;Bode Plot: Human Body Model on &#x27;, soil_names{i}]);
+end
+
+disp(&#x27;B.3: Undamped Natural Frequencies (Hz)&#x27;);
+
+for i = 1:length(kg_values)
+    kg = kg_values(i);
+    
+    K = [ks + kg,      -ks,              0,              0,            0;
+         -ks,    ks + k1 + k2,         -k2,            -k1,            0;
+           0,          -k2,        k2 + k3,            -k3,            0;
+           0,          -k1,            -k3, k1+k3+k4+k5,  -(k4 + k5);
+           0,            0,              0,     -(k4 + k5),    k4 + k5];
+           
+    [~, D] = eig(K, M); 
+    omega_n_rads = sqrt(diag(D));
+    omega_n_Hz = omega_n_rads / (2 * pi);
+    omega_n_Hz = sort(omega_n_Hz);
+    disp([&#x27;Natural Frequencies for &#x27;, soil_names{i}, &#x27;:&#x27;]);
+    disp(omega_n_Hz);
+end
+
+% Task B.4
+disp(&#x27;B.4: Largest Two Eigenfrequencies (Hz)&#x27;);
+
+for i = 1:length(kg_values)
+    kg = kg_values(i);
+    
+    K = [ks + kg,      -ks,              0,              0,            0;
+         -ks,    ks + k1 + k2,         -k2,            -k1,            0;
+           0,          -k2,        k2 + k3,            -k3,            0;
+           0,          -k1,            -k3, k1+k3+k4+k5,  -(k4 + k5);
+           0,            0,              0,     -(k4 + k5),    k4 + k5];
+           
+    A_sys = [zeros(5,5), eye(5,5);
+            -inv(M)*K,  -inv(M)*B];
+            
+    eigenvalues_A = eig(A_sys);
+    eigenfreq_rads = abs(imag(eigenvalues_A));
+    eigenfreq_Hz = eigenfreq_rads / (2 * pi);
+    unique_eigen_Hz = unique(round(eigenfreq_Hz, 4));
+    largest_two_Hz = maxk(unique_eigen_Hz, 2);
+    
+    disp([&#x27;Largest two eigenfrequencies for &#x27;, soil_names{i}, &#x27;:&#x27;]);
+    disp(largest_two_Hz);
+end</pre></section><section id="file-src/helicopter/zeta.m"><h2>src/helicopter/zeta.m</h2><p><a href="control-systems-coursework/src/helicopter/zeta.m" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-src/helicopter/zeta.m">Back to file index</a></p><pre>clear; clc; close all;
+
+J = 0.073824;
+Kp = 40;  
+Kd = 2.42979296119; 
+
+num_pd = [Kd Kp];
+den_plant = [J 0 0];
+L_ideal = tf(num_pd, den_plant);
+
+figure(1);
+margin(L_ideal);
+title(&#x27;Part 2.7: Ideal System Bode Plot (PD Ctrl only)&#x27;);
+grid on;
+
+[Gm_ideal, Pm_ideal, Wcg_ideal, Wcp_ideal] = margin(L_ideal);
+
+num_motor = [1];
+den_motor = [0.1 1];
+Gm = tf(num_motor, den_motor);
+
+L_real = L_ideal * Gm;
+
+figure(2);
+margin(L_real);
+title(&#x27;Part 2.8: Real System Bode Plot w/ Motor Dynamics&#x27;);
+grid on;
+
+[Gm_real, Pm_real, Wcg_real, Wcp_real] = margin(L_real);</pre></section><section id="file-src/inverted_pendulum/zheta1.m"><h2>src/inverted_pendulum/zheta1.m</h2><p><a href="control-systems-coursework/src/inverted_pendulum/zheta1.m" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-src/inverted_pendulum/zheta1.m">Back to file index</a></p><pre>%% 2.2
+%
+g = 9.81;
+L = 0.20;
+%
+omega_sq = g / L;
+%
+num = [-omega_sq];
+den = [1, 0, -omega_sq];
+pendulum = tf(num, den);
+%
+step(pendulum);
+title(&#x27;Step Response of the Inverted Pendulum&#x27;);
+
+%%3.2 
+%
+for k = [0, 1, 2, 10]
+    sysclp1 = feedback(pendulum, k);
+    figure;
+    step(sysclp1);
+    title([&#x27;Negative Feedback (k = &#x27;, num2str(k), &#x27;)&#x27;]);
+end
+%
+for k = [0, 1, 2, 10]
+    sysclp2 = feedback(pendulum, k, +1);
+    figure;
+    step(sysclp2);
+    title([&#x27;Positive Feedback (k = &#x27;, num2str(k), &#x27;)&#x27;]);
+end
+%
+figure; rlocus(pendulum); title(&#x27;Root Locus - Negative Feedback&#x27;);
+figure; rlocus(-pendulum); title(&#x27;Root Locus - Positive Feedback&#x27;);
+%
+%
+%
+c = 10;
+tau = 1 /(c*sqrt(omega_sq));
+compensator = tf([c*tau, 1], [tau, 1]);
+
+sys2 = series(-compensator, pendulum);
+figure;
+rlocus(sys2);
+title(&#x27;Q10, Root Locus w/ Exact Cancellation Compensator&#x27;);
+%
+compensator2 = tf([0.1, 1], [0.01, 1]);
+sys3 = series(-compensator2, pendulum); % [cite: 194]
+figure;
+rlocus(sys3);
+title(&#x27;Q11: Root Locus with Hardware Lead Compensator H1(s)&#x27;);
+%
+%
+servo = tf([1], [0.00025, 0.02, 1]);
+actual = series(servo, pendulum);
+sys4 = series(-compensator2, actual);
+
+figure;
+rlocus(sys4);
+title(&#x27;Q13 Root Locus with Servo Dynamics&#x27;);
+%
+k_stable = 1.2; 
+sysclp3 = feedback(sys4, k_stable);
+figure;
+bode(sysclp3);
+title(&#x27;Q14: Bode Plot of Closed-Loop Sys&#x27;);
+figure;
+margin(sysclp3);
+title(&#x27;Q14 gain n phase margins&#x27;);
+%
+%
+%
+%
+%
+
+%
+
+%
+
+</pre></section><section id="file-src/nonlinear/Task_B.m"><h2>src/nonlinear/Task_B.m</h2><p><a href="control-systems-coursework/src/nonlinear/Task_B.m" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-src/nonlinear/Task_B.m">Back to file index</a></p><pre>%% PART B.1
+syms m1 m2 m k1 k2 b1 b2 l g real
+syms x1 x2 th1 th2 dx1 dx2 dth1 dth2 ddx1 ddx2 ddth1 ddth2 real
+
+q = [x1; x2; th1; th2];
+dq = [dx1; dx2; dth1; dth2];
+ddq = [ddx1; ddx2; ddth1; ddth2];
+
+p1 = [x1 + l*sin(th1); -l*cos(th1)];
+p2 = [x2 + l*sin(th2); -l*cos(th2)];
+dp1 = simplify(jacobian(p1, q)*dq);
+dp2 = simplify(jacobian(p2, q)*dq);
+
+T = 0.5*m1*dx1^2 + 0.5*m2*dx2^2 + 0.5*m*(dp1.&#x27;*dp1) + 0.5*m*(dp2.&#x27;*dp2);
+V = 0.5*k1*x1^2 + 0.5*k2*(x2-x1)^2 - m*g*l*cos(th1) - m*g*l*cos(th2);
+L = T - V;
+
+Qnc = [-b1*dx1; -b2*dx2; 0; 0];
+
+L_dq = simplify(jacobian(L, dq).&#x27;);
+L_q = simplify(jacobian(L, q).&#x27;);
+Mterm = simplify(jacobian(L_dq, dq));
+Cterm = simplify(jacobian(L_dq, q));
+
+ddq_solved = simplify(Mterm \ (L_q + Qnc - Cterm*dq));
+
+dX = [dq; ddq_solved];
+matlabFunction(dX, &#x27;File&#x27;, &#x27;pendulum_ode&#x27;, &#x27;Vars&#x27;, {q, dq, m1, m2, m, k1, k2, b1, b2, l, g});
+
+%% PART B2
+m1_val=2; m2_val=1; m_val=2; 
+k1_val=1000; k2_val=1500; 
+b1_val=0.5; b2_val=1.0; 
+l_val=0.3; g_val=9.81;
+
+X0 = [0.1; 0; 0; 0; 0; 0; 0; 0];
+tspan = [0 100];
+
+[t, X] = ode45(@(t, X) pendulum_ode(X(1:4), X(5:8), m1_val, m2_val, m_val, k1_val, k2_val, b1_val, b2_val, l_val, g_val), tspan, X0);
+
+figure;
+subplot(2,1,1);
+plot(t, X(:,1), &#x27;b&#x27;, t, X(:,2), &#x27;r&#x27;);
+legend(&#x27;x_1&#x27;, &#x27;x_2&#x27;); title(&#x27;Mass Positions&#x27;); xlabel(&#x27;Time (s)&#x27;); ylabel(&#x27;Position (m)&#x27;);
+
+subplot(2,1,2);
+plot(t, X(:,3), &#x27;b&#x27;, t, X(:,4), &#x27;r&#x27;);
+legend(&#x27;\theta_1&#x27;, &#x27;\theta_2&#x27;); title(&#x27;Pendulum Angles&#x27;); xlabel(&#x27;Time (s)&#x27;); ylabel(&#x27;Angle (rad)&#x27;);
+
+% Display the equations of motion (b1)
+fprintf(&#x27;\n--- Mass/Inertia Matrix M ---\n&#x27;);
+pretty(Mterm)
+
+fprintf(&#x27;\n--- Coriolis/Centripetal Matrix C ---\n&#x27;);
+pretty(Cterm)
+
+fprintf(&#x27;\n--- Potential/Gravity Terms (dL/dq) ---\n&#x27;);
+pretty(L_q)
+
+fprintf(&#x27;\n--- Equations of Motion: M*ddq = L_q + Qnc - C*dq ---\n&#x27;);
+for i = 1:4
+    fprintf(&#x27;\nddq(%d) = \n&#x27;, i);
+    pretty(ddq_solved(i))
+end
+
+ disp(ddq_solved)
+
+%% PART B3
+eq_x1 = -0.55; 
+eq_x2 = 0.55; 
+
+figure(&#x27;Position&#x27;, [100, 100, 800, 600]); 
+
+subplot(2,1,1);
+plot(t, X(:,1), &#x27;b-&#x27;, &#x27;LineWidth&#x27;, 1.5); hold on;
+plot(t, X(:,2), &#x27;r-&#x27;, &#x27;LineWidth&#x27;, 1.5);
+%% IF THERE IS AN ERROR HERE, PLEASE RUN THE B3 SIMULINK SIMULATION
+%  first so that matlab has the data to actually compare
+plot(out.tout, out.x1 - eq_x1, &#x27;b--&#x27;, &#x27;LineWidth&#x27;, 2.5);
+plot(out.tout, out.x2 - eq_x2, &#x27;r--&#x27;, &#x27;LineWidth&#x27;, 2.5);
+
+legend(&#x27;x_1 (MATLAB)&#x27;, &#x27;x_2 (MATLAB)&#x27;, &#x27;x_1 (Simscape)&#x27;, &#x27;x_2 (Simscape)&#x27;);
+title(&#x27;Task B.3: Cart Displacements (MATLAB vs Simscape)&#x27;);
+xlabel(&#x27;Time (s)&#x27;); ylabel(&#x27;Displacement (m)&#x27;);
+grid on;
+
+subplot(2,1,2);
+plot(t, X(:,3), &#x27;b-&#x27;, &#x27;LineWidth&#x27;, 1.5); hold on;
+plot(t, X(:,4), &#x27;r-&#x27;, &#x27;LineWidth&#x27;, 1.5);
+
+plot(out.tout, out.th1, &#x27;b--&#x27;, &#x27;LineWidth&#x27;, 2.5);
+plot(out.tout, out.th2, &#x27;r--&#x27;, &#x27;LineWidth&#x27;, 2.5);
+
+legend(&#x27;\theta_1 (MATLAB)&#x27;, &#x27;\theta_2 (MATLAB)&#x27;, &#x27;\theta_1 (Simscape)&#x27;, &#x27;\theta_2 (Simscape)&#x27;);
+title(&#x27;Task B.3: Pendulum Angles (MATLAB vs Simscape)&#x27;);
+xlabel(&#x27;Time (s)&#x27;); ylabel(&#x27;Angle (rad)&#x27;);
+grid on;</pre></section><section id="file-src/nonlinear/pendulum_ode.m"><h2>src/nonlinear/pendulum_ode.m</h2><p><a href="control-systems-coursework/src/nonlinear/pendulum_ode.m" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-src/nonlinear/pendulum_ode.m">Back to file index</a></p><pre>function dX = pendulum_ode(in1,in2,m1,m2,m,k1,k2,b1,b2,l,g)
+%PENDULUM_ODE
+%    dX = PENDULUM_ODE(IN1,IN2,M1,M2,M,K1,K2,B1,B2,L,G)
+
+%    This function was generated by the Symbolic Math Toolbox version 24.2.
+%    20-May-2026 13:45:14
+
+dth1 = in2(3,:);
+dth2 = in2(4,:);
+dx1 = in2(1,:);
+dx2 = in2(2,:);
+th1 = in1(3,:);
+th2 = in1(4,:);
+x1 = in1(1,:);
+x2 = in1(2,:);
+t2 = cos(th1);
+t3 = cos(th2);
+t4 = sin(th1);
+t5 = sin(th2);
+t6 = k2.*x1;
+t7 = k2.*x2;
+t8 = dth1.^2;
+t9 = dth2.^2;
+t12 = 1.0./l;
+t10 = t2.^2;
+t11 = t3.^2;
+t13 = -t7;
+t14 = m.*t10;
+t15 = m.*t11;
+t16 = -t14;
+t17 = -t15;
+t18 = m+m1+t16;
+t19 = m+m2+t17;
+t20 = 1.0./t18;
+t21 = 1.0./t19;
+dX = [dx1;dx2;dth1;dth2;-t20.*(t6+t13+b1.*dx1+k1.*x1-g.*m.*t2.*t4-l.*m.*t4.*t8);t21.*(t6+t13-b2.*dx2+g.*m.*t3.*t5+l.*m.*t5.*t9);-t12.*t20.*(-t2.*t6+t2.*t7-b1.*dx1.*t2+g.*m.*t4+g.*m1.*t4-k1.*t2.*x1+l.*m.*t2.*t4.*t8);-t12.*t21.*(t3.*t6+t3.*t13-b2.*dx2.*t3+g.*m.*t5+g.*m2.*t5+l.*m.*t3.*t5.*t9)];
+end
+</pre></section><section id="file-src/two_cart/Tasks_A3_to_A8.m"><h2>src/two_cart/Tasks_A3_to_A8.m</h2><p><a href="control-systems-coursework/src/two_cart/Tasks_A3_to_A8.m" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-src/two_cart/Tasks_A3_to_A8.m">Back to file index</a></p><pre>%%%%%%% A3_6 adjusted for A8
+
+m1 = 2;
+m2 = 1;
+k1 = 1000;
+k2 = 1500;
+b1 = 0.5;
+b2 = 1.0;
+
+A = [0, 0, k1, 0;
+     0, 0, -k2, k2;
+     -1/m1, 1/m1, -b1/m1, 0;
+     0, -1/m2, 0, -b2/m2];
+B = [0, 0;
+     0, 0;
+     1/m1, 0;
+     0, 1/m2];
+C = [1/k1, 0, 0, 0;
+     1/k1, 1/k2, 0, 0];
+D = [0, 0;
+     0, 0];
+
+x0_1_pos = [0.1; 0; 0; 0];
+x0_1 = [k1 * x0_1_pos(1);          
+        k2 * (x0_1_pos(2) - x0_1_pos(1)); 
+        x0_1_pos(3); 
+        x0_1_pos(4)];
+x0_2_pos = [0.5; -0.4; 0; 0];
+x0_2 = [k1 * x0_2_pos(1); 
+        k2 * (x0_2_pos(2) - x0_2_pos(1)); 
+        x0_2_pos(3); 
+        x0_2_pos(4)];
+
+sys = ss(A, B, C, D); % state space system
+
+t = 0:0.01:20;
+[y1, t1, x1] = initial(sys, x0_1, t); 
+[y2, t2, x2] = initial(sys, x0_2, t);
+figure;
+subplot(2,1,1); plot(t, y1); legend(&#x27;x1&#x27;, &#x27;x2&#x27;); title(&#x27;Initial Condition 1&#x27;);
+subplot(2,1,2); plot(t, y2); legend(&#x27;x1&#x27;, &#x27;x2&#x27;); title(&#x27;Initial Condition 2&#x27;);
+
+eigenvalues = eig(A); %extract eigenvalues to measure stability
+disp(&#x27;Eigenvalues of A&#x27;);
+disp(eigenvalues);
+
+omega_values = [1, 10, 20, 0, 40, 50, 60, 100];
+time_forced = 0:0.01:100;
+
+figure; hold on;
+for i = 1:length(omega_values)
+    w = omega_values(i);
+    u = [sin(w*time_forced)&#x27;, zeros(length(time_forced), 1)]; 
+    [y, t, x] = lsim(sys, u, time_forced, x0_1);
+    subplot(4,2,i);
+    plot(t, y(:,1));
+    title([&#x27;Omega = &#x27; num2str(w)]);
+end
+
+figure;
+bode(sys);
+grid on;
+
+%sine of f applied on body-1
+w_test = 20;
+amp = 10;
+
+t_compare = 0:0.01:10; 
+
+u_compare = [amp*sin(w_test*t_compare)&#x27;, zeros(length(t_compare), 1)];
+
+[y_compare, t_out] = lsim(sys, u_compare, t_compare, [0;0;0;0]);
+
+%% RUN THE .SLX FILE FIRST, OTHERWISE IT WON&#x27;T PLOT THE SCOPE OUTPUT FOR X1
+figure;
+plot(t_out, y_compare); hold on;
+plot(out.Scope_x1.time, out.Scope_x1.signals.values, &#x27;r--&#x27;, &#x27;LineWidth&#x27;, 1.5);
+title(&#x27;Task A.8: MATLAB Prediction (2-DOF System)&#x27;);
+xlabel(&#x27;Time (s)&#x27;); 
+ylabel(&#x27;Position (m)&#x27;);
+grid on;</pre></section><section id="file-tests/test_model_ownership.m"><h2>tests/test_model_ownership.m</h2><p><a href="control-systems-coursework/tests/test_model_ownership.m" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-tests/test_model_ownership.m">Back to file index</a></p><pre>function test_model_ownership
+% A reproduction must not close or modify someone else&#x27;s open models.
+root=fileparts(fileparts(mfilename(&#x27;fullpath&#x27;)));
+sentinel=&#x27;release_unsaved_sentinel&#x27;;target=&#x27;PI_D_controller&#x27;;
+assert(~bdIsLoaded(sentinel) &amp;&amp; ~bdIsLoaded(target),&#x27;Close test model names before running ownership test&#x27;);
+new_system(sentinel);add_block(&#x27;simulink/Sources/Constant&#x27;,[sentinel &#x27;/unsaved_work&#x27;]);
+cleanup=onCleanup(@()close_owned({sentinel,target}));
+run_all(false);
+success_preserved=bdIsLoaded(sentinel);
+% New unsaved model with the same name must be refused before it is touched.
+new_system(target);add_block(&#x27;simulink/Sources/Constant&#x27;,[target &#x27;/unsaved_target&#x27;]);
+try
+ simulate_logged(fullfile(root,&#x27;src&#x27;,&#x27;helicopter&#x27;,[target &#x27;.slx&#x27;]),0);
+ refused=false;
+catch err
+ refused=strcmp(err.identifier,&#x27;release:ModelAlreadyLoaded&#x27;);
+end
+target_preserved=bdIsLoaded(target) &amp;&amp; getSimulinkBlockHandle([target &#x27;/unsaved_target&#x27;])&gt;0;
+% Missing-file failure must also leave the unrelated model open.
+try,simulate_logged(fullfile(root,&#x27;not_a_model.slx&#x27;));catch,end
+error_preserved=bdIsLoaded(sentinel);
+assert(success_preserved &amp;&amp; error_preserved,&#x27;Runner closed an unrelated unsaved model&#x27;);
+assert(refused &amp;&amp; target_preserved,&#x27;Runner must refuse a preloaded target without changing or closing it&#x27;);
+fprintf(&#x27;PASS: unrelated models survive success/error, preloaded targets are refused intact\n&#x27;);
+end
+function close_owned(names)
+for k=1:numel(names),if bdIsLoaded(names{k}),close_system(names{k},0);end,end
+end
+</pre></section><section id="file-tests/test_release.m"><h2>tests/test_release.m</h2><p><a href="control-systems-coursework/tests/test_release.m" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-tests/test_release.m">Back to file index</a></p><pre>function test_release
+r = run_all(false);
+assert(max(abs(r.cart_resonance_rads-[17.5 49.4]))&lt;0.2);
+assert(max(abs(r.body_damped_hz(1,:)-[14.20 1.73]))&lt;0.01);
+assert(max(abs(r.body_damped_hz(2,:)-[32.30 1.76]))&lt;0.01);
+assert(r.beam_rayleigh_relative_error&lt;1e-10);
+assert(abs(r.midspan_mass_ratio-1.5)&lt;1e-12);
+assert(abs(r.helicopter_margin(1,1)-65.5)&lt;0.2);
+assert(abs(r.helicopter_margin(2,1)+13)&lt;0.2);
+assert(r.nonlinear_energy_increase_max&lt;1e-5);
+assert(abs(r.inverted_pendulum_poles(2)-7)&lt;0.02);
+fprintf(&#x27;PASS: controls analytical and nonlinear regression checks\n&#x27;);
+end
+</pre></section><section id="file-tests/test_torque_limits.m"><h2>tests/test_torque_limits.m</h2><p><a href="control-systems-coursework/tests/test_torque_limits.m" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-tests/test_torque_limits.m">Back to file index</a></p><pre>function test_torque_limits
+root=fileparts(fileparts(mfilename(&#x27;fullpath&#x27;)));
+mdl=&#x27;PI_D_controller&#x27;;file=fullfile(root,&#x27;src&#x27;,&#x27;helicopter&#x27;,[mdl &#x27;.slx&#x27;]);
+for amplitude=[.5 -.5]
+ out=simulate_logged(file,2,amplitude);torque=out.release_scope_2.Data;
+ fprintf(&#x27;command %.2f rad: torque [%.6f %.6f] Nm\n&#x27;,amplitude,min(torque),max(torque));
+ assert(min(torque)&gt;=-6-1e-9 &amp;&amp; max(torque)&lt;=10+1e-9,&#x27;Helicopter commanded torque exceeded -6/+10 Nm&#x27;);
+end
+fprintf(&#x27;PASS: helicopter enforces asymmetric actuator torque bounds\n&#x27;);
+end
+</pre></section><section id="file-verify.py"><h2>verify.py</h2><p><a href="control-systems-coursework/verify.py" download>Download raw file ↓</a> · <a href="control-systems-coursework.html#file-verify.py">Back to file index</a></p><pre>&quot;&quot;&quot;Run MATLAB in a temporary working directory with isolated preferences/cache.&quot;&quot;&quot;
+from pathlib import Path
+import os, subprocess, tempfile
+root=Path(__file__).resolve().parent
+matlab=os.environ.get(&#x27;MATLAB_BIN&#x27;,&#x27;/Applications/MATLAB_R2024b.app/bin/matlab&#x27;)
+def quote(path): return str(path).replace(&quot;&#x27;&quot;, &quot;&#x27;&#x27;&quot;)
+with tempfile.TemporaryDirectory(prefix=&#x27;matlab-release-&#x27;) as scratch:
+    env=os.environ.copy()
+    env[&#x27;MATLAB_PREFDIR&#x27;]=str(Path(scratch)/&#x27;prefs&#x27;)
+    env[&#x27;TMPDIR&#x27;]=scratch
+    result_dir=root/&#x27;results&#x27;
+    expression=&quot;addpath(&#x27;%s&#x27;); &quot; % quote(root)
+    expression+=&quot;addpath(&#x27;%s&#x27;); test_model_ownership; test_release; test_torque_limits; &quot; % quote(root/&#x27;tests&#x27;)
+    expression+=&quot;run_all(true,&#x27;%s&#x27;);&quot; % quote(result_dir)
+    subprocess.run([matlab,&#x27;-batch&#x27;,expression],cwd=scratch,env=env,timeout=600,check=True)
+</pre></section></main></body></html>

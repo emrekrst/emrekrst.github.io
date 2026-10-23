@@ -1,0 +1,327 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sensor evaluation · Code</title><style>*{box-sizing:border-box}html{color-scheme:light}body{margin:0;background:#f5f3ed;color:#20261f;font:16px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1120px;margin:auto;padding:40px 28px 80px}a{color:#2756dc;text-underline-offset:4px}a:hover{color:#173b9e}a:focus-visible{outline:3px solid #2756dc;outline-offset:5px}nav{display:flex;gap:24px;flex-wrap:wrap;font-size:14px}h1{font-size:clamp(32px,5vw,64px);line-height:1.08;letter-spacing:-.045em;margin:36px 0 18px;max-width:900px}h2{font-size:25px;letter-spacing:-.025em;margin-top:44px}p{max-width:850px}.eyebrow{text-transform:uppercase;font-size:12px;font-weight:700;letter-spacing:.14em;color:#52604c}.status{display:inline-block;border:1px solid #cbd1c4;border-radius:3px;padding:8px 12px;background:#eaf0e3;font-size:14px}.rights{border-left:3px solid #2756dc;padding:6px 22px;margin:28px 0;background:#efeee7}.actions{display:flex;gap:20px;flex-wrap:wrap;margin:24px 0}.button{display:inline-block;background:#2756dc;color:white;padding:11px 18px;text-decoration:none;border-radius:3px}.button:hover{background:#173b9e;color:white}table{border-collapse:collapse;width:100%;font:14px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}th{text-align:left;background:#e7e7de}td,th{padding:11px 14px;border-bottom:1px solid #d9dcd1}td:first-child{overflow-wrap:anywhere}td:nth-child(2),th:nth-child(2){text-align:right;white-space:nowrap}.table-wrap{overflow:auto}pre{padding:24px;border:1px solid #d9dcd1;border-radius:4px;background:#faf9f5;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace}footer{margin-top:48px;font-size:13px;color:#52604c}@media(max-width:540px){main{padding:25px 18px 50px}pre{padding:16px;font-size:13px}td,th{padding:9px 7px}}section{scroll-margin-top:25px}h2{overflow-wrap:anywhere}@media(max-width:540px){nav{gap:8px 16px}a{min-height:44px;display:inline-flex;align-items:center}td a{font-size:14px;overflow-wrap:anywhere}pre{font-size:14px;line-height:1.65}h1{overflow-wrap:anywhere}.actions{gap:8px 16px}.table-wrap{border:1px solid #d9dcd1}.rights{padding:8px 14px}}</style></head><body><main><nav><a href="sensor-evaluation.html">← Source package</a><a href="../index.html#library">Portfolio projects</a></nav><p class="eyebrow">READABLE SOURCE / ORIGINAL NOTICES RETAINED</p><h1>Sensor evaluation</h1><section id="file-.gitignore"><h2>.gitignore</h2><p><a href="sensor-evaluation/.gitignore" download>Download raw file ↓</a> · <a href="sensor-evaluation.html#file-.gitignore">Back to file index</a></p><pre>__pycache__/
+.DS_Store
+</pre></section><section id="file-ATTRIBUTION.md"><h2>ATTRIBUTION.md</h2><p><a href="sensor-evaluation/ATTRIBUTION.md" download>Download raw file ↓</a> · <a href="sensor-evaluation.html#file-ATTRIBUTION.md">Back to file index</a></p><pre># Attribution and publication rights
+
+Experiment design, measurements and interpretation: Emre Karausta, University of Southampton rover coursework. Acquisition setup: prepared by a teammate, as credited in the master CV. This repository does not claim authorship of that acquisition code, which is not included.
+
+The anonymised numerical extraction retains sensor names, conditions, readings and workbook cell coordinates. Personal reports, student identifiers, photographs and the source workbook are excluded. No explicit public licence was found for the original academic material, so no blanket MIT or other licence is applied. Confirm coursework-sharing rules and teammate/university rights before publication.
+</pre></section><section id="file-README.md"><h2>README.md</h2><p><a href="sensor-evaluation/README.md" download>Download raw file ↓</a> · <a href="sensor-evaluation.html#file-README.md">Back to file index</a></p><pre># Rover obstacle-sensor evaluation
+
+Bench measurements by Emre Karausta comparing HC-SR04 ultrasonic and VL53L0X time-of-flight sensors, using a teammate-prepared Raspberry Pi Pico/MicroPython acquisition setup during University of Southampton rover coursework.
+
+The public data is a focused extraction of 160 readings from the original measurement workbook: five trials for seven materials, five incidence angles (0–60°), and four lateral offsets (0–6 cm), for each sensor. `data/trials.csv` retains source-cell coordinates. `data/summary.csv` recomputes means and half ranges from the trials. The private report, workbook and photographs are not redistributed.
+
+## Reproduce
+
+```sh
+python3 -m unittest discover -s tests
+python3 analyze.py
+```
+
+Analysis uses Python&#x27;s standard library. To regenerate the chart in MATLAB, run `plot_results`. This optional plot requires MATLAB only.
+
+![Measured means and half ranges](results.png)
+
+Invalid readings are the documented sentinels: 819 cm for ToF and −0.02 cm for ultrasonic. They count as failed readings and are excluded from means. Half range is `(maximum−minimum)/2` in centimetres, not a confidence interval or percentage uncertainty. At least one valid reading is required for a mean. The original report describes nominal 10 cm placement; the ToF setup was uncalibrated, so this dataset does not establish comparative absolute accuracy.
+
+The ultrasonic sensor gave unreliable target readings at 45–60° and five invalid readings for sponge. ToF gave five invalid readings at 6 cm lateral offset. A transparent-acrylic angle failure was a separate qualitative observation in the report, not a recorded condition in this workbook. The suggested arrangement—forward ToF and ultrasonics angled ±25°, invalid-reading rejection and fallback logic—was a design proposal, not a validated fused sensing system.
+
+See [VERIFICATION.md](VERIFICATION.md) for evidence and limitations, and [ATTRIBUTION.md](ATTRIBUTION.md) for publication rights.
+</pre></section><section id="file-VERIFICATION.md"><h2>VERIFICATION.md</h2><p><a href="sensor-evaluation/VERIFICATION.md" download>Download raw file ↓</a> · <a href="sensor-evaluation.html#file-VERIFICATION.md">Back to file index</a></p><pre># Verification — 22 October 2026
+
+Commands run successfully from the release folder:
+
+```sh
+python3 -m unittest discover -s tests
+python3 analyze.py
+```
+
+One regression test covers both all-invalid sentinel cases and a mixed valid/invalid case. It first failed because the reproducible invalid-reading handler was absent, then passed after implementation. `analyze.py` verifies five trials per group and 32 groups, and recomputes `summary.csv`: 160 measurements total. Means and half ranges use valid readings only. Source workbook was read without modification using the bundled Python 3.12.14/openpyxl runtime; exported analysis was checked using Python 3.14 and uses only standard libraries.
+
+The optional MATLAB chart was executed under MATLAB R2024b Update 6, exported to `results.png`, and visually reviewed. A first chart inspection caught material labels being inferred as numbers; forcing the mixed condition column to string fixed the labels. All three panels and their units are readable. The plot uses half ranges, not percentage uncertainty or confidence intervals.
+
+| Master CV claim | Dataset/report evidence | Status |
+|---|---|---|
+| Five repeated measurements across materials, 0–60° angles, 0–6 cm offsets | 7 material, 5 angle and 4 offset groups for each sensor, five trials each | Reproduced from workbook |
+| Ultrasonic unreliable at 45–60° | Means 130.824 and 185.154 cm at nominal 10 cm setup; half ranges 37.885 and 22.445 cm | Supported by recorded readings, not invalid-sentinel counts |
+| Ultrasonic sponge failure | All five readings −0.02 cm, documented invalid sentinel | Supported |
+| ToF sensing failure with some transparent targets | The report describes an extra angled transparent-acrylic observation; workbook does not tabulate that condition | Qualitative historical evidence only |
+| ToF lateral limitation | All five readings 819 cm at 6 cm offset, documented invalid sentinel | Supported |
+| Uncalibrated ToF limited absolute-accuracy comparison | Workbook white-paper ToF mean 13.9 cm at nominal 10 cm; no calibration dataset accompanies the experiment | Limitation retained; no calibration claimed |
+| Forward ToF and two ultrasonics angled ±25°, rejection/fallback logic | Proposed in report; not tested as a combined system in this data | Design proposal only |
+
+The workbook&#x27;s original reported uncertainty/error columns were not treated as authoritative formulas. This release recomputes plain means and half ranges from trial cells, excludes 819/−0.02 sentinels, and avoids unsupported calibrated accuracy rankings. The report&#x27;s prose contains numbers that differ from workbook-derived values; the release uses the workbook trials for quantitative summaries.
+
+The original report, workbook and photographs stay private and are not copied into this package. Sensor identity and sentinel interpretation were confirmed from the report. The acquisition software is credited to a teammate; it is not included or claimed as Emre&#x27;s code. No sensor was connected, no new measurements were collected, and no publication or permission to publish was established. See `ATTRIBUTION.md`.
+</pre></section><section id="file-analyze.py"><h2>analyze.py</h2><p><a href="sensor-evaluation/analyze.py" download>Download raw file ↓</a> · <a href="sensor-evaluation.html#file-analyze.py">Back to file index</a></p><pre>&quot;&quot;&quot;Recompute summaries from anonymised trials. Python standard library only.&quot;&quot;&quot;
+from pathlib import Path
+import csv
+from collections import defaultdict
+from statistics import mean
+
+def summarize(sensor, readings):
+    sentinel = {&#x27;ToF&#x27;: 819.0, &#x27;Ultrasonic&#x27;: -0.02}[sensor]
+    valid = [x for x in readings if x != sentinel]
+    return (len(valid), len(readings)-len(valid), mean(valid) if valid else None,
+            (max(valid)-min(valid))/2 if valid else None)
+
+def main():
+    root = Path(__file__).resolve().parent
+    groups = defaultdict(list)
+    with (root/&#x27;data/trials.csv&#x27;).open(newline=&#x27;&#x27;) as f:
+        for row in csv.DictReader(f):
+            groups[(row[&#x27;sensor&#x27;],row[&#x27;experiment&#x27;],row[&#x27;condition&#x27;])].append(float(row[&#x27;distance_cm&#x27;]))
+    with (root/&#x27;data/summary.csv&#x27;).open(&#x27;w&#x27;,newline=&#x27;&#x27;) as f:
+        writer=csv.writer(f)
+        writer.writerow([&#x27;sensor&#x27;,&#x27;experiment&#x27;,&#x27;condition&#x27;,&#x27;valid_count&#x27;,&#x27;invalid_count&#x27;,&#x27;mean_cm&#x27;,&#x27;half_range_cm&#x27;])
+        for key,readings in groups.items():
+            assert len(readings)==5, f&#x27;Incomplete trials for {key}&#x27;
+            writer.writerow([*key,*summarize(key[0],readings)])
+    assert len(groups)==32
+    print(&#x27;PASS: 160 trials, 32 conditions; invalid sentinels excluded from means&#x27;)
+if __name__==&#x27;__main__&#x27;: main()
+</pre></section><section id="file-data/summary.csv"><h2>data/summary.csv</h2><p><a href="sensor-evaluation/data/summary.csv" download>Download raw file ↓</a> · <a href="sensor-evaluation.html#file-data/summary.csv">Back to file index</a></p><pre>sensor,experiment,condition,valid_count,invalid_count,mean_cm,half_range_cm
+ToF,material,White Paper,5,0,13.9,0.1999999999999993
+ToF,material,Matte Box,5,0,14.04,0.5
+ToF,material,Acrylic,5,0,11.9,0.1999999999999993
+ToF,material,Styrofoam,5,0,13.82,0.5999999999999996
+ToF,material,Cling Film (stretched),5,0,20.62,6.65
+ToF,material,Cling Film (loose),5,0,12.4,0.3000000000000007
+ToF,material,Sponge,5,0,15.92,0.1999999999999993
+ToF,incidence_deg,0,5,0,13.94,0.1999999999999993
+ToF,incidence_deg,15,5,0,13.92,0.09999999999999964
+ToF,incidence_deg,30,5,0,13.72,0.20000000000000018
+ToF,incidence_deg,45,5,0,13.5,0.3000000000000007
+ToF,incidence_deg,60,5,0,13.44,0.40000000000000036
+ToF,offset_cm,0,5,0,13.18,0.25
+ToF,offset_cm,2,5,0,13.88,0.20000000000000018
+ToF,offset_cm,4,5,0,17.84,0.29999999999999893
+ToF,offset_cm,6,0,5,,
+Ultrasonic,material,White Paper,5,0,10.216000000000001,0.010000000000000675
+Ultrasonic,material,Matte Box,5,0,9.72,0.1899999999999995
+Ultrasonic,material,Acrylic,5,0,9.93,0.0
+Ultrasonic,material,Styrofoam,5,0,10.086,0.034999999999999254
+Ultrasonic,material,Cling film (stretched),5,0,10.044,0.0649999999999995
+Ultrasonic,material,Cling film (loose),5,0,11.616,1.63
+Ultrasonic,material,Sponge,0,5,,
+Ultrasonic,incidence_deg,0,5,0,9.728,0.009999999999999787
+Ultrasonic,incidence_deg,15,5,0,9.72,0.040000000000000036
+Ultrasonic,incidence_deg,30,5,0,10.69,0.22499999999999964
+Ultrasonic,incidence_deg,45,5,0,130.824,37.88499999999999
+Ultrasonic,incidence_deg,60,5,0,185.154,22.444999999999993
+Ultrasonic,offset_cm,0,5,0,9.66,0.0
+Ultrasonic,offset_cm,2,5,0,11.032,0.020000000000000462
+Ultrasonic,offset_cm,4,5,0,41.778,0.5100000000000016
+Ultrasonic,offset_cm,6,5,0,206.848,0.8299999999999983
+</pre></section><section id="file-data/trials.csv"><h2>data/trials.csv</h2><p><a href="sensor-evaluation/data/trials.csv" download>Download raw file ↓</a> · <a href="sensor-evaluation.html#file-data/trials.csv">Back to file index</a></p><pre>sensor,experiment,condition,trial,distance_cm,source_cell
+ToF,material,White Paper,1,13.8,C5
+ToF,material,White Paper,2,14.2,D5
+ToF,material,White Paper,3,13.8,E5
+ToF,material,White Paper,4,13.8,F5
+ToF,material,White Paper,5,13.9,G5
+ToF,material,Matte Box,1,14.5,C6
+ToF,material,Matte Box,2,13.5,D6
+ToF,material,Matte Box,3,13.7,E6
+ToF,material,Matte Box,4,14.3,F6
+ToF,material,Matte Box,5,14.2,G6
+ToF,material,Acrylic,1,11.8,C7
+ToF,material,Acrylic,2,11.8,D7
+ToF,material,Acrylic,3,12.2,E7
+ToF,material,Acrylic,4,11.9,F7
+ToF,material,Acrylic,5,11.8,G7
+ToF,material,Styrofoam,1,13.5,C8
+ToF,material,Styrofoam,2,14.5,D8
+ToF,material,Styrofoam,3,13.6,E8
+ToF,material,Styrofoam,4,14.2,F8
+ToF,material,Styrofoam,5,13.3,G8
+ToF,material,Cling Film (stretched),1,25,C9
+ToF,material,Cling Film (stretched),2,17.5,D9
+ToF,material,Cling Film (stretched),3,17.3,E9
+ToF,material,Cling Film (stretched),4,15,F9
+ToF,material,Cling Film (stretched),5,28.3,G9
+ToF,material,Cling Film (loose),1,12.2,C10
+ToF,material,Cling Film (loose),2,12.8,D10
+ToF,material,Cling Film (loose),3,12.3,E10
+ToF,material,Cling Film (loose),4,12.5,F10
+ToF,material,Cling Film (loose),5,12.2,G10
+ToF,material,Sponge,1,15.8,C11
+ToF,material,Sponge,2,15.9,D11
+ToF,material,Sponge,3,15.8,E11
+ToF,material,Sponge,4,15.9,F11
+ToF,material,Sponge,5,16.2,G11
+ToF,incidence_deg,0,1,13.8,M5
+ToF,incidence_deg,0,2,14.2,N5
+ToF,incidence_deg,0,3,13.8,O5
+ToF,incidence_deg,0,4,13.8,P5
+ToF,incidence_deg,0,5,14.1,Q5
+ToF,incidence_deg,15,1,13.8,M6
+ToF,incidence_deg,15,2,14,N6
+ToF,incidence_deg,15,3,13.8,O6
+ToF,incidence_deg,15,4,14,P6
+ToF,incidence_deg,15,5,14,Q6
+ToF,incidence_deg,30,1,13.6,M7
+ToF,incidence_deg,30,2,14,N7
+ToF,incidence_deg,30,3,13.6,O7
+ToF,incidence_deg,30,4,13.6,P7
+ToF,incidence_deg,30,5,13.8,Q7
+ToF,incidence_deg,45,1,13.2,M8
+ToF,incidence_deg,45,2,13.5,N8
+ToF,incidence_deg,45,3,13.2,O8
+ToF,incidence_deg,45,4,13.8,P8
+ToF,incidence_deg,45,5,13.8,Q8
+ToF,incidence_deg,60,1,13,M9
+ToF,incidence_deg,60,2,13.8,N9
+ToF,incidence_deg,60,3,13.6,O9
+ToF,incidence_deg,60,4,13,P9
+ToF,incidence_deg,60,5,13.8,Q9
+ToF,offset_cm,0,1,13,W5
+ToF,offset_cm,0,2,13.2,X5
+ToF,offset_cm,0,3,13.2,Y5
+ToF,offset_cm,0,4,13.5,Z5
+ToF,offset_cm,0,5,13,AA5
+ToF,offset_cm,2,1,13.6,W6
+ToF,offset_cm,2,2,14,X6
+ToF,offset_cm,2,3,14,Y6
+ToF,offset_cm,2,4,14,Z6
+ToF,offset_cm,2,5,13.8,AA6
+ToF,offset_cm,4,1,17.6,W7
+ToF,offset_cm,4,2,18.2,X7
+ToF,offset_cm,4,3,17.6,Y7
+ToF,offset_cm,4,4,18.2,Z7
+ToF,offset_cm,4,5,17.6,AA7
+ToF,offset_cm,6,1,819,W8
+ToF,offset_cm,6,2,819,X8
+ToF,offset_cm,6,3,819,Y8
+ToF,offset_cm,6,4,819,Z8
+ToF,offset_cm,6,5,819,AA8
+Ultrasonic,material,White Paper,1,10.2,C14
+Ultrasonic,material,White Paper,2,10.22,D14
+Ultrasonic,material,White Paper,3,10.22,E14
+Ultrasonic,material,White Paper,4,10.22,F14
+Ultrasonic,material,White Paper,5,10.22,G14
+Ultrasonic,material,Matte Box,1,9.64,C15
+Ultrasonic,material,Matte Box,2,10.02,D15
+Ultrasonic,material,Matte Box,3,9.66,E15
+Ultrasonic,material,Matte Box,4,9.64,F15
+Ultrasonic,material,Matte Box,5,9.64,G15
+Ultrasonic,material,Acrylic,1,9.93,C16
+Ultrasonic,material,Acrylic,2,9.93,D16
+Ultrasonic,material,Acrylic,3,9.93,E16
+Ultrasonic,material,Acrylic,4,9.93,F16
+Ultrasonic,material,Acrylic,5,9.93,G16
+Ultrasonic,material,Styrofoam,1,10.12,C17
+Ultrasonic,material,Styrofoam,2,10.05,D17
+Ultrasonic,material,Styrofoam,3,10.12,E17
+Ultrasonic,material,Styrofoam,4,10.07,F17
+Ultrasonic,material,Styrofoam,5,10.07,G17
+Ultrasonic,material,Cling film (stretched),1,10.03,C18
+Ultrasonic,material,Cling film (stretched),2,10.07,D18
+Ultrasonic,material,Cling film (stretched),3,9.98,E18
+Ultrasonic,material,Cling film (stretched),4,10.03,F18
+Ultrasonic,material,Cling film (stretched),5,10.11,G18
+Ultrasonic,material,Cling film (loose),1,9.86,C19
+Ultrasonic,material,Cling film (loose),2,12.22,D19
+Ultrasonic,material,Cling film (loose),3,11.96,E19
+Ultrasonic,material,Cling film (loose),4,10.92,F19
+Ultrasonic,material,Cling film (loose),5,13.12,G19
+Ultrasonic,material,Sponge,1,-0.02,C20
+Ultrasonic,material,Sponge,2,-0.02,D20
+Ultrasonic,material,Sponge,3,-0.02,E20
+Ultrasonic,material,Sponge,4,-0.02,F20
+Ultrasonic,material,Sponge,5,-0.02,G20
+Ultrasonic,incidence_deg,0,1,9.74,M14
+Ultrasonic,incidence_deg,0,2,9.72,N14
+Ultrasonic,incidence_deg,0,3,9.72,O14
+Ultrasonic,incidence_deg,0,4,9.72,P14
+Ultrasonic,incidence_deg,0,5,9.74,Q14
+Ultrasonic,incidence_deg,15,1,9.74,M15
+Ultrasonic,incidence_deg,15,2,9.66,N15
+Ultrasonic,incidence_deg,15,3,9.74,O15
+Ultrasonic,incidence_deg,15,4,9.74,P15
+Ultrasonic,incidence_deg,15,5,9.72,Q15
+Ultrasonic,incidence_deg,30,1,11.03,M16
+Ultrasonic,incidence_deg,30,2,10.58,N16
+Ultrasonic,incidence_deg,30,3,10.68,O16
+Ultrasonic,incidence_deg,30,4,10.58,P16
+Ultrasonic,incidence_deg,30,5,10.58,Q16
+Ultrasonic,incidence_deg,45,1,98.65,M17
+Ultrasonic,incidence_deg,45,2,174.42,N17
+Ultrasonic,incidence_deg,45,3,152.36,O17
+Ultrasonic,incidence_deg,45,4,106.14,P17
+Ultrasonic,incidence_deg,45,5,122.55,Q17
+Ultrasonic,incidence_deg,60,1,219.29,M18
+Ultrasonic,incidence_deg,60,2,174.4,N18
+Ultrasonic,incidence_deg,60,3,177.31,O18
+Ultrasonic,incidence_deg,60,4,179.14,P18
+Ultrasonic,incidence_deg,60,5,175.63,Q18
+Ultrasonic,offset_cm,0,1,9.66,W14
+Ultrasonic,offset_cm,0,2,9.66,X14
+Ultrasonic,offset_cm,0,3,9.66,Y14
+Ultrasonic,offset_cm,0,4,9.66,Z14
+Ultrasonic,offset_cm,0,5,9.66,AA14
+Ultrasonic,offset_cm,2,1,11.06,W15
+Ultrasonic,offset_cm,2,2,11.03,X15
+Ultrasonic,offset_cm,2,3,11.02,Y15
+Ultrasonic,offset_cm,2,4,11.03,Z15
+Ultrasonic,offset_cm,2,5,11.02,AA15
+Ultrasonic,offset_cm,4,1,41.57,W16
+Ultrasonic,offset_cm,4,2,41.57,X16
+Ultrasonic,offset_cm,4,3,42.59,Y16
+Ultrasonic,offset_cm,4,4,41.57,Z16
+Ultrasonic,offset_cm,4,5,41.59,AA16
+Ultrasonic,offset_cm,6,1,207.62,W17
+Ultrasonic,offset_cm,6,2,206.69,X17
+Ultrasonic,offset_cm,6,3,205.96,Y17
+Ultrasonic,offset_cm,6,4,207.45,Z17
+Ultrasonic,offset_cm,6,5,206.52,AA17
+</pre></section><section id="file-evidence/sentinel-red.log"><h2>evidence/sentinel-red.log</h2><p><a href="sensor-evaluation/evidence/sentinel-red.log" download>Download raw file ↓</a> · <a href="sensor-evaluation.html#file-evidence/sentinel-red.log">Back to file index</a></p><pre>F
+======================================================================
+FAIL: test_sentinels_are_failures_and_not_distances (test_analysis.AnalysisTest.test_sentinels_are_failures_and_not_distances)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File &quot;&lt;workspace&gt;/outputs/github-ready/sensor-evaluation/tests/test_analysis.py&quot;, line 7, in test_sentinels_are_failures_and_not_distances
+    self.assertTrue((ROOT/&#x27;analyze.py&#x27;).exists(), &#x27;Missing reproducible invalid-reading rejection&#x27;)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : Missing reproducible invalid-reading rejection
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (failures=1)
+</pre></section><section id="file-plot_results.m"><h2>plot_results.m</h2><p><a href="sensor-evaluation/plot_results.m" download>Download raw file ↓</a> · <a href="sensor-evaluation.html#file-plot_results.m">Back to file index</a></p><pre>function plot_results
+% Plot precomputed means with half-range bars; invalid sentinels have no mean.
+root=fileparts(mfilename(&#x27;fullpath&#x27;));
+opts=detectImportOptions(fullfile(root,&#x27;data&#x27;,&#x27;summary.csv&#x27;),&#x27;TextType&#x27;,&#x27;string&#x27;);
+opts=setvartype(opts,&#x27;condition&#x27;,&#x27;string&#x27;);
+t=readtable(fullfile(root,&#x27;data&#x27;,&#x27;summary.csv&#x27;),opts);
+f=figure(&#x27;Visible&#x27;,&#x27;off&#x27;,&#x27;Position&#x27;,[100 100 1300 600]);
+cleanup=onCleanup(@()close(f));
+experiments=[&quot;material&quot; &quot;incidence_deg&quot; &quot;offset_cm&quot;];
+titles=[&quot;Target material&quot; &quot;Incidence angle (degrees)&quot; &quot;Lateral offset (cm)&quot;];
+for k=1:3
+ subplot(1,3,k);hold on;
+ for sensor=[&quot;ToF&quot; &quot;Ultrasonic&quot;]
+  rows=t(t.experiment==experiments(k) &amp; t.sensor==sensor,:);
+  errorbar(1:height(rows),rows.mean_cm,rows.half_range_cm,&#x27;o-&#x27;,&#x27;DisplayName&#x27;,sensor,&#x27;LineWidth&#x27;,1.2);
+ end
+ xticks(1:height(rows));xticklabels(rows.condition);if k==1,xtickangle(60);end
+ title(titles(k));ylabel(&#x27;Mean distance (cm)&#x27;);grid on;
+end
+legend(&#x27;Location&#x27;,&#x27;northwest&#x27;);sgtitle({&#x27;Rover sensor bench measurements: five trials per condition&#x27;, ...
+ &#x27;Bars: half range. ToF 6 cm offset and ultrasonic sponge: all five readings invalid, omitted.&#x27;});
+exportgraphics(f,fullfile(root,&#x27;results.png&#x27;),&#x27;Resolution&#x27;,180);
+end
+</pre></section><section id="file-tests/test_analysis.py"><h2>tests/test_analysis.py</h2><p><a href="sensor-evaluation/tests/test_analysis.py" download>Download raw file ↓</a> · <a href="sensor-evaluation.html#file-tests/test_analysis.py">Back to file index</a></p><pre>from pathlib import Path
+import importlib.util
+import unittest
+ROOT = Path(__file__).resolve().parents[1]
+class AnalysisTest(unittest.TestCase):
+    def test_sentinels_are_failures_and_not_distances(self):
+        self.assertTrue((ROOT/&#x27;analyze.py&#x27;).exists(), &#x27;Missing reproducible invalid-reading rejection&#x27;)
+        spec=importlib.util.spec_from_file_location(&#x27;analysis&#x27;, ROOT/&#x27;analyze.py&#x27;)
+        m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+        self.assertEqual(m.summarize(&#x27;ToF&#x27;,[819,819,819,819,819]), (0,5,None,None))
+        self.assertEqual(m.summarize(&#x27;Ultrasonic&#x27;,[-.02]*5), (0,5,None,None))
+        self.assertEqual(m.summarize(&#x27;ToF&#x27;,[10,12,819]), (2,1,11,1))
+if __name__==&#x27;__main__&#x27;:unittest.main()
+</pre></section></main></body></html>

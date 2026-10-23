@@ -1,0 +1,10 @@
+WARNING: package sun.awt.X11 not in java.desktop
+WARNING: package sun.awt.X11 not in java.desktop
+command 0.50 rad: torque [-4.173787 20.000000] Nm
+{Error using assert
+Helicopter commanded torque exceeded -6/+10 Nm
+
+Error in test_torque_limits (line 8)
+ assert(min(torque)>=-6-1e-9 && max(torque)<=10+1e-9,'Helicopter commanded torque exceeded -6/+10 Nm');
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+} 

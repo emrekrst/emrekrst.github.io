@@ -1,0 +1,101 @@
+{
+  "matlab_version": "24.2.0.2923080 (R2024b) Update 6",
+  "cart_resonance_rads": [
+    17.516005160051602,
+    49.429514295142951
+  ],
+  "cart_undamped_rads": [
+    17.521402108145011,
+    49.42671816097738
+  ],
+  "body_undamped_hz": [
+    [
+      1.6760002218258967,
+      7.0750633059616055,
+      10.703647101033789,
+      19.18292482788846,
+      209.11748540461684
+    ],
+    [
+      1.7243817268892971,
+      7.1768664359305,
+      10.703876172617992,
+      28.657885853538286,
+      255.39799470102955
+    ]
+  ],
+  "body_damped_hz": [
+    [
+      14.19986747,
+      1.73259755
+    ],
+    [
+      32.2950523,
+      1.76015436
+    ]
+  ],
+  "beam_frequencies_hz": [
+    6.535654704925471,
+    26.142618819701884,
+    58.820892344329245
+  ],
+  "beam_rayleigh_relative_error": 2.7179478102806335E-16,
+  "midspan_mass_ratio": 1.5,
+  "beam_mass_kg": 234,
+  "midspan_mass_kg": 351,
+  "cantilever_reference_hz": 2.3283062621665405,
+  "helicopter_margin": [
+    [
+      65.52388666057972,
+      36.163183356515056,
+      0
+    ],
+    [
+      -13.004131198786224,
+      19.570199326680829,
+      0
+    ]
+  ],
+  "helicopter_ideal_settling_s": 0.2561759630153137,
+  "helicopter_ideal_overshoot_pct": 4.3256985398036241,
+  "inverted_pendulum_poles": [
+    -7.0035705179572521,
+    7.00357051795725
+  ],
+  "nonlinear_energy_increase_max": -2.9683355773357789E-10,
+  "nonlinear_duration_s": 100,
+  "simulink": {
+    "Task_A8_was_A7": {
+      "stop_time": 10
+    },
+    "beam_A6_1": {
+      "stop_time": 10,
+      "free_frequency_hz": 2.3292440981671017,
+      "relative_error_pct": 0.040279752530869573
+    },
+    "beam_A6_2": {
+      "stop_time": 10,
+      "free_frequency_hz": 6.55969735780866,
+      "relative_error_pct": 0.36786908073753732
+    },
+    "beam_A7": {
+      "stop_time": 10,
+      "free_frequency_hz": 3.2562400609771438,
+      "relative_error_pct": 0.3545870156469344
+    },
+    "Task_B3": {
+      "stop_time": 100,
+      "max_abs_difference": [
+        0.0009257574441821001,
+        0.0014794387976529155,
+        0.017988335170408303,
+        0.014386799966174252
+      ]
+    },
+    "PI_D_controller": {
+      "stop_time": 10,
+      "settling_s": 0.25525646058280405,
+      "overshoot_pct": 4.2635286063710032
+    }
+  }
+}

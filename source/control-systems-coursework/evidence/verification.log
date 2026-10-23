@@ -1,0 +1,56 @@
+WARNING: package sun.awt.X11 not in java.desktop
+WARNING: package sun.awt.X11 not in java.desktop
+[Warning: The closed-loop system is unstable.] 
+[> In DynamicSystem/margin (line 82)
+In run_all (line 43)
+In test_release (line 2)] 
+                    matlab_version: '24.2.0.2923080 (R2024b) Update 6'
+               cart_resonance_rads: [17.5160 49.4295]
+                cart_undamped_rads: [17.5214 49.4267]
+                  body_undamped_hz: [2x5 double]
+                    body_damped_hz: [2x2 double]
+               beam_frequencies_hz: [6.5357 26.1426 58.8209]
+      beam_rayleigh_relative_error: 2.7179e-16
+                midspan_mass_ratio: 1.5000
+                      beam_mass_kg: 234
+                   midspan_mass_kg: 351
+           cantilever_reference_hz: 2.3283
+                 helicopter_margin: [2x3 double]
+       helicopter_ideal_settling_s: 0.2562
+    helicopter_ideal_overshoot_pct: 4.3257
+           inverted_pendulum_poles: [-7.0036 7.0036]
+     nonlinear_energy_increase_max: -2.9683e-10
+              nonlinear_duration_s: 100
+
+PASS: controls analytical and nonlinear regression checks
+command 0.50 rad: torque [-4.088844 10.000000] Nm
+command -0.50 rad: torque [-6.000000 3.836131] Nm
+PASS: helicopter enforces asymmetric actuator torque bounds
+[Warning: The closed-loop system is unstable.] 
+[> In DynamicSystem/margin (line 82)
+In run_all (line 43)] 
+SIMULATING Task_A8_was_A7
+SIMULATING beam_A6_1
+SIMULATING beam_A6_2
+SIMULATING beam_A7
+SIMULATING Task_B3
+SIMULATING PI_D_controller
+                    matlab_version: '24.2.0.2923080 (R2024b) Update 6'
+               cart_resonance_rads: [17.5160 49.4295]
+                cart_undamped_rads: [17.5214 49.4267]
+                  body_undamped_hz: [2x5 double]
+                    body_damped_hz: [2x2 double]
+               beam_frequencies_hz: [6.5357 26.1426 58.8209]
+      beam_rayleigh_relative_error: 2.7179e-16
+                midspan_mass_ratio: 1.5000
+                      beam_mass_kg: 234
+                   midspan_mass_kg: 351
+           cantilever_reference_hz: 2.3283
+                 helicopter_margin: [2x3 double]
+       helicopter_ideal_settling_s: 0.2562
+    helicopter_ideal_overshoot_pct: 4.3257
+           inverted_pendulum_poles: [-7.0036 7.0036]
+     nonlinear_energy_increase_max: -2.9683e-10
+              nonlinear_duration_s: 100
+                          simulink: [1x1 struct]
+

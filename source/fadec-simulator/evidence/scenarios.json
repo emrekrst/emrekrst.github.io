@@ -1,0 +1,404 @@
+{
+  "startThrottleStop": {
+    "idle": {
+      "phase": "RUN",
+      "n2": 60.1731140033031,
+      "egt": 365.1550507208055,
+      "degrade": 3,
+      "leader": "A",
+      "voter": 0,
+      "n2Synth": false,
+      "n2Out": false,
+      "obmCrashed": false,
+      "openLoop": false,
+      "overspeed": false,
+      "command": 1387.7776982032701,
+      "ccdl": {
+        "AB": true,
+        "AC": true,
+        "BC": true
+      },
+      "iso": {
+        "A": false,
+        "B": false,
+        "C": false
+      },
+      "pfr": 1
+    },
+    "high": {
+      "phase": "RUN",
+      "n2": 89.97081966668713,
+      "egt": 684.9746278073369,
+      "degrade": 3,
+      "leader": "A",
+      "voter": 0,
+      "n2Synth": false,
+      "n2Out": false,
+      "obmCrashed": false,
+      "openLoop": false,
+      "overspeed": false,
+      "command": 2086.9259812016107,
+      "ccdl": {
+        "AB": true,
+        "AC": true,
+        "BC": true
+      },
+      "iso": {
+        "A": false,
+        "B": false,
+        "C": false
+      },
+      "pfr": 1
+    },
+    "stopped": {
+      "phase": "OFF",
+      "n2": 0.088480280290218,
+      "egt": 51.790116682518395,
+      "degrade": 3,
+      "leader": "A",
+      "voter": 0,
+      "n2Synth": false,
+      "n2Out": false,
+      "obmCrashed": false,
+      "openLoop": false,
+      "overspeed": false,
+      "command": 0,
+      "ccdl": {
+        "AB": true,
+        "AC": true,
+        "BC": true
+      },
+      "iso": {
+        "A": false,
+        "B": false,
+        "C": false
+      },
+      "pfr": 1
+    }
+  },
+  "nominal": {
+    "phase": "RUN",
+    "n2": 59.878531747592206,
+    "egt": 370.023233954053,
+    "degrade": 3,
+    "leader": "A",
+    "voter": 0,
+    "n2Synth": false,
+    "n2Out": false,
+    "obmCrashed": false,
+    "openLoop": false,
+    "overspeed": false,
+    "command": 1389.8012941132347,
+    "ccdl": {
+      "AB": true,
+      "AC": true,
+      "BC": true
+    },
+    "iso": {
+      "A": false,
+      "B": false,
+      "C": false
+    },
+    "pfr": 0
+  },
+  "halfblind": {
+    "phase": "RUN",
+    "n2": 59.878531747592206,
+    "egt": 372.7530608305741,
+    "degrade": 2,
+    "leader": "A",
+    "voter": 1,
+    "n2Synth": false,
+    "n2Out": false,
+    "obmCrashed": false,
+    "openLoop": false,
+    "overspeed": false,
+    "command": 1389.8012941132347,
+    "ccdl": {
+      "AB": true,
+      "AC": true,
+      "BC": true
+    },
+    "iso": {
+      "A": false,
+      "B": false,
+      "C": true
+    },
+    "pfr": 1
+  },
+  "twoIso": {
+    "phase": "RUN",
+    "n2": 59.978608620949075,
+    "egt": 394.9227422650702,
+    "degrade": 1,
+    "leader": "C",
+    "voter": 2,
+    "n2Synth": true,
+    "n2Out": false,
+    "obmCrashed": false,
+    "openLoop": false,
+    "overspeed": false,
+    "command": 1392.5297648825917,
+    "ccdl": {
+      "AB": true,
+      "AC": true,
+      "BC": true
+    },
+    "iso": {
+      "A": true,
+      "B": true,
+      "C": false
+    },
+    "pfr": 3
+  },
+  "leader": {
+    "phase": "RUN",
+    "n2": 59.86875123216426,
+    "egt": 369.89423498406813,
+    "degrade": 2,
+    "leader": "B",
+    "voter": 1,
+    "n2Synth": false,
+    "n2Out": false,
+    "obmCrashed": false,
+    "openLoop": false,
+    "overspeed": false,
+    "command": 1389.651610476662,
+    "ccdl": {
+      "AB": true,
+      "AC": true,
+      "BC": true
+    },
+    "iso": {
+      "A": true,
+      "B": false,
+      "C": false
+    },
+    "pfr": 1
+  },
+  "totalLoss": {
+    "phase": "RUN",
+    "n2": 59.97968219800095,
+    "egt": 394.9369956674507,
+    "degrade": 0,
+    "leader": "A",
+    "voter": 3,
+    "n2Synth": true,
+    "n2Out": false,
+    "obmCrashed": false,
+    "openLoop": false,
+    "overspeed": false,
+    "command": 1392.546194603301,
+    "ccdl": {
+      "AB": true,
+      "AC": true,
+      "BC": true
+    },
+    "iso": {
+      "A": false,
+      "B": false,
+      "C": false
+    },
+    "pfr": 7
+  },
+  "openLoop": {
+    "phase": "RUN",
+    "n2": 60.1731140033031,
+    "egt": 365.43774535926264,
+    "degrade": 0,
+    "leader": "A",
+    "voter": 3,
+    "n2Synth": false,
+    "n2Out": false,
+    "obmCrashed": true,
+    "openLoop": true,
+    "overspeed": false,
+    "command": 1374.7879968818984,
+    "ccdl": {
+      "AB": true,
+      "AC": true,
+      "BC": true
+    },
+    "iso": {
+      "A": false,
+      "B": false,
+      "C": false
+    },
+    "pfr": 8
+  },
+  "single": {
+    "phase": "RUN",
+    "n2": 50.8801762802155,
+    "egt": 274.47004436869054,
+    "degrade": 1,
+    "leader": "C",
+    "voter": 0,
+    "n2Synth": true,
+    "n2Out": false,
+    "obmCrashed": false,
+    "openLoop": false,
+    "overspeed": false,
+    "command": 1253.2820400874562,
+    "ccdl": {
+      "AB": true,
+      "AC": true,
+      "BC": true
+    },
+    "iso": {
+      "A": false,
+      "B": false,
+      "C": false
+    },
+    "pfr": 3
+  },
+  "commonMode": {
+    "phase": "RUN",
+    "n2": 61.24438582667107,
+    "egt": 243.22929255017664,
+    "degrade": 3,
+    "leader": "A",
+    "voter": 0,
+    "n2Synth": false,
+    "n2Out": true,
+    "obmCrashed": false,
+    "openLoop": false,
+    "overspeed": false,
+    "command": 1063.682074181595,
+    "ccdl": {
+      "AB": true,
+      "AC": true,
+      "BC": true
+    },
+    "iso": {
+      "A": false,
+      "B": false,
+      "C": false
+    },
+    "pfr": 1
+  },
+  "obmCrash": {
+    "phase": "RUN",
+    "n2": 59.878531747592206,
+    "egt": 370.023233954053,
+    "degrade": 3,
+    "leader": "A",
+    "voter": 0,
+    "n2Synth": false,
+    "n2Out": false,
+    "obmCrashed": true,
+    "openLoop": false,
+    "overspeed": false,
+    "command": 1389.8012941132347,
+    "ccdl": {
+      "AB": true,
+      "AC": true,
+      "BC": true
+    },
+    "iso": {
+      "A": false,
+      "B": false,
+      "C": false
+    },
+    "pfr": 1
+  },
+  "ccdl": {
+    "phase": "RUN",
+    "n2": 59.878531747592206,
+    "egt": 370.023233954053,
+    "degrade": 3,
+    "leader": "A",
+    "voter": 0,
+    "n2Synth": false,
+    "n2Out": false,
+    "obmCrashed": false,
+    "openLoop": false,
+    "overspeed": false,
+    "command": 1389.8012941132347,
+    "ccdl": {
+      "AB": false,
+      "AC": true,
+      "BC": true
+    },
+    "iso": {
+      "A": false,
+      "B": false,
+      "C": false
+    },
+    "pfr": 1
+  },
+  "hot": {
+    "phase": "HOT",
+    "n2": 0.2860548298397848,
+    "egt": 562.7808455461386,
+    "degrade": 3,
+    "leader": "A",
+    "voter": 0,
+    "n2Synth": false,
+    "n2Out": false,
+    "obmCrashed": false,
+    "openLoop": false,
+    "overspeed": false,
+    "command": 0,
+    "ccdl": {
+      "AB": true,
+      "AC": true,
+      "BC": true
+    },
+    "iso": {
+      "A": false,
+      "B": false,
+      "C": false
+    },
+    "pfr": 1
+  },
+  "hung": {
+    "phase": "HUNG",
+    "n2": 0.2860549223747719,
+    "egt": 17.29229976604077,
+    "degrade": 3,
+    "leader": "A",
+    "voter": 0,
+    "n2Synth": false,
+    "n2Out": false,
+    "obmCrashed": false,
+    "openLoop": false,
+    "overspeed": false,
+    "command": 0,
+    "ccdl": {
+      "AB": true,
+      "AC": true,
+      "BC": true
+    },
+    "iso": {
+      "A": false,
+      "B": false,
+      "C": false
+    },
+    "pfr": 1
+  },
+  "overspeed": {
+    "phase": "RUN",
+    "n2": 118.01213831445085,
+    "egt": 635.3824231674603,
+    "degrade": 3,
+    "leader": "A",
+    "voter": 0,
+    "n2Synth": false,
+    "n2Out": true,
+    "obmCrashed": false,
+    "openLoop": false,
+    "overspeed": true,
+    "command": 120,
+    "ccdl": {
+      "AB": true,
+      "AC": true,
+      "BC": true
+    },
+    "iso": {
+      "A": false,
+      "B": false,
+      "C": false
+    },
+    "pfr": 2
+  }
+}

@@ -1,0 +1,10 @@
+WARNING: package sun.awt.X11 not in java.desktop
+WARNING: package sun.awt.X11 not in java.desktop
+PASS: turbojet refuses preloaded targets and preserves unrelated models
+SIMULATING override_n_feedfw_feedbk_ctrl original_step
+SIMULATING override_n_feedfw_feedbk_ctrl idle
+SIMULATING override_n_feedfw_feedbk_ctrl full_to_idle
+SIMULATING override_n_feedfw_feedbk_ctrl_torque_plant original_step
+SIMULATING override_n_feedfw_feedbk_ctrl_torque_plant idle
+SIMULATING override_n_feedfw_feedbk_ctrl_torque_plant full_to_idle
+PASS: two plants, three scenarios each; fuel bounds, finite RPM, settled tracking, PI clamp
